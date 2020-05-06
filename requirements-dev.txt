@@ -1,0 +1,15 @@
+beautifulsoup4
+pandas
+matplotlib
+seaborn
+networkx
+lxml
+regex
+scikit-learn
+python-louvain
+textdistance
+cdlib
+infomap
+coverage
+numpy
+Send2Trash
