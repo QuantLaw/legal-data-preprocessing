@@ -1,7 +1,7 @@
 ALL_YEARS = list(range(1994, 2019))
 
-US_DATA_PATH = "../legal-networks-data/us/"
-US_TEMP_DATA_PATH = "temp/us/"
+US_DATA_PATH = "../legal-networks-data/us"
+US_TEMP_DATA_PATH = "temp/us"
 
 US_INPUT_PATH = f"{US_DATA_PATH}/1_downloads"
 US_ORIGINAL_PATH = f"{US_TEMP_DATA_PATH}/11_htm"
@@ -20,10 +20,9 @@ US_REFERENCE_AREAS_LOG_PATH = f"{US_HELPERS_PATH}/us_extract_reference_areas.log
 US_REFERENCE_PARSED_LOG_PATH = f"{US_HELPERS_PATH}/us_extract_reference_parsed.log"
 
 
-DE_DATA_PATH = "../legal-networks-data/de/"
-DE_TEMP_DATA_PATH = "temp/de/"
+DE_DATA_PATH = "../legal-networks-data/de"
+DE_TEMP_DATA_PATH = "temp/de"
 
-DE_ORIGINAL_PATH = f"{DE_DATA_PATH}/1_juris_gii_xml"
 DE_XML_PATH = f"{DE_TEMP_DATA_PATH}/11_xml"
 DE_XML_NESTED_PATH = f"{DE_TEMP_DATA_PATH}/12_xml"
 DE_LAW_NAMES_PATH = f"{DE_TEMP_DATA_PATH}/13_law_names.csv"
@@ -41,3 +40,19 @@ DE_SNAPSHOT_MAPPING_EDGELIST_PATH = f"{DE_DATA_PATH}/5_snapshot_mapping_edgelist
 DE_HELPERS_PATH = f"{DE_TEMP_DATA_PATH}/helpers"
 DE_REFERENCE_AREAS_LOG_PATH = f"{DE_HELPERS_PATH}/de_extract_reference_areas.log"
 DE_REFERENCE_PARSED_LOG_PATH = f"{DE_HELPERS_PATH}/de_extract_reference_parsed.log"
+
+@property
+def DE_ORIGINAL_VERSION_INDICES_PATH():
+    raise Exception('Outdated TODO')
+
+@property
+def DE_INPUT_PATH():
+    raise Exception('Outdated TODO')
+
+@property
+def DE_INPUT_LIST_PATH():
+    raise Exception('Outdated TODO')
+
+@property
+def DE_XML_HEADING_ORDERS_PATH():
+    raise Exception('Outdated TODO')

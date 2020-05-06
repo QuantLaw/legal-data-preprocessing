@@ -1,6 +1,7 @@
 # Roughly validate the input files
 import os
 import re
+import shutil
 
 from common import ensure_exists
 from statics import US_INPUT_PATH, US_ORIGINAL_PATH
@@ -27,7 +28,7 @@ def us_validate_input():
             if os.path.exists(f"{US_ORIGINAL_PATH}/{new_name}"):
                 print(f"{US_ORIGINAL_PATH}/{new_name} already exists")
             else:
-                os.rename(
+                shutil.copy(
                     f"{US_INPUT_PATH}/{subfolder}/{item}",
                     f"{US_ORIGINAL_PATH}/{new_name}",
                 )
