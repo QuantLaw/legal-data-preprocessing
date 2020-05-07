@@ -56,3 +56,7 @@ def DE_INPUT_LIST_PATH():
 @property
 def DE_XML_HEADING_ORDERS_PATH():
     raise Exception('Outdated TODO')
+
+@property
+def DE_ORIGINAL_PATH():
+    raise Exception('Outdated TODO')
