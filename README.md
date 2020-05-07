@@ -27,7 +27,7 @@ The processing for the US Code is executed in multiple steps:
 Input is are ZIP files downloaded from the US House of Representatives Office of the Law 
 Revision Counsel. We use annual versions in XHTML format that are available on 
 https://uscode.house.gov/download/annualhistoricalarchives/downloadxhtml.shtml.
-Files should be located at `../legal-networks-data/us/1_downloads`. 
+Files should be located at `../legal-networks-data/us/1_input`. 
 This folder should contain an unzipped yearly folders.
 
 

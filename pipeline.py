@@ -13,11 +13,8 @@ from de_crossreference_lookup import (
     de_crossreference_lookup_prepare,
     de_crossreference_lookup,
 )
-from de_validity_table import (
-    de_validity_table_prepare,
-    de_validity_table,
-    de_validity_table_finish,
-)
+from de_prepare_input import de_prepare_input
+
 from common import get_stemmed_law_names_for_filename, str_to_bool, process_items
 from de_law_names import de_law_names_finish, de_law_names, de_law_names_prepare
 from de_reference_areas import (
@@ -32,12 +29,6 @@ from de_reference_parse import (
 )
 from de_to_xml import de_to_xml_prepare, de_to_xml
 
-from de_xml_headings import (
-    de_xml_heading_order,
-    de_xml_heading_order_prepare,
-    de_xml_heading_order_finish,
-)
-from de_xml_nest import get_xml_heading_orders, de_xml_nest_prepare, de_xml_nest
 from hierarchy_graph import hierarchy_graph, hierarchy_graph_prepare
 from snapshot_mapping_edgelist import (
     snapshot_mapping_edgelist_prepare,
@@ -78,7 +69,7 @@ from us_reference_parse import (
     us_reference_parse_finish,
 )
 from us_to_xml import us_to_xml, us_to_xml_prepare
-from us_filter_input import us_filter_input
+from us_prepare_input import us_prepare_input
 
 
 def get_subseqitem_conf(subseqitems):
@@ -162,11 +153,8 @@ if __name__ == "__main__":
 
     if "all" in steps:
         steps = [
-            "filter_input", # US only
+            "prepare_input",
             "xml",
-            "xml_headings",  # DE only
-            "xml_nest",  # DE only
-            "validity_table",  # DE only
             "law_names",  # DE only
             "reference_areas",
             "reference_parse",
@@ -190,9 +178,11 @@ if __name__ == "__main__":
                         "E.g. for de --snapshots 2012-01-31 2013-01-31 or for us --snapshot 2001"
                     )
 
-    if "filter_input" in steps:
+    if "prepare_input" in steps:
         if dataset == "us":
-            us_filter_input()
+            us_prepare_input()
+        elif dataset == "de":
+            de_prepare_input()
         print("Filter input: done")
 
     if "xml" in steps:
@@ -215,55 +205,14 @@ if __name__ == "__main__":
             )
         print("Convert to xml: done")
 
-    if "xml_headings" in steps:
-        if dataset == "de":
-            items = de_xml_heading_order_prepare(overwrite)
-            orders = process_items(
-                items,
-                selected_items,
-                action_method=de_xml_heading_order,
-                use_multiprocessing=use_multiprocessing,
-            )
-            de_xml_heading_order_finish(orders)
-            print("Get heading orders: done")
-
-    if "xml_nest" in steps:
-        if dataset == "de":
-            items = de_xml_nest_prepare(overwrite)
-            heading_orders = get_xml_heading_orders()
-            process_items(
-                items,
-                selected_items,
-                action_method=de_xml_nest,
-                use_multiprocessing=use_multiprocessing,
-                args=(heading_orders,),
-            )
-            print("Nest xml: done")
-
-    if "validity_table" in steps:
-        if dataset == "de":
-            indices, xmls_dict = de_validity_table_prepare(overwrite)
-            data = process_items(
-                indices,
-                [],  # Ignore filter
-                action_method=de_validity_table,
-                use_multiprocessing=use_multiprocessing,
-                args=(xmls_dict,),
-            )
-            de_validity_table_finish(data, xmls_dict)
-
-            print("Validity table: done")
-
     if "law_names" in steps:
         if dataset == "de":
-            items, validity_table = de_law_names_prepare(overwrite)
-            print("items", len(items))
+            items = de_law_names_prepare(overwrite)
             names = process_items(
                 items,
                 [],  # Ignore filter
                 action_method=de_law_names,
                 use_multiprocessing=use_multiprocessing,
-                args=(validity_table,),
             )
             de_law_names_finish(names)
 
