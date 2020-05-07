@@ -31,7 +31,7 @@ from de_reference_parse import (
     de_reference_parse_finish,
 )
 from de_to_xml import de_to_xml_prepare, de_to_xml
-from de_validate_input import de_validate_input
+
 from de_xml_headings import (
     de_xml_heading_order,
     de_xml_heading_order_prepare,
@@ -78,7 +78,7 @@ from us_reference_parse import (
     us_reference_parse_finish,
 )
 from us_to_xml import us_to_xml, us_to_xml_prepare
-from us_validate_input import us_validate_input
+from us_filter_input import us_filter_input
 
 
 def get_subseqitem_conf(subseqitems):
@@ -162,7 +162,7 @@ if __name__ == "__main__":
 
     if "all" in steps:
         steps = [
-            # "validate",
+            "filter_input", # US only
             "xml",
             "xml_headings",  # DE only
             "xml_nest",  # DE only
@@ -190,12 +190,10 @@ if __name__ == "__main__":
                         "E.g. for de --snapshots 2012-01-31 2013-01-31 or for us --snapshot 2001"
                     )
 
-    if "validate" in steps:
+    if "filter_input" in steps:
         if dataset == "us":
-            us_validate_input()
-        elif dataset == "de":
-            de_validate_input()
-        print("Validation: done")
+            us_filter_input()
+        print("Filter input: done")
 
     if "xml" in steps:
         if dataset == "us":

@@ -7,7 +7,7 @@ from common import ensure_exists
 from statics import US_INPUT_PATH, US_ORIGINAL_PATH
 
 
-def us_validate_input():
+def us_filter_input():
     """moves files into main dir and validate files roughly"""
 
     ensure_exists(US_ORIGINAL_PATH)
