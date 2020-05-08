@@ -163,8 +163,8 @@ def load_law_names():
         dict(
             citename=row.citename,
             citekey=row.citekey,
-            start=row.filename.split("_")[1],
-            end=os.path.splitext(row.filename)[0].split("_")[2],
+            start=row.filename.split("_")[2],
+            end=os.path.splitext(row.filename)[0].split("_")[3],
             filename=row.filename,
         )
         for i, row in df.iterrows()
@@ -179,7 +179,7 @@ def load_law_names_compiled():
 
 def get_stemmed_law_names_for_filename(filename, law_names):
 
-    date = os.path.splitext(filename)[0].split("_")[1]
+    date = os.path.splitext(filename)[0].split("_")[2]
 
     laws_lookup = law_names[date]
 

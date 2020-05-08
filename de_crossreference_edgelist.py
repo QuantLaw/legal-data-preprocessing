@@ -4,7 +4,7 @@ import os
 import numpy
 import pandas as pd
 
-from common import ensure_exists, create_soup
+from common import ensure_exists, create_soup, get_snapshot_law_list
 from statics import (
     DE_CROSSREFERENCE_EDGELIST_PATH,
     DE_CROSSREFERENCE_LOOKUP_PATH,
@@ -28,8 +28,8 @@ def de_crossreference_edgelist_prepare(overwrite, snapshots):
     return snapshots
 
 
-def de_crossreference_edgelist(snapshot):
-    files = get_snapshot_law_list(snapshot)
+def de_crossreference_edgelist(snapshot, law_names_data):
+    files = get_snapshot_law_list(snapshot, law_names_data)
     key_df = (
         pd.read_csv(f"{DE_CROSSREFERENCE_LOOKUP_PATH}/{snapshot}.csv")
         .dropna()
@@ -44,16 +44,17 @@ def de_crossreference_edgelist(snapshot):
 
 def make_edge_list(file, key_df):
     soup = create_soup(f"{DE_REFERENCE_PARSED_PATH}/{file}")
-    edge_df = pd.DataFrame(columns=["out_node", "in_node"])
+    edges = []
 
     # FOR DEBUG
     problem_matches = set()
     problem_keys = set()
 
     for item in soup.find_all("seqitem"):
-        if item.find_all("reference"):
+        references = item.find_all("reference")
+        if references:
             node_out = item.get("key")
-            for node in item.find_all("reference"):
+            for node in references:
                 if node.lawname and node.lawname.get("type") in [
                     "dict",
                     "sgb",
@@ -71,12 +72,7 @@ def make_edge_list(file, key_df):
                             if type(matches) is not str:
                                 problem_matches.add(tuple(matches))
                             node_in = matches if type(matches) == str else matches[0]
-                            edge_df = edge_df.append(  # TODO improve performance
-                                pd.DataFrame(
-                                    dict(in_node=[node_in], out_node=[node_out])
-                                ),
-                                ignore_index=True,
-                            )
+                            edges.append((node_out, node_in))
                             assert len(ref) > 1
                         except KeyError:
                             problem_keys.add(key)
@@ -86,4 +82,4 @@ def make_edge_list(file, key_df):
         print(f"{file} Problem Matches:\n", sorted(list(problem_matches)))
     if len(problem_keys) > 0:
         print(f"{file} Problem Matches:\n", sorted(list(problem_keys)))
-    return edge_df[["out_node", "in_node"]]
+    return pd.DataFrame(edges, columns=["out_node", "in_node"])

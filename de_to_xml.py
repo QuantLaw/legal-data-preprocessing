@@ -15,7 +15,12 @@ def de_to_xml_prepare(overwrite):
 
     if not overwrite:
         existing_files = list_dir(DE_XML_PATH, ".xml")
-        files = list(filter(lambda f: f not in existing_files, files))
+
+        # Remove cite_key
+        converted_existing_files = [
+            f.split("_")[0] + "_" + "_".join(f.split("_")[2:]) for f in existing_files
+        ]
+        files = list(filter(lambda f: f not in converted_existing_files, files))
 
     return sorted(files)
 
@@ -23,7 +28,7 @@ def de_to_xml_prepare(overwrite):
 def de_to_xml(filename):
     with open(f"{DE_ORIGINAL_PATH}/{filename}") as f:
         soup = BeautifulSoup(f.read(), "lxml-xml")
-    convert_to_xml(soup, f"{DE_XML_PATH}/{filename}")
+    convert_to_xml(soup, filename)
 
 
 #######################################
@@ -82,7 +87,7 @@ def analyse_is_preamble(s_metadaten, s_enbez):
 
 
 analyse_is_appendix_pattern = re.compile(
-    r"(Anlage|Anhang|Schlu.s?formel|Tabelle \w+ zu)\b", flags=re.IGNORECASE,
+    r"(Anlagen?|Anhang|Schlu.s?formel|Tabelle \w+ zu)\b", flags=re.IGNORECASE,
 )
 
 remove_removed_items_pattern = re.compile(
@@ -99,13 +104,13 @@ def nodeid_counter():
 citekey_enbez_pattern = re.compile(r"(§§?|Art[a-z\.]*)\s?(\d+[a-z]*)\b")
 
 
-def convert_to_xml(source_soup, target_filename):
+def convert_to_xml(source_soup, filename):
     t_soup = BeautifulSoup("", "lxml-xml")
 
     s_norms = source_soup.dokumente.find_all("norm", recursive=False)
 
     if not len(s_norms):
-        print("EMPTY FILE", target_filename)
+        print("EMPTY FILE", filename)
         return
 
     s_rahmen = s_norms[0]
@@ -178,6 +183,14 @@ def convert_to_xml(source_soup, target_filename):
                 t_items.append(t_item)
                 cursor = cursor[:corrected_level] + [t_item]
 
+        if s_enbez and s_enbez.lower() in [
+            "inhaltsverzeichnis",
+            "eingangsformel",
+            "inhaltsübersicht",
+            "inhalt",
+        ]:
+            continue
+
         if s_text:  # is seqitem
             t_seqitem = t_soup.new_tag("seqitem", attrs={"level": len(cursor)})
             if s_enbez:
@@ -221,9 +234,15 @@ def convert_to_xml(source_soup, target_filename):
             elif len(t.contents) == 0:
                 t.decompose()
 
+    doknr, start_date, end_date = os.path.splitext(filename)[0].split("_")
+    target_filename = (
+        f"{DE_XML_PATH}/"
+        + "_".join([doknr, citekey_prefix, start_date, end_date])
+        + ".xml"
+    )
+
     nodeid_counter.counter = 0
-    file_id = os.path.splitext(os.path.split(target_filename)[1])[0]
-    file_id = "_".join([file_id.split("_")[0], citekey_prefix, file_id.split("_")[2]])
+    file_id = "_".join([doknr, citekey_prefix, end_date])
     for t in t_soup.find_all(["document", "item", "seqitem", "subseqitem"]):
         t.attrs["key"] = f"{file_id}_{nodeid_counter():06d}"
 
@@ -234,7 +253,7 @@ def convert_to_xml(source_soup, target_filename):
                 if match:
                     t.attrs["citekey"] = f"{citekey_prefix}_{match[2]}"
                 else:
-                    print(f"Cannot create citekey of {heading} in {citekey_prefix}")
+                    print(f"Cannot create citekey of {heading} in {target_filename}")
 
     with open(target_filename, "w", encoding="utf8") as f:
         f.write(str(t_soup))

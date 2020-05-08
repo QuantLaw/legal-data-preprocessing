@@ -15,7 +15,7 @@ from de_crossreference_lookup import (
 )
 from de_prepare_input import de_prepare_input
 
-from common import str_to_bool, process_items, load_law_names_compiled
+from common import str_to_bool, process_items, load_law_names_compiled, load_law_names
 from de_law_names import de_law_names_finish, de_law_names, de_law_names_prepare
 from de_reference_areas import (
     de_reference_areas_prepare,
@@ -321,12 +321,14 @@ if __name__ == "__main__":
             source = DE_REFERENCE_PARSED_PATH
             destination = DE_CROSSREFERENCE_EDGELIST_PATH
 
+            law_names_data = load_law_names()
             items = de_crossreference_edgelist_prepare(overwrite, snapshots)
             process_items(
                 items,
                 [],
                 action_method=de_crossreference_edgelist,
                 use_multiprocessing=use_multiprocessing,
+                args=(law_names_data,),
             )
         print("Create crossreference edgelist: done")
 

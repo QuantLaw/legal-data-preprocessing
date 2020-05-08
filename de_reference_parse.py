@@ -43,7 +43,7 @@ def de_reference_parse(filename, law_names):
 
     soup = create_soup(f"{DE_REFERENCE_AREAS_PATH}/{filename}")
     parse_reference_content_in_soup(soup, debug_context=filename)
-    current_lawid = os.path.splitext(filename)[0].split("_")[1]
+    current_lawid = soup.document.attrs["key"].split("_")[1]
     identify_reference_law_name_in_soup(
         soup, laws_lookup, laws_lookup_keys, current_lawid
     )
