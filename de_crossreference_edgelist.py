@@ -4,7 +4,7 @@ import os
 import numpy
 import pandas as pd
 
-from common import ensure_exists, create_soup, get_snapshot_law_list
+from common import ensure_exists, create_soup
 from statics import (
     DE_CROSSREFERENCE_EDGELIST_PATH,
     DE_CROSSREFERENCE_LOOKUP_PATH,
@@ -71,7 +71,7 @@ def make_edge_list(file, key_df):
                             if type(matches) is not str:
                                 problem_matches.add(tuple(matches))
                             node_in = matches if type(matches) == str else matches[0]
-                            edge_df = edge_df.append( # TODO improve performance
+                            edge_df = edge_df.append(  # TODO improve performance
                                 pd.DataFrame(
                                     dict(in_node=[node_in], out_node=[node_out])
                                 ),

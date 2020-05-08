@@ -12,16 +12,16 @@ from common import (
     get_stemmed_law_names_for_filename,
 )
 from statics import (
-    DE_XML_NESTED_PATH,
     DE_REFERENCE_AREAS_PATH,
     DE_HELPERS_PATH,
     DE_REFERENCE_AREAS_LOG_PATH,
+    DE_XML_PATH,
 )
 
 
 def de_reference_areas_prepare(overwrite):
     ensure_exists(DE_REFERENCE_AREAS_PATH)
-    files = list_dir(DE_XML_NESTED_PATH, ".xml")
+    files = list_dir(DE_XML_PATH, ".xml")
 
     if not overwrite:
         existing_files = os.listdir(DE_REFERENCE_AREAS_PATH)
@@ -30,13 +30,11 @@ def de_reference_areas_prepare(overwrite):
     return files
 
 
-def de_reference_areas(filename, df_law_names, df_validities):
-    laws_lookup = get_stemmed_law_names_for_filename(
-        filename, df_law_names, df_validities
-    )
+def de_reference_areas(filename, law_names):
+    laws_lookup = get_stemmed_law_names_for_filename(filename, law_names)
     logs = []
     laws_lookup_keys = sorted(laws_lookup.keys(), reverse=True)
-    soup = create_soup(f"{DE_XML_NESTED_PATH}/{filename}")
+    soup = create_soup(f"{DE_XML_PATH}/{filename}")
     para, art, misc = analyze_type_of_headings(soup)
 
     logs.extend(find_references_in_soup(soup, laws_lookup, laws_lookup_keys, para, art))
@@ -210,7 +208,9 @@ def analyze_type_of_headings(soup):
     art = 0
     misc = 0
     for tag in soup.find_all("seqitem"):
-        if tag.attrs["heading"].replace("\n", "").startswith("§"):
+        if "heading" not in tag.attrs:
+            misc += 1
+        elif tag.attrs["heading"].replace("\n", "").startswith("§"):
             para += 1
         elif tag.attrs["heading"].replace("\n", "").lower().startswith("art"):
             art += 1

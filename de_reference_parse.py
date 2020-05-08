@@ -32,10 +32,8 @@ def de_reference_parse_prepare(overwrite):
     return files
 
 
-def de_reference_parse(filename, df_law_names, df_validities):
-    laws_lookup = get_stemmed_law_names_for_filename(
-        filename, df_law_names, df_validities
-    )
+def de_reference_parse(filename, law_names):
+    laws_lookup = get_stemmed_law_names_for_filename(filename, law_names)
     laws_lookup_keys = sorted(laws_lookup.keys(), reverse=True)
 
     logs = list()

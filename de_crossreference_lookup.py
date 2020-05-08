@@ -1,6 +1,6 @@
 import pandas as pd
 
-from common import get_snapshot_law_list, create_soup, ensure_exists
+from common import create_soup, ensure_exists
 from statics import DE_XML_NESTED_PATH, DE_CROSSREFERENCE_LOOKUP_PATH
 
 

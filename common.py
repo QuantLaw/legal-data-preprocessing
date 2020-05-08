@@ -2,6 +2,7 @@ import argparse
 import json
 import multiprocessing
 import os
+import pickle
 import re
 from collections import Counter
 from multiprocessing import cpu_count
@@ -11,7 +12,11 @@ import pandas as pd
 from regex import regex
 from send2trash import send2trash
 
-from statics import DE_LAW_NAMES_PATH, DE_LAW_VALIDITIES_PATH
+from statics import (
+    DE_LAW_NAMES_PATH,
+    DE_LAW_VALIDITIES_PATH,
+    DE_LAW_NAMES_COMPILED_PATH,
+)
 
 
 ##########
@@ -217,13 +222,6 @@ def invert_dict_mapping_all(mapping_dictionary):
     return inverted
 
 
-def invert_mapping(x):
-    raise Exception(
-        "Deprecated: Use invert_dict_mapping_all() instead. New function is declared in the same file."
-    )
-    # TODO remove later
-
-
 def invert_dict_mapping_unique(source_dict):
     """
     Inverts keys and values of a dict. Only entries with unique values are inverted.
@@ -259,47 +257,21 @@ def clean_name(name):
     )
 
 
-def get_stemmed_law_names_for_filename(filename, df_law_names=None, df_validities=None):
-    """
-    :param filename:
-    :param df_law_names: can be passed to optimize performance
-    :param df_validities: can be passed to optimize performance
-    :return:
-    """
-
-    if df_validities is None:
-        df_validities = pd.read_csv(DE_LAW_VALIDITIES_PATH, index_col="filename")
-    snapshot = df_validities.loc[filename, "start"]
-    return get_stemmed_law_names_for_snapshot(snapshot, df_law_names)
+def load_law_names_compiled():
+    with open(DE_LAW_NAMES_COMPILED_PATH, "rb") as f:
+        return pickle.load(f)
 
 
-def get_stemmed_law_names_for_snapshot(snapshot, df_law_names=None, df_validities=None):
-    """
-    :param filename:
-    :param df_law_names: can be passed to optimize performance
-    :param df_validities: can be passed to optimize performance
-    :return:
-    """
+def get_stemmed_law_names_for_filename(filename, law_names):
 
-    if df_law_names is None:
-        df_law_names = pd.read_csv(DE_LAW_NAMES_PATH)
-    if df_validities is None:
-        df_validities = pd.read_csv(DE_LAW_VALIDITIES_PATH, index_col="filename")
+    date = os.path.splitext(filename)[0].split("_")[1]
 
-    if type(snapshot) is pd.Series:
-        snapshot = snapshot.iloc[0]
-        # TODO remove this and check why some filenames appear twice
-
-    valid_laws = get_snapshot_law_list(snapshot, df_validities)
-
-    laws_lookup = {}
-    for index, row in df_law_names.iterrows():
-        if row.filename[: -len("html")] + "xml" in valid_laws:
-            laws_lookup[row.citename] = row.citekey
+    laws_lookup = law_names[date]
 
     # Custom law names, stemmed as key.
     laws_lookup["grundgesetz"] = "GG"
 
+    # TODO Move to compile
     # Add law names without year number if key already used
     shortened_keys = {}
     for key, value in laws_lookup.items():
@@ -317,6 +289,7 @@ def get_stemmed_law_names_for_snapshot(snapshot, df_law_names=None, df_validitie
 
 
 def get_snapshot_law_list(date, df=None):
+    raise Exception("implement")
     if df is None:
         df = pd.read_csv(DE_LAW_VALIDITIES_PATH, index_col="filename")
     snapshot_files_df = df[
@@ -367,7 +340,7 @@ def filename_for_pp_config(
 
 
 def get_config_from_filename(filename):
-    components = filename.split('_')
+    components = filename.split("_")
     config = dict(
         snaphot=components[0],
         pp_ratio=float(components[1].replace("-", ".")),
@@ -375,12 +348,12 @@ def get_config_from_filename(filename):
         pp_merge=int(components[3].replace("-", ".")),
     )
     for component in components[4:]:
-        if component.startswith('n'):
-            config['number_of_modules'] = int(component[1:].replace("-", "."))
-        if component.startswith('m'):
-            config['markov_time'] = float(component[1:].replace("-", "."))
-        if component.startswith('s'):
-            config['seed'] = int(component[1:].replace("-", "."))
-        if component.startswith('c'):
-            config['consensus'] = int(component[1:].replace("-", "."))
+        if component.startswith("n"):
+            config["number_of_modules"] = int(component[1:].replace("-", "."))
+        if component.startswith("m"):
+            config["markov_time"] = float(component[1:].replace("-", "."))
+        if component.startswith("s"):
+            config["seed"] = int(component[1:].replace("-", "."))
+        if component.startswith("c"):
+            config["consensus"] = int(component[1:].replace("-", "."))
     return config

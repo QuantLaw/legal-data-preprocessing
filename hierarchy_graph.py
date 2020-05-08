@@ -55,12 +55,12 @@ def nest_items(G, items):
                 item.attrs["key"],
                 key=item.attrs["key"],
                 citekey=item.attrs.get("citekey", ""),
-                heading=item.attrs["heading"],
+                heading=item.attrs.get("heading", ""),
                 parent_key="",
                 level=int(item.attrs["level"]),
                 type=item.name,
             )
-            G.graph["name"] = item.attrs["heading"]
+            G.graph["name"] = item.attrs.get("heading", "")
     validate_graph(G)
     return G
 

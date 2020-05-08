@@ -15,7 +15,7 @@ from de_crossreference_lookup import (
 )
 from de_prepare_input import de_prepare_input
 
-from common import get_stemmed_law_names_for_filename, str_to_bool, process_items
+from common import str_to_bool, process_items, load_law_names_compiled
 from de_law_names import de_law_names_finish, de_law_names, de_law_names_prepare
 from de_reference_areas import (
     de_reference_areas_prepare,
@@ -231,15 +231,14 @@ if __name__ == "__main__":
             us_reference_areas_finish(logs)
 
         elif dataset == "de":
-            df_law_names = pd.read_csv(DE_LAW_NAMES_PATH)
-            df_validities = pd.read_csv(DE_LAW_VALIDITIES_PATH, index_col="filename")
+            law_names = load_law_names_compiled()
             items = de_reference_areas_prepare(overwrite)
             logs = process_items(
                 items,
                 selected_items,
                 action_method=de_reference_areas,
                 use_multiprocessing=use_multiprocessing,
-                args=(df_law_names, df_validities),
+                args=(law_names,),
             )
             de_reference_areas_finish(logs)
         print("Extract reference areas: done")
@@ -255,15 +254,14 @@ if __name__ == "__main__":
             )
             us_reference_parse_finish(logs)
         if dataset == "de":
-            df_law_names = pd.read_csv(DE_LAW_NAMES_PATH)
-            df_validities = pd.read_csv(DE_LAW_VALIDITIES_PATH, index_col="filename")
+            law_names = load_law_names_compiled()
             items = de_reference_parse_prepare(overwrite)
             logs = process_items(
                 items,
                 selected_items,
                 action_method=de_reference_parse,
                 use_multiprocessing=use_multiprocessing,
-                args=(df_law_names, df_validities),
+                args=(law_names,),
             )
             de_reference_parse_finish(logs)
 

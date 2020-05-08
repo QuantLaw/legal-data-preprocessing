@@ -9,7 +9,6 @@ from regex import regex
 from common import (
     ensure_exists,
     list_dir,
-    get_snapshot_law_list,
     create_soup,
     invert_dict_mapping_all,
     invert_dict_mapping_unique,
@@ -37,7 +36,9 @@ def snapshot_mapping_edgelist_prepare(
     files = sorted(list_dir(source_graph, ".graphml"))
 
     # Create mappings to draw the edges
-    mappings = [(file1, file2) for file1, file2 in zip(files[:-interval], files[interval:])]
+    mappings = [
+        (file1, file2) for file1, file2 in zip(files[:-interval], files[interval:])
+    ]
 
     if snapshots:
         mappings = list(
