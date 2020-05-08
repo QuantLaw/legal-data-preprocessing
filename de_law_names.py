@@ -1,13 +1,15 @@
-import os
 import pickle
 
 import pandas as pd
 
-from common import list_dir, stem_law_name, create_html_soup, create_soup
+from common import (
+    list_dir,
+    stem_law_name,
+    create_soup,
+    load_law_names,
+)
 from statics import (
-    DE_ORIGINAL_PATH_OUTDATED,
     DE_LAW_NAMES_PATH,
-    DE_LAW_VALIDITIES_PATH,
     DE_XML_PATH,
     DE_LAW_NAMES_COMPILED_PATH,
 )
@@ -53,18 +55,8 @@ def de_law_names_finish(names_per_file):
 
 
 def compile_law_names():
-    df = pd.read_csv(DE_LAW_NAMES_PATH)
-    data = [
-        dict(
-            citename=row.citename,
-            citekey=row.citekey,
-            start=row.filename.split("_")[1],
-            end=os.path.splitext(row.filename)[0].split("_")[2],
-        )
-        for i, row in df.iterrows()
-    ]
+    data = load_law_names()
     dates = sorted({r["start"] for r in data})
-    df = None
 
     dated_law_names = {}
 

@@ -3,7 +3,7 @@ import os
 import networkx as nx
 import pandas as pd
 
-from common import ensure_exists, list_dir, get_snapshot_law_list
+from common import ensure_exists, list_dir, get_snapshot_law_list, load_law_names
 
 
 def get_filename(year):
@@ -40,8 +40,9 @@ def crossreference_graph_prepare(
             )
     else:  # is DE
         files = []
+        law_names_data = load_law_names()
         for snapshot in snapshots:
-            graphml_files = get_snapshot_law_list(snapshot)
+            graphml_files = get_snapshot_law_list(snapshot, law_names_data)
             files.append(
                 (
                     snapshot,

@@ -14,7 +14,6 @@ from send2trash import send2trash
 
 from statics import (
     DE_LAW_NAMES_PATH,
-    DE_LAW_VALIDITIES_PATH,
     DE_LAW_NAMES_COMPILED_PATH,
 )
 
@@ -77,54 +76,14 @@ def str_to_bool(v):
 #############
 
 
-def unwrap_subfolders(path, ignored_files=[], allowe_override=[]):
-    """moves files from subdir of path into path"""
-    subfolders = [f.name for f in os.scandir(path) if f.is_dir()]
-    for subfolder in subfolders:
-        error = False
-        for item in os.listdir(f"{path}/{subfolder}"):
-            # Skip ignored files
-            if item in ignored_files:
-                continue
-
-            # Prevent overwriting files
-            if os.path.exists(f"{path}/{item}") and item not in allowe_override:
-                print(f"{path}/{subfolder}/{item} could not be moved")
-                error = True
-            else:
-                os.rename(f"{path}/{subfolder}/{item}", f"{path}/{item}")
-
-        if not error:
-            send2trash(f"{path}/{subfolder}")
-
-
 def ensure_exists(path):
     if not os.path.exists(path):
         os.makedirs(path)
     return path
 
 
-def load_json(path):
-    """
-    Helper to unclutter json loading.
-    """
-    with open(path) as f:
-        return json.load(f)
-
-
 def list_dir(path, type):
     return [f for f in os.listdir(path) if f.endswith(type)]
-
-
-def list_dir_extended(directory, selector_func, full_path=False):
-    """
-    Wrapper around os.listdir to select only certain files from the directory and optionally output the full paths.
-    Example usage: list_dir(path_to_directory, lambda x:x.endswith('json'), full_path=True)
-    """
-    if not full_path:
-        return [x for x in os.listdir(directory) if selector_func(x)]
-    else:
-        return [f"{directory}/{x}" for x in os.listdir(directory) if selector_func(x)]
 
 
 ###############
@@ -135,11 +94,6 @@ def list_dir_extended(directory, selector_func, full_path=False):
 def create_soup(path):
     with open(path, encoding="utf8") as f:
         return bs4.BeautifulSoup(f.read(), "lxml-xml")
-
-
-def create_html_soup(path):
-    with open(path, encoding="utf8") as f:
-        return bs4.BeautifulSoup(f.read(), "lxml")
 
 
 def save_soup(soup, path):
@@ -153,62 +107,8 @@ def save_soup(soup, path):
 
 
 ########################
-# DE categorize headings
-########################
-
-
-heading_types = (
-    "Unterabschnitt",
-    "Untertitel",
-    "Unterkapitel",
-    "Unterartikel",
-    "Abschnitt",
-    "Teil",
-    "Buch",
-    "Kapitel",
-    "Titel",
-    "Art",
-    "Hauptstück",
-    "arabic-dot",  # 1., 2., ...
-    ("roman-upper-dot", "alpha-upper-dot"),  # s.u.
-    "roman-upper-dot",  # I., II., ...
-    "alpha-upper-dot",  # A., B., ...
-    "alpha-lower-bracket",  # a), b), ...
-    #     'Anlage', # Remove for nesting
-    #     'Anhang' # Remove for nesting
-)
-
-
-def categorize_heading_regex(heading_type):
-    patterns = {
-        "arabic-dot": r"\d+(\s?[a-zA-Z]{1,2})?\.",
-        ("roman-upper-dot", "alpha-upper-dot"): r"(I|V|X|L)\.",
-        "roman-upper-dot": r"(X[CL]|L?X{0,3})(I[XV]|V?I{0,3})(\s?[a-z])?\.",
-        "alpha-upper-dot": r"[A-Z]\.",
-        "alpha-lower-bracket": r"[a-z]{1,2}\)",
-    }
-    if patterns.get(heading_type):
-        return patterns[heading_type]
-
-    assert "-" not in heading_type
-    return r"(?:[\w\.]+\s)?(?:(?:bis|und)\s[\w\.]+\s)?" + heading_type + r"\b"
-
-
-########################
 # Generic Data Wrangling
 ########################
-
-
-def extract_lawname_from_nodekey(nodekey, country_code):
-    """
-    :param nodekey: the key of a node in a statute graph, e.g., the crossreference graph
-    :param country_code: us|de
-    :return: the short identifier of the law the node belongs to
-    """
-    if country_code.lower() == "de":
-        return nodekey.split("_")[1]
-    else:
-        return nodekey.split("_")[0]
 
 
 def invert_dict_mapping_all(mapping_dictionary):
@@ -257,6 +157,21 @@ def clean_name(name):
     )
 
 
+def load_law_names():
+    df = pd.read_csv(DE_LAW_NAMES_PATH)
+    data = [
+        dict(
+            citename=row.citename,
+            citekey=row.citekey,
+            start=row.filename.split("_")[1],
+            end=os.path.splitext(row.filename)[0].split("_")[2],
+            filename=row.filename,
+        )
+        for i, row in df.iterrows()
+    ]
+    return data
+
+
 def load_law_names_compiled():
     with open(DE_LAW_NAMES_COMPILED_PATH, "rb") as f:
         return pickle.load(f)
@@ -288,15 +203,13 @@ def get_stemmed_law_names_for_filename(filename, law_names):
     return laws_lookup
 
 
-def get_snapshot_law_list(date, df=None):
-    raise Exception("implement")
-    if df is None:
-        df = pd.read_csv(DE_LAW_VALIDITIES_PATH, index_col="filename")
-    snapshot_files_df = df[
-        (df["start"].fillna("") <= date)
-        & ((df["end"].fillna("") == "") | (df["end"].fillna("9999-99-99") >= date))
-    ]
-    return list(snapshot_files_df.index)
+def get_snapshot_law_list(date, law_names_data):
+    date = date.replace("-", "")
+    law_names_list = {
+        d["filename"] for d in law_names_data if d["start"] <= date and d["end"] >= date
+    }
+    assert len(law_names_list) == len({x.split("_")[0] for x in law_names_list})
+    return law_names_list
 
 
 def find_parent_with_name(tag, name):
@@ -309,51 +222,3 @@ def find_parent_with_name(tag, name):
         return tag
     else:
         return find_parent_with_name(tag.parent, name)
-
-
-#####################
-# Community detection
-#####################
-
-
-def filename_for_pp_config(
-    snapshot,
-    pp_ratio,
-    pp_decay,
-    pp_merge,
-    file_ext,
-    seed=None,
-    markov_time=None,
-    consensus=0,
-    number_of_modules=None,
-):
-    filename = f"{snapshot}_{pp_ratio}_{pp_decay}_{pp_merge}"
-    if number_of_modules:
-        filename += f"_n{number_of_modules}"
-    if markov_time:
-        filename += f"_m{markov_time}"
-    if seed is not None:
-        filename += f"_s{seed}"
-    if consensus:
-        filename += f"_c{consensus}"
-    return filename.replace(".", "-") + file_ext
-
-
-def get_config_from_filename(filename):
-    components = filename.split("_")
-    config = dict(
-        snaphot=components[0],
-        pp_ratio=float(components[1].replace("-", ".")),
-        pp_decay=float(components[2].replace("-", ".")),
-        pp_merge=int(components[3].replace("-", ".")),
-    )
-    for component in components[4:]:
-        if component.startswith("n"):
-            config["number_of_modules"] = int(component[1:].replace("-", "."))
-        if component.startswith("m"):
-            config["markov_time"] = float(component[1:].replace("-", "."))
-        if component.startswith("s"):
-            config["seed"] = int(component[1:].replace("-", "."))
-        if component.startswith("c"):
-            config["consensus"] = int(component[1:].replace("-", "."))
-    return config

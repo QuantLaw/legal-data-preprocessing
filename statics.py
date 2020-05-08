@@ -41,38 +41,3 @@ DE_SNAPSHOT_MAPPING_EDGELIST_PATH = f"{DE_DATA_PATH}/5_snapshot_mapping_edgelist
 DE_HELPERS_PATH = f"{DE_TEMP_DATA_PATH}/helpers"
 DE_REFERENCE_AREAS_LOG_PATH = f"{DE_HELPERS_PATH}/de_extract_reference_areas.log"
 DE_REFERENCE_PARSED_LOG_PATH = f"{DE_HELPERS_PATH}/de_extract_reference_parsed.log"
-
-
-@property
-def DE_ORIGINAL_VERSION_INDICES_PATH():
-    raise Exception("Outdated TODO")
-
-
-@property
-def DE_INPUT_PATH():
-    raise Exception("Outdated TODO")
-
-
-@property
-def DE_INPUT_LIST_PATH():
-    raise Exception("Outdated TODO")
-
-
-@property
-def DE_XML_HEADING_ORDERS_PATH():
-    raise Exception("Outdated TODO")
-
-
-@property
-def DE_ORIGINAL_PATH_OUTDATED():
-    raise Exception("Outdated TODO")
-
-
-@property
-def DE_LAW_VALIDITIES_PATH():
-    raise Exception("Outdated TODO")
-
-
-@property
-def DE_XML_NESTED_PATH():
-    raise Exception("Outdated TODO")

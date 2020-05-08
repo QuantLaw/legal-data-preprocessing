@@ -31,16 +31,6 @@ def de_to_xml(filename):
 #######################################
 
 
-# def clean_toc(text):
-#     return re.sub("<heading>\nInhaltsübersicht.*?</text>", "", text, flags=re.DOTALL)
-#
-#
-# def clean_entry(text):
-#     return clean_whites(
-#         re.sub("<heading>\nEingangsformel.*?</text>", "", text, flags=re.DOTALL)
-#     )
-
-
 def create_root_elment(s_rahmen, t_soup):
     t_document = t_soup.new_tag(
         "document",

@@ -46,8 +46,6 @@ from statics import (
     US_SNAPSHOT_MAPPING_EDGELIST_PATH,
     DE_SNAPSHOT_MAPPING_EDGELIST_PATH,
     ALL_YEARS,
-    DE_LAW_NAMES_PATH,
-    DE_LAW_VALIDITIES_PATH,
 )
 from us_crossreference_edgelist import (
     us_crossreference_edgelist_prepare,
