@@ -4,7 +4,7 @@ import os
 
 import regex
 
-from legal_data_common_utils.common import (
+from utils.common import (
     list_dir,
     ensure_exists,
     create_soup,

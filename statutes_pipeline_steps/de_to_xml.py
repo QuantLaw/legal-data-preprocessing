@@ -3,7 +3,7 @@ import re
 
 from bs4 import BeautifulSoup
 
-from legal_data_common_utils.common import ensure_exists, list_dir
+from utils.common import ensure_exists, list_dir
 from statics import DE_XML_PATH, DE_ORIGINAL_PATH
 
 

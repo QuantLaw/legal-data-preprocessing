@@ -2,7 +2,7 @@ import pickle
 
 import pandas as pd
 
-from legal_data_common_utils.common import (
+from utils.common import (
     list_dir,
     stem_law_name,
     create_soup,

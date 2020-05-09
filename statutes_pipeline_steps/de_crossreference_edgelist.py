@@ -4,7 +4,7 @@ import os
 import numpy
 import pandas as pd
 
-from legal_data_common_utils.common import (
+from utils.common import (
     ensure_exists,
     create_soup,
     get_snapshot_law_list,

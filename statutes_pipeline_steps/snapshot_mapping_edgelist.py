@@ -6,7 +6,7 @@ import textdistance
 from regex import regex
 
 
-from legal_data_common_utils.common import (
+from utils.common import (
     ensure_exists,
     list_dir,
     create_soup,
@@ -18,7 +18,7 @@ from legal_data_common_utils.common import (
 import sys
 
 sys.path.append("../")
-from legal_data_common_utils import graph_api
+from utils import graph_api
 
 
 def mapping_filename(mapping):

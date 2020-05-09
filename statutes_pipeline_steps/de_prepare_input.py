@@ -2,7 +2,7 @@
 import os
 import shutil
 
-from legal_data_common_utils.common import ensure_exists
+from utils.common import ensure_exists
 from statics import JURIS_EXPORT_PATH, DE_ORIGINAL_PATH, JURIS_EXPORT_GESETZE_LIST_PATH
 
 

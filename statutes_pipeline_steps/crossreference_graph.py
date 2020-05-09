@@ -3,7 +3,7 @@ import os
 import networkx as nx
 import pandas as pd
 
-from legal_data_common_utils.common import (
+from utils.common import (
     ensure_exists,
     list_dir,
     get_snapshot_law_list,

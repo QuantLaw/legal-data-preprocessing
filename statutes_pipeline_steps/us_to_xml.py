@@ -3,7 +3,7 @@ import re
 from collections import OrderedDict
 import bs4
 from bs4 import BeautifulSoup
-from legal_data_common_utils.common import ensure_exists, list_dir
+from utils.common import ensure_exists, list_dir
 
 from statics import US_XML_PATH, US_ORIGINAL_PATH
 

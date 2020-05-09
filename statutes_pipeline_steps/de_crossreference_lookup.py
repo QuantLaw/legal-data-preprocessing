@@ -1,6 +1,6 @@
 import pandas as pd
 
-from legal_data_common_utils.common import (
+from utils.common import (
     create_soup,
     ensure_exists,
     get_snapshot_law_list,

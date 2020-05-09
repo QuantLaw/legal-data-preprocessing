@@ -1,7 +1,7 @@
 import argparse
 import unittest
 
-from legal_data_common_utils.common import str_to_bool
+from utils.common import str_to_bool
 
 
 class TestCommon(unittest.TestCase):

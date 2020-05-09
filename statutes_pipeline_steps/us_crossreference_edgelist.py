@@ -5,7 +5,7 @@ import os
 
 import pandas as pd
 
-from legal_data_common_utils.common import ensure_exists, list_dir, create_soup
+from utils.common import ensure_exists, list_dir, create_soup
 from statics import (
     US_REFERENCE_PARSED_PATH,
     US_CROSSREFERENCE_LOOKUP_PATH,

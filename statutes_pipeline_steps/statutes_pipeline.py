@@ -12,7 +12,7 @@ from statutes_pipeline_steps.de_crossreference_lookup import (
 )
 from statutes_pipeline_steps.de_prepare_input import de_prepare_input
 
-from legal_data_common_utils.common import (
+from utils.common import (
     str_to_bool,
     process_items,
     load_law_names_compiled,
