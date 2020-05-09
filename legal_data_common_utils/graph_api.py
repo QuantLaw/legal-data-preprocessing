@@ -15,7 +15,9 @@ def induced_subgraph(G, filter_type, filter_attribute, filter_values):
     """
     G = nx.MultiDiGraph(G)
     if filter_type == "node":
-        nodes = [n for n in G.nodes() if G.nodes[n].get(filter_attribute) in filter_values]
+        nodes = [
+            n for n in G.nodes() if G.nodes[n].get(filter_attribute) in filter_values
+        ]
         sG = nx.induced_subgraph(G, nodes)
     elif filter_type == "edge":
         sG = nx.MultiDiGraph()
@@ -94,7 +96,7 @@ def get_new_edges(G, ordered_seqitems, seq_decay_func):
     for idx, n in enumerate(ordered_seqitems[:-1]):
         next_item = ordered_seqitems[idx + 1]
         if (
-                n.split("_")[0] == next_item.split("_")[0]
+            n.split("_")[0] == next_item.split("_")[0]
         ):  # n and next_item are in the same law
             distance = nx.shortest_path_length(hG, source=n, target=next_item)
             weight = seq_decay_func(distance)
