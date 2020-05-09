@@ -10,7 +10,6 @@ from multiprocessing import cpu_count
 import bs4
 import pandas as pd
 from regex import regex
-from send2trash import send2trash
 
 from statics import (
     DE_LAW_NAMES_PATH,
