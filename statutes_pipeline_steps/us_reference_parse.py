@@ -4,7 +4,12 @@ import os
 
 import regex
 
-from legal_data_common_utils.common import list_dir, ensure_exists, create_soup, save_soup
+from legal_data_common_utils.common import (
+    list_dir,
+    ensure_exists,
+    create_soup,
+    save_soup,
+)
 from statics import (
     US_REFERENCE_PARSED_PATH,
     US_REFERENCE_AREAS_PATH,
