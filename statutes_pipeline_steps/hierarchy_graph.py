@@ -4,7 +4,7 @@ import re
 import networkx as nx
 from bs4 import BeautifulSoup
 
-from common import ensure_exists, list_dir
+from legal_data_common_utils.common import ensure_exists, list_dir
 
 
 def get_graphml_filename(filename):

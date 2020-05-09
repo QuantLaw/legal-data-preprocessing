@@ -5,7 +5,7 @@ from collections import Counter
 
 from regex import regex
 
-from common import (
+from legal_data_common_utils.common import (
     ensure_exists,
     list_dir,
     create_soup,

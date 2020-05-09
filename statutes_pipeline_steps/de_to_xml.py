@@ -1,11 +1,9 @@
 import os
 import re
-import traceback
 
 from bs4 import BeautifulSoup
-from bs4.element import Tag, NavigableString
 
-from common import ensure_exists, list_dir, find_parent_with_name
+from legal_data_common_utils.common import ensure_exists, list_dir
 from statics import DE_XML_PATH, DE_ORIGINAL_PATH
 
 

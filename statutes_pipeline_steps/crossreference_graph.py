@@ -3,7 +3,7 @@ import os
 import networkx as nx
 import pandas as pd
 
-from common import ensure_exists, list_dir, get_snapshot_law_list, load_law_names
+from legal_data_common_utils.common import ensure_exists, list_dir, get_snapshot_law_list, load_law_names
 
 
 def get_filename(year):

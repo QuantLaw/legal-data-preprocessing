@@ -1,10 +1,9 @@
 import os
 import re
-import traceback
 from collections import OrderedDict
 import bs4
 from bs4 import BeautifulSoup
-from common import ensure_exists, list_dir
+from legal_data_common_utils.common import ensure_exists, list_dir
 
 from statics import US_XML_PATH, US_ORIGINAL_PATH
 
@@ -94,9 +93,9 @@ def correct_errors_in_source(filepath, lines):
     elif title == "281" and year == "2017":  # remove inconsistent document
         # filename == "2017usc28a.htm"
         assert (
-                str(lines[3468])
-                == "b'<!-- documentid:28a_-FEDERAL_RULES_OF_APPELLATE_PROCEDURE-&#160;&#160; "
-                   "currentthrough:20180112 documentPDFPage:92 -->\\r\\n'"
+            str(lines[3468])
+            == "b'<!-- documentid:28a_-FEDERAL_RULES_OF_APPELLATE_PROCEDURE-&#160;&#160; "
+            "currentthrough:20180112 documentPDFPage:92 -->\\r\\n'"
         )
         del lines[3468:3475]
 
@@ -155,8 +154,8 @@ def analyze_comment(comment):
 
 def introduction_ends(element):
     return (
-            type(element) is bs4.element.Comment
-            and analyze_comment(element)[0] == "documentid"
+        type(element) is bs4.element.Comment
+        and analyze_comment(element)[0] == "documentid"
     )
 
 
@@ -216,8 +215,8 @@ def split_into_documents(soup):
     )  # Filled with open tags, using 'field-start' as start marker and 'field-start' as end marker.
     last_tag = None
     introduction = (
-        True
-    )  # True if the iterator has recognized the beginning of the first document
+        True  # True if the iterator has recognized the beginning of the first document
+    )
 
     for tag in soup.body.div.contents:
 
@@ -415,7 +414,7 @@ ALLOWED_SUBTAGS = ["i", "sup", "a", "cap-smallcap", "strong", "sub", "em", "br"]
 
 def assert_statutes_child(child):
     assert (
-            not child.get("class") or len(child.get("class")) == 1
+        not child.get("class") or len(child.get("class")) == 1
     )  # Max. one class per child
     # Assertion: allowed subtags
     if child.name in ["h4", "p", "h3"]:
@@ -425,27 +424,27 @@ def assert_statutes_child(child):
                 bs4.element.NavigableString,
                 bs4.element.Comment,
             ] or (
-                           type(descendant) is bs4.element.Tag
-                           and descendant.name in ALLOWED_SUBTAGS
-                   )
+                type(descendant) is bs4.element.Tag
+                and descendant.name in ALLOWED_SUBTAGS
+            )
 
 
 def check_allowed_div_table_subtags(tag):
     for descendant in tag.descendants if tag.descendants else []:
         if not (
-                type(descendant) in [bs4.element.Comment, bs4.element.NavigableString]
-                or descendant.name
-                in {
-                    *ALLOWED_SUBTAGS,
-                    "div",
-                    "table",
-                    "tr",
-                    "td",
-                    "th",
-                    "caption",
-                    "p",
-                    "br",
-                }
+            type(descendant) in [bs4.element.Comment, bs4.element.NavigableString]
+            or descendant.name
+            in {
+                *ALLOWED_SUBTAGS,
+                "div",
+                "table",
+                "tr",
+                "td",
+                "th",
+                "caption",
+                "p",
+                "br",
+            }
         ):
             print(descendant)
             return False
@@ -511,8 +510,8 @@ def convert_statute_field_to_contents(document):
             # Order is determined by: STATUTE_STRUCTURE / STATUTE_STRUCTURE_VALUES
             # get type of current element and all lower types
             types_to_remove = STATUTE_STRUCTURE_VALUES[
-                              STATUTE_STRUCTURE_VALUES.index(child_type):
-                              ]
+                STATUTE_STRUCTURE_VALUES.index(child_type) :
+            ]
             remove_from = None
             for open_element_type in open_element_types:
                 if open_element_type in types_to_remove:
@@ -521,8 +520,8 @@ def convert_statute_field_to_contents(document):
                     break
             if remove_from:
                 del open_elements[
-                    open_element_types.index(remove_from):
-                    ]  # close / remove respecive elements
+                    open_element_types.index(remove_from) :
+                ]  # close / remove respecive elements
 
             # create new element
             if child_type.startswith("text"):
@@ -549,8 +548,8 @@ def convert_statute_field_to_contents(document):
             if continued_item_type not in open_element_types:
                 # get types that should be nested in current type
                 lower_types = STATUTE_STRUCTURE_VALUES[
-                              STATUTE_STRUCTURE_VALUES.index(continued_item_type) + 1:
-                              ]
+                    STATUTE_STRUCTURE_VALUES.index(continued_item_type) + 1 :
+                ]
                 subelement_type = None
                 for lower_type in lower_types:
                     if lower_type in open_element_types:
@@ -591,15 +590,15 @@ def convert_statute_field_to_contents(document):
             # Close subelements and continue element of current level
             # This is the only actions required, if the continued element already exists in the tree
             parent_level = open_element_types.index(continued_item_type)
-            del open_elements[parent_level + 1:]
+            del open_elements[parent_level + 1 :]
             open_elements[-1]["contents"].append(child.get_text())
             # Raise an error if class in unknown and not in skipped
 
         else:
             if (
-                    str(child) != '<td class="middle"></td>'
-                    and str(child) != '<td class="right"></td>'
-                    and not (child_class in SKIP_CLASS)
+                str(child) != '<td class="middle"></td>'
+                and str(child) != '<td class="right"></td>'
+                and not (child_class in SKIP_CLASS)
             ):
                 raise Exception(child)
 
@@ -648,11 +647,11 @@ def content_to_soup(content, soup, level, version, doc):
 def remove_unnecessary_subseqitems(soup):
     for seqitem in soup.find_all("seqitem"):
         if (
-                len(seqitem.contents) == 1
-                and seqitem.contents[0].name == "subseqitem"
-                and seqitem.contents[0].attrs["heading"] == ""
-                and len(seqitem.contents[0].contents) == 1
-                and seqitem.contents[0].contents[0].name == "text"
+            len(seqitem.contents) == 1
+            and seqitem.contents[0].name == "subseqitem"
+            and seqitem.contents[0].attrs["heading"] == ""
+            and len(seqitem.contents[0].contents) == 1
+            and seqitem.contents[0].contents[0].name == "text"
         ):
             seqitem.contents[0].unwrap()
 

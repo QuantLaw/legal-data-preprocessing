@@ -3,7 +3,7 @@ import os
 import re
 import shutil
 
-from common import ensure_exists
+from legal_data_common_utils.common import ensure_exists
 from statics import US_INPUT_PATH, US_ORIGINAL_PATH
 
 

@@ -1,6 +1,6 @@
 import pandas as pd
 
-from common import create_soup, ensure_exists, get_snapshot_law_list, load_law_names
+from legal_data_common_utils.common import create_soup, ensure_exists, get_snapshot_law_list, load_law_names
 from statics import DE_CROSSREFERENCE_LOOKUP_PATH, DE_REFERENCE_PARSED_PATH
 
 

@@ -4,7 +4,7 @@ import os
 import numpy
 import pandas as pd
 
-from common import ensure_exists, create_soup, get_snapshot_law_list
+from legal_data_common_utils.common import ensure_exists, create_soup, get_snapshot_law_list
 from statics import (
     DE_CROSSREFERENCE_EDGELIST_PATH,
     DE_CROSSREFERENCE_LOOKUP_PATH,

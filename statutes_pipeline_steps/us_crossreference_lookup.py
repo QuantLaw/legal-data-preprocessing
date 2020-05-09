@@ -2,7 +2,7 @@ import os
 
 import pandas as pd
 
-from common import list_dir, ensure_exists, create_soup
+from legal_data_common_utils.common import list_dir, ensure_exists, create_soup
 
 # TODO LATER merge lookups for US and DE into single file
 from statics import US_REFERENCE_PARSED_PATH, US_CROSSREFERENCE_LOOKUP_PATH
