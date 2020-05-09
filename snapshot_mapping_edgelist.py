@@ -12,6 +12,7 @@ from common import (
     create_soup,
     invert_dict_mapping_all,
     invert_dict_mapping_unique,
+    get_snapshot_law_list,
 )
 
 import sys
@@ -59,6 +60,7 @@ def snapshot_mapping_edgelist(
     source_graph,
     source_text,
     destination,
+    law_names_data,
     min_text_length=50,
     radius=5,
     distance_threshold=0.9,
@@ -68,8 +70,8 @@ def snapshot_mapping_edgelist(
     G1 = load_crossref_graph(filename1, source_graph)
     G2 = load_crossref_graph(filename2, source_graph)
 
-    leave_texts1 = get_leaf_texts_to_compare(filename1, G1, source_text)
-    leave_texts2 = get_leaf_texts_to_compare(filename2, G2, source_text)
+    leave_texts1 = get_leaf_texts_to_compare(filename1, G1, source_text, law_names_data)
+    leave_texts2 = get_leaf_texts_to_compare(filename2, G2, source_text, law_names_data)
 
     # STEP 1: unique perfect matches
     new_mappings = map_unique_texts(
@@ -145,7 +147,7 @@ def get_remaining(t1, t2, new_mappings, asserting=True, printing=False):
     return remaining_keys1, remaining_keys2
 
 
-def get_leaf_texts_to_compare(graph_filename, G, source_text):
+def get_leaf_texts_to_compare(graph_filename, G, source_text, law_names_data):
     """
     get text fpr leaves of a hierarchy graph. Can be seqitem or supseqitem graph.
     Leaves are only seqitems or supseqitems.
@@ -163,7 +165,7 @@ def get_leaf_texts_to_compare(graph_filename, G, source_text):
             ]
         )
     else:  # is DE
-        files = get_snapshot_law_list(snapshot)
+        files = get_snapshot_law_list(snapshot, law_names_data)
     whitespace_pattern = regex.compile(r"[\s\n]+")
     texts = {}
     for file in files:

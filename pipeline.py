@@ -368,12 +368,13 @@ if __name__ == "__main__":
         items = snapshot_mapping_edgelist_prepare(
             overwrite, snapshots, source_graph, source_text, destination, interval
         )
+        law_names_data = load_law_names()
         process_items(
             items,
             [],
             action_method=snapshot_mapping_edgelist,
             use_multiprocessing=use_multiprocessing,
             processes=2,
-            args=(source_graph, source_text, destination),
+            args=(source_graph, source_text, destination, law_names_data),
         )
         print("Make snapshot mapping: done")
