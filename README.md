@@ -80,7 +80,7 @@ Snapshot mapping edgelists are stored at `../legal-networks-data/us/5_snapshot_m
 
 #### 3. Hierarchy Graphs    
 
-#### 4. Crossreference graphs
+#### 4. Cross-reference graphs
 
 #### 5. Snapshot mapping edgelists
 
