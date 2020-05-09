@@ -2,7 +2,7 @@ import unittest
 
 from bs4 import BeautifulSoup
 
-from statutes_pipeline.de_reference_parse import parse_reference_content
+from statutes_pipeline_steps.de_reference_parse import parse_reference_content
 
 
 class TestDeReferenceParse(unittest.TestCase):
