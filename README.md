@@ -3,6 +3,7 @@
 ## Installation
 
 You need Python 3.7. Other python versions might work as well, but are not tested.
+
 Install the dependencies with `pip install -r requirements.txt`.
 
 ## Getting started
@@ -31,7 +32,7 @@ For the German data using Gesetze im Internet:
 2. Run the all steps but `prepare_input` of the pipeline for the specified dates: 
     `python . de xml law_names reference_areas reference_parse hierarchy_graph crossreference_lookup crossreference_edgelist crossreference_graph snapshot_mapping_edgelist --snapshots 2019-06-10 2020-01-18`
     
-If you need to reduce memory usage, your can deactivate multiprocessing with the argument `--single-process`.
+If you need to reduce memory usage, you can deactivate multiprocessing with the argument `--single-process`.
 
 
 ## Statutes
