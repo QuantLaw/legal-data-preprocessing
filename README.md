@@ -1,4 +1,4 @@
-# legal-data-preprocessing
+# Legal data proprocessing
 
 ## Installation
 
