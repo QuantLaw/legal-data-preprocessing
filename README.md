@@ -50,6 +50,19 @@ Output formats are:
     to a snapshot at another time. It encodes e.g. where a clause of the US Code in 2010 is 
     located in the US Code of 2011. This mapping is derived from the text and the structure 
     of the statutes.
+    
+In steps of the pipeline are:
+
+- `prepare_input`
+- `xml`
+- `law_names` (only for German pipeline)
+- `reference_areas`
+- `reference_parse`
+- `hierarchy_graph`
+- `crossreference_lookup`
+- `crossreference_edgelist`
+- `crossreference_graph`
+- `snapshot_mapping_edgelist`
 
 
 ### US
@@ -71,20 +84,20 @@ You can automatically obtain the required data running `download_us_code_data.py
 #### 2. XML Files
 
 - Files containing titles of the US Code are copies to `temp/us/11_htm`. 
-    Appendices and Stylesheets are filtered.
+    Appendices and Stylesheets are filtered. (Result of step: `prepare_input`)
 - Simple XML files focusing on the structure are generated from the XHTML files. 
-    Results can be found in `temp/us/12_xml`
+    Results can be found in `temp/us/12_xml` (Result of step: `xml`)
 - Text segments containing a cross-reference are annotated in the XML files. Results are saved to 
-    `temp/us/13_reference_areas`.
+    `temp/us/13_reference_areas`. (Result of step: `reference_areas`)
 - The contents of the annotated cross-references are extracted and added to the XML. 
 
-The results of the XML generation are saved to `../legal-networks-data/us/2_xml`.
+The results of the XML generation are saved to `../legal-networks-data/us/2_xml`. (Result of step: `reference_parse`)
 
 
 #### 3. Hierarchy Graphs    
 
 Graphs containing the hierarchical structure of the statutes are saved to `../legal-networks-data/us/3_hierarchy_graph`
-in separate files for each Title and annual version.
+in separate files for each Title and annual version. (Result of step: `hierarchy_graph`)
 
 Hierarchy graphs are avaiable in two resolutions: 
 - Sections level
@@ -95,13 +108,16 @@ Hierarchy graphs are avaiable in two resolutions:
 
 - Lists of all sections in the US Code at a specific point in time is generated to obtain a list of possible
     destinations of cross-references. This is a perparation to draw edges from the reference to the destination of a
-    cross-reference. The lists are stored at `temp/us/31_crossreference_lookup`.
+    cross-reference. The lists are stored at `temp/us/31_crossreference_lookup`. 
+    (Result of step: `crossreference_lookup`)
 - Lists of all cross-references are generated. They contain the ID of the referencing and referenced element. 
     The lists are located at `temp/us/32_crossreference_edgelist`.
+    (Result of step: `crossreference_edgelist`)
 - Hierarchy graphs of the individual Titles are combined and edges for cross-references are added within and between 
     Titles.
 
 One graph for each annual version of the US Code is stored at `../legal-networks-data/us/4_crossreference_graph`.
+(Result of step: `crossreference_graph`)
 
 
 #### 5. Snapshot mapping edgelists
@@ -128,20 +144,21 @@ These files can be generated from two sources:
 #### 2. XML Files
 
 - Files in the simplified format of Gesetze im Internet are generated and saved to `temp/de/11_gii_xml`
+    (Result of step: `prepare_input` or  `download_de_gesetze_im_internet_data.py`)
 - Simple XML files focusing on the structure are generated from the XML files. 
-    Results can be found in `temp/de/12_xml`. 
-    - Simultaneously a list of the names of all statutes (Gesetze) is saved to
+    Results can be found in `temp/de/12_xml`. (Result of step: `xml`)
+- A list of the names of all statutes (Gesetze) is saved to
         `temp/de/12_xml_law_names.csv` with a mapping to the corresponding files. 
         This is used to extract cross-references, as statutes are typically referenced by their name. 
-        Names are saved in a stemmed version. 
+        Names are saved in a stemmed version. (Result of step: `law_names`)
     - Furthermore `temp/de/12_xml_law_names_compiled.pickle` is generated. 
         It contains the same information as `12_xml_law_names.csv`, 
-        but it optimized to obtain the stemmed names of all valid law at specific dates.
+        but it optimized to obtain the stemmed names of all valid law at specific dates. (Result of step: `law_names`)
 - Text segments containing a cross-reference are annotated in the XML files. Results are saved to 
-    `temp/de/13_reference_areas`.
+    `temp/de/13_reference_areas`. (Result of step: `reference_areas`)
 - The contents of the annotated cross-references are extracted and added to the XML. 
 
-The results of the XML generation are saved to `../legal-networks-data/de/2_xml`.
+The results of the XML generation are saved to `../legal-networks-data/de/2_xml`. (Result of step: `reference_parse`)
 
 #### 3. Hierarchy Graphs
 
