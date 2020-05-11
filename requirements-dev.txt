@@ -6,3 +6,5 @@ regex
 textdistance
 coverage
 numpy
+requests
+gitpython
