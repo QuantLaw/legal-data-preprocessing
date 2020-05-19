@@ -117,6 +117,21 @@ def get_new_edges(G, ordered_seqitems, seq_decay_func):
     return there + back
 
 
+def multi_to_weighted(G):
+    """
+    Converts a multidigraph into a weighted digraph.
+    """
+    nG = nx.DiGraph(G)
+    # nG.add_nodes_from(G.nodes)
+    nG.name = G.name + "_weighted_nomulti"
+    edge_weights = {(u, v): 0 for u, v, k in G.edges}
+    for u, v, key in G.edges:
+        edge_weights[(u, v)] += 1
+    # nG.add_edges_from(edge_weights.keys())
+    nx.set_edge_attributes(nG, edge_weights, "weight")
+    return nG
+
+
 ####################################
 # Rollup Helpers and Rolled-Up Graph
 ####################################

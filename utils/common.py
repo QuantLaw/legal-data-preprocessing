@@ -177,9 +177,11 @@ def load_law_names_compiled():
 
 
 def get_stemmed_law_names_for_filename(filename, law_names):
-
     date = os.path.splitext(filename)[0].split("_")[2]
+    return get_stemmed_law_names(date, law_names)
 
+
+def get_stemmed_law_names(date, law_names):
     laws_lookup = law_names[date]
 
     # Custom law names, stemmed as key.

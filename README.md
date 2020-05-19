@@ -15,7 +15,7 @@ Make the following folders do not exist next the root folder of this repository:
 Download and prepare the date for US and/or Germany. (See the respecive "1. Data input"
 sections below.) Afterwards you can run the pipeline.
 
-For the US data:
+For the US statute data:
 
 1. Download the data: `python download_us_code_data.py`
 2. Run the all steps of the pipeline: `python . us all`
@@ -25,7 +25,7 @@ For the German data using the juris export:
 1. Prepare the data (as shown in a separate repository)
 2. Run the all steps of the pipeline: `python . de all`
 
-For the German data using Gesetze im Internet:
+For the German statute data using Gesetze im Internet:
 
 1. Prepare the data. `python download_de_gesetze_im_internet_data.py --dates 2019-06-10 2020-01-18`.
     You need to specify the dates you want to analyse. 
@@ -33,6 +33,9 @@ For the German data using Gesetze im Internet:
     `python . de xml law_names reference_areas reference_parse hierarchy_graph crossreference_lookup crossreference_edgelist crossreference_graph snapshot_mapping_edgelist --snapshots 2019-06-10 2020-01-18`
     
 If you need to reduce memory usage, you can deactivate multiprocessing with the argument `--single-process`.
+
+To download and prepare german from https://www.rechtsprechung-im-internet.de court decisions, 
+run `python de_decisions_pipeline.py all`. 
 
 
 ## Statutes
