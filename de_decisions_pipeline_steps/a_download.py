@@ -1,5 +1,6 @@
 import os
 import zipfile
+from multiprocessing.pool import Pool
 
 import requests
 from bs4 import BeautifulSoup
@@ -11,6 +12,14 @@ from statics import (
     DE_DECISIONS_TEMP_DATA_PATH,
 )
 from utils.common import ensure_exists
+
+
+def download_item(link_text):
+    filename = link_text.split("/")[-1]
+    if not os.path.isfile(f"{DE_DECISIONS_DOWNLOAD_ZIP}/{filename}"):
+        content = requests.get(link_text).content
+        with open(f"{DE_DECISIONS_DOWNLOAD_ZIP}/{filename}", "wb") as f:
+            f.write(content)
 
 
 def download():
@@ -25,18 +34,9 @@ def download():
     len(soup.findAll("item"))
 
     ensure_exists(DE_DECISIONS_DOWNLOAD_ZIP)
-    i = 0
-    skip = 0
-    for item in soup.findAll("item"):
-        filename = item.link.text.split("/")[-1]
-        if os.path.isfile(f"{DE_DECISIONS_DOWNLOAD_ZIP}/{filename}"):
-            skip += 1
-            continue
-        content = requests.get(item.link.text).content
-        with open(f"{DE_DECISIONS_DOWNLOAD_ZIP}/{filename}", "wb") as f:
-            f.write(content)
-        i += 1
-        print(f"{i} geladen + {skip} vorhanden = {i + skip}", end="\r")
+    items = [i.link.text for i in soup.findAll("item")]
+    with Pool(4) as p:
+        p.map(download_item, items)
 
     ensure_exists(DE_DECISIONS_DOWNLOAD_XML)
 
@@ -47,4 +47,4 @@ def download():
             zip_ref.extractall(DE_DECISIONS_DOWNLOAD_XML)
             zip_ref.close()
             i += 1
-            print(f"{i} entpackt", end="\r")
+            print(f"\r{i} entpackt", end="")
