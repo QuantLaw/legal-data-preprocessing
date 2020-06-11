@@ -11,10 +11,6 @@ from utils.common import (
 )
 
 
-def get_filename(year):
-    return f"{year}.graphml"
-
-
 def crossreference_graph_prepare(
     overwrite, snapshots, source, edgelist_folder, destination
 ):
@@ -26,9 +22,9 @@ def crossreference_graph_prepare(
     # TODO LATER also check source (hierarchical graphml files)
 
     if not overwrite:
-        existing_files = list_dir(destination, ".graphml")
+        existing_files = list_dir(destination, ".gpickle.gz")
         snapshots = list(
-            filter(lambda date: get_filename(date) not in existing_files, snapshots)
+            filter(lambda year: f"{year}.gpickle.gz" not in existing_files, snapshots)
         )
 
     if not len(snapshots):
@@ -47,14 +43,11 @@ def crossreference_graph_prepare(
         files = []
         law_names_data = load_law_names()
         for snapshot in snapshots:
-            graphml_files = get_snapshot_law_list(snapshot, law_names_data)
+            graph_files = get_snapshot_law_list(snapshot, law_names_data)
             files.append(
                 (
                     snapshot,
-                    [
-                        f'{source}/{x.replace(".xml", ".graphml")}'
-                        for x in graphml_files
-                    ],
+                    [f'{source}/{x.replace(".xml", ".graphml")}' for x in graph_files],
                 )
             )
 
@@ -97,8 +90,4 @@ def crossreference_graph(args, source, edgelist_folder, destination, add_subseqi
     #     f"containment edges: {len([e for e in G.edges.data() if e[2]['edge_type'] == 'containment'])}"
     #     f"nodes:             {G.number_of_nodes()}"
     # )
-    # TODO LATER remove graphml and use gpickle.gz only (faster and more space efficient)
-    nx.write_graphml(G, f"{destination}/{year}.graphml")
-    nx.write_gpickle(
-        G, f"{destination}/{year}.gpickle.gz"
-    )  # Add for faster loading e.g. in community detection
+    nx.write_gpickle(G, f"{destination}/{year}.gpickle.gz")
