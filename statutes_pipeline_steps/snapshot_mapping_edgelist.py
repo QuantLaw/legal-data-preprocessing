@@ -43,7 +43,7 @@ def snapshot_mapping_edgelist_prepare(
 
     if snapshots:
         mappings = list(
-            filter(lambda f: os.path.splitext(f[0])[0] in snapshots, mappings)
+            filter(lambda f: f[0][: -len(".gpickle.gz")] in snapshots, mappings)
         )
 
     if not overwrite:
