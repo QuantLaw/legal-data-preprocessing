@@ -34,7 +34,7 @@ def snapshot_mapping_edgelist_prepare(
     overwrite, snapshots, source_graph, source_text, destination, interval
 ):
     ensure_exists(destination)
-    files = sorted(list_dir(source_graph, ".graphml"))
+    files = sorted(list_dir(source_graph, ".gpickle.gz"))
 
     # Create mappings to draw the edges
     mappings = [
@@ -129,7 +129,7 @@ def snapshot_mapping_edgelist(
 
 def load_crossref_graph(filename, source):
     graph_path = f"{source}/{filename}"
-    G = nx.read_graphml(graph_path)
+    G = nx.read_gpickle(graph_path)
     return G
 
 
