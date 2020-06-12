@@ -26,7 +26,9 @@ def mapping_filename(mapping):
     returns the filename mappings are stored in
     """
     filename1, filename2 = mapping
-    result = f"{os.path.splitext(filename1)[0]}_{os.path.splitext(filename2)[0]}.json"
+    result = (
+        f"{filename1[: -len('.gpickle.gz')]}_{filename2[: -len('.gpickle.gz')]}.json"
+    )
     return result
 
 
@@ -149,12 +151,12 @@ def get_remaining(t1, t2, new_mappings, asserting=True, printing=False):
 
 def get_leaf_texts_to_compare(graph_filename, G, source_text, law_names_data):
     """
-    get text fpr leaves of a hierarchy graph. Can be seqitem or supseqitem graph.
+    get text for leaves of a hierarchy graph. Can be seqitem or supseqitem graph.
     Leaves are only seqitems or supseqitems.
     """
     leaf_keys = graph_api.get_leaves(G)
 
-    snapshot = os.path.splitext(graph_filename)[0]
+    snapshot = graph_filename[: -len(".gpickle.gz")]
 
     if len(snapshot) == 4:  # TODO LATER is US
         files = sorted(

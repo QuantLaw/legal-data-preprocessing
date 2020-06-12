@@ -372,15 +372,17 @@ if __name__ == "__main__":
             source_graph = f"{US_CROSSREFERENCE_GRAPH_PATH}/subseqitems"
             source_text = US_REFERENCE_PARSED_PATH
             destination = f"{US_SNAPSHOT_MAPPING_EDGELIST_PATH}/subseqitems"
+            law_names_data = None
         elif dataset == "de":
             source_graph = f"{DE_CROSSREFERENCE_GRAPH_PATH}/subseqitems"
             source_text = DE_REFERENCE_PARSED_PATH
             destination = f"{DE_SNAPSHOT_MAPPING_EDGELIST_PATH}/subseqitems"
+            law_names_data = load_law_names()
 
         items = snapshot_mapping_edgelist_prepare(
             overwrite, snapshots, source_graph, source_text, destination, interval
         )
-        law_names_data = load_law_names()
+
         process_items(
             items,
             [],
