@@ -119,13 +119,17 @@ def convert_to_xml(source_soup, filename):
     citekey_prefix = re.sub(r"[^\wäöüÄÖÜß]", "-", jurabk)
 
     cursor = [t_document]
+    cursor_gliederungskennzahl_lengths = [0]
 
     t_items = []
 
     is_preamble = True
     is_appendix = False
     last_gliederungskennzahl = None
+
     for s_norm in s_norms:
+        correct_errors_gliederungskennzahl(filename, s_norm)
+
         s_metadaten = s_norm.find("metadaten", recursive=False)
         s_textdaten = s_norm.find("textdaten", recursive=False)
         s_enbez = s_metadaten.find("enbez", recursive=False)
@@ -144,12 +148,20 @@ def convert_to_xml(source_soup, filename):
         if s_gliederungseinheit:
             # is Item
             s_gliederungskennzahl = s_gliederungseinheit.find(
-                "gliederungskennzahl", recursive=False
+                "gliederungskennzahl", recurs8ive=False
             ).string
             level_3 = len(s_gliederungskennzahl)
             assert level_3 % 3 == 0
-            level = int(level_3 / 3)
-            assert level > 0
+            assert level_3 > 0
+            if level_3 not in cursor_gliederungskennzahl_lengths:
+                assert cursor_gliederungskennzahl_lengths[-1] < level_3, (
+                    filename,
+                    cursor_gliederungskennzahl_lengths,
+                    level_3,
+                    s_norm,
+                )
+                cursor_gliederungskennzahl_lengths.append(level_3)
+            level = cursor_gliederungskennzahl_lengths.index(level_3)
 
             if last_gliederungskennzahl != s_gliederungskennzahl:
                 last_gliederungskennzahl = s_gliederungskennzahl
@@ -180,6 +192,9 @@ def convert_to_xml(source_soup, filename):
                 parent.append(t_item)
                 t_items.append(t_item)
                 cursor = cursor[:corrected_level] + [t_item]
+                cursor_gliederungskennzahl_lengths = cursor_gliederungskennzahl_lengths[
+                    : corrected_level + 1
+                ]
 
         if s_enbez and s_enbez.lower() in [
             "inhaltsverzeichnis",
@@ -232,6 +247,30 @@ def convert_to_xml(source_soup, filename):
             elif len(t.contents) == 0:
                 t.decompose()
 
+    # Optimize Art. Gesetze e.g. BGBEG
+    modified_items = []
+    for t_item in t_items:
+        if (
+            t_item.name == "item"
+            and "heading" in t_item.attrs
+            and t_item not in modified_items
+        ):
+            match = citekey_enbez_pattern.match(t_item.attrs["heading"])
+            if match:
+                t_item.name = "seqitem"
+                subitems = list(t_item.find_all(["seqitem", "item"]))
+                modified_items.append(t_item)
+                modified_items.extend(subitems)
+                for subitem in subitems:
+                    subitem.name = "subseqitem"
+                    if (
+                        not subitem.attrs.get("heading")
+                        and len(subitem.parent.contents) == 1
+                    ):
+                        for subsubitem in subitem.find_all(level=True):
+                            subsubitem.attrs["level"] -= 1
+                        subitem.unwrap()
+
     doknr, start_date, end_date = os.path.splitext(filename)[0].split("_")
     target_filename = (
         f"{DE_XML_PATH}/"
@@ -255,3 +294,120 @@ def convert_to_xml(source_soup, filename):
 
     with open(target_filename, "w", encoding="utf8") as f:
         f.write(str(t_soup))
+
+
+def correct_errors_gliederungskennzahl(filename, s_norm):
+    if filename.startswith("BJNR002190897_"):
+        if (
+            s_norm.gliederungskennzahl
+            and s_norm.gliederungskennzahl.text == "030040020"
+            and (
+                (
+                    s_norm.find_previous_siblings("norm")[1].gliederungskennzahl
+                    and s_norm.find_previous_siblings("norm")[
+                        1
+                    ].gliederungskennzahl.text
+                    == "030040010010"
+                )
+                or (
+                    s_norm.find_previous_siblings("norm")[3].gliederungskennzahl
+                    and s_norm.find_previous_siblings("norm")[
+                        3
+                    ].gliederungskennzahl.text
+                    == "030040010010"
+                )
+            )
+        ):
+            s_norm.gliederungskennzahl.string.replace_with("030040010020")
+        elif (
+            s_norm.gliederungskennzahl
+            and s_norm.gliederungskennzahl.text == "030040050"
+            and s_norm.find_previous_siblings("norm")[1].gliederungskennzahl.text
+            == "030040010040"
+        ):
+            s_norm.gliederungskennzahl.string.replace_with("030040010050")
+
+    elif filename.startswith("BJNR003410960_"):
+        if (
+            s_norm.gliederungskennzahl
+            and len(s_norm.gliederungskennzahl.text) == 3
+            and s_norm.parent.find("gliederungskennzahl").text == "010010"
+        ):
+            s_norm.gliederungskennzahl.string.replace_with(
+                "010" + s_norm.gliederungskennzahl.string
+            )
+
+    elif filename.startswith("BJNR004050922_"):
+        if (
+            s_norm.gliederungskennzahl
+            and s_norm.gliederungskennzahl.text == "010110020"
+        ):
+            parent_str = str(s_norm.parent)
+            if ">010110010<" not in parent_str:
+                assert ">010110010050<" not in parent_str
+                s_norm.gliederungskennzahl.string.replace_with("010110010050")
+        if (
+            s_norm.gliederungskennzahl
+            and s_norm.gliederungskennzahl.text == "010110030"
+        ):
+            parent_str = str(s_norm.parent)
+            if ">010110010<" not in parent_str:
+                assert ">010110010060<" not in parent_str
+                s_norm.gliederungskennzahl.string.replace_with("010110010060")
+
+    elif filename.startswith("BJNR006049896_"):
+        if (
+            s_norm.gliederungskennzahl
+            and (s_norm.gliederungskennzahl.text[:5] in ["06023", "07023", "07024"])
+            and len(s_norm.gliederungskennzahl.text) == 6
+        ):
+            s_norm.gliederungskennzahl.string.replace_with(
+                s_norm.gliederungskennzahl.text[:3]
+                + "00"
+                + s_norm.gliederungskennzahl.text[3:]
+                + "0"
+            )
+            # TODO order of elements is still messed up
+
+        if s_norm.gliederungskennzahl and s_norm.gliederungskennzahl.text == "050224":
+            s_norm.gliederungskennzahl.string.replace_with("050002240")
+            # TODO order of elements is still messed up
+
+        if (
+            s_norm.gliederungskennzahl
+            and s_norm.gliederungskennzahl.text == "010020060470"
+            and len(s_norm.find_previous_siblings("norm")[1].gliederungskennzahl.text)
+            == len("010020060000480")
+        ):
+            s_norm.gliederungskennzahl.string.replace_with("010020060000470")
+
+    elif filename.startswith("BJNR008930971_"):
+        if (
+            s_norm.gliederungskennzahl
+            and len(s_norm.gliederungskennzahl.text) == 3
+            and s_norm.parent.find("gliederungskennzahl").text == "020020"
+        ):
+            s_norm.gliederungskennzahl.string.replace_with(
+                s_norm.gliederungskennzahl.string * 2
+            )
+    elif filename.startswith("BJNR059500997_"):
+        if (
+            s_norm.gliederungskennzahl
+            and s_norm.gliederungskennzahl.text.startswith("050020")
+            and ">050010<" not in str(s_norm.parent)
+        ):
+            s_norm.gliederungskennzahl.string.replace_with(
+                s_norm.gliederungskennzahl.text[:6]
+                + "000"
+                + s_norm.gliederungskennzahl.text[6:]
+            )
+
+    elif filename.startswith("BJNR101409994_"):
+        if (
+            s_norm.gliederungskennzahl
+            and s_norm.parent.find("gliederungskennzahl").text == "040430"
+            and s_norm.gliederungskennzahl.string >= "050"
+        ):
+            s_norm.gliederungskennzahl.string.replace_with(
+                "999" + s_norm.gliederungskennzahl.string
+            )
