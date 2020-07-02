@@ -26,12 +26,15 @@ def copy_selected_doknrs(selection_list, target_dir):
             )
 
 
-def de_prepare_input():
+def de_prepare_input(regulations):
+
+    dest = DE_RVO_ORIGINAL_PATH if regulations else DE_ORIGINAL_PATH
 
     with open(JURIS_EXPORT_GESETZE_LIST_PATH) as f:
         gesetze_dirs = f.read().strip().split("\n")
-    copy_selected_doknrs(gesetze_dirs, DE_ORIGINAL_PATH)
+    copy_selected_doknrs(gesetze_dirs, dest)
 
-    with open(JURIS_EXPORT_RVO_LIST_PATH) as f:
-        rvo_dirs = f.read().strip().split("\n")
-    copy_selected_doknrs(rvo_dirs, DE_RVO_ORIGINAL_PATH)
+    if regulations:
+        with open(JURIS_EXPORT_RVO_LIST_PATH) as f:
+            rvo_dirs = f.read().strip().split("\n")
+        copy_selected_doknrs(rvo_dirs, DE_RVO_ORIGINAL_PATH)

@@ -142,6 +142,16 @@ if __name__ == "__main__":
             "Only for snapshot_mapping_edgelist. Interval for mapped snapshots. Default 1 (snapshot)"
         ),
     )
+
+    parser.add_argument(
+        "-r",
+        "--regulations",
+        dest="regulations",
+        action="store_const",
+        const=True,
+        default=False,
+        help="Include regulations",
+    )
     args = parser.parse_args()
 
     steps = [step.lower() for step in args.steps]
@@ -151,6 +161,7 @@ if __name__ == "__main__":
     snapshots = args.snapshots
     interval = args.interval
     selected_items = args.filter or []
+    regulations = args.regulations
 
     if dataset not in ["de", "us"]:
         raise Exception(f"{dataset} unsupported dataset. Options: us, de")
@@ -192,7 +203,7 @@ if __name__ == "__main__":
         if dataset == "us":
             us_prepare_input()
         elif dataset == "de":
-            de_prepare_input()
+            de_prepare_input(regulations)
         print("Filter input: done")
 
     if "xml" in steps:
@@ -212,6 +223,7 @@ if __name__ == "__main__":
                 selected_items,
                 action_method=de_to_xml,
                 use_multiprocessing=use_multiprocessing,
+                args=[regulations],
             )
         print("Convert to xml: done")
 
