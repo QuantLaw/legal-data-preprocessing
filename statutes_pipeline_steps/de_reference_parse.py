@@ -18,21 +18,31 @@ from statics import (
     DE_HELPERS_PATH,
     DE_REFERENCE_PARSED_LOG_PATH,
     DE_REFERENCE_PARSED_PATH,
+    DE_RVO_REFERENCE_PARSED_PATH,
+    DE_RVO_REFERENCE_AREAS_PATH,
+    DE_RVO_REFERENCE_PARSED_LOG_PATH,
+    DE_RVO_HELPERS_PATH,
 )
 
 
-def de_reference_parse_prepare(overwrite):
-    ensure_exists(DE_REFERENCE_PARSED_PATH)
-    files = list_dir(DE_REFERENCE_AREAS_PATH, ".xml")
+def de_reference_parse_prepare(overwrite, regulations):
+    src = DE_RVO_REFERENCE_AREAS_PATH if regulations else DE_REFERENCE_AREAS_PATH
+    dest = DE_RVO_REFERENCE_PARSED_PATH if regulations else DE_REFERENCE_PARSED_PATH
+
+    ensure_exists(dest)
+    files = list_dir(src, ".xml")
 
     if not overwrite:
-        existing_files = os.listdir(DE_REFERENCE_PARSED_PATH)
+        existing_files = os.listdir(dest)
         files = list(filter(lambda f: f not in existing_files, files))
 
     return files
 
 
-def de_reference_parse(filename, law_names):
+def de_reference_parse(filename, law_names, regulations):
+    src = DE_RVO_REFERENCE_AREAS_PATH if regulations else DE_REFERENCE_AREAS_PATH
+    dest = DE_RVO_REFERENCE_PARSED_PATH if regulations else DE_REFERENCE_PARSED_PATH
+
     laws_lookup = get_stemmed_law_names_for_filename(filename, law_names)
     laws_lookup_keys = sorted(laws_lookup.keys(), reverse=True)
 
@@ -41,7 +51,7 @@ def de_reference_parse(filename, law_names):
     # for debug
     logs.append(f"Start file - {filename}")
 
-    soup = create_soup(f"{DE_REFERENCE_AREAS_PATH}/{filename}")
+    soup = create_soup(f"{src}/{filename}")
     parse_reference_content_in_soup(soup, debug_context=filename)
     current_lawid = soup.document.attrs["key"].split("_")[1]
     identify_reference_law_name_in_soup(
@@ -49,14 +59,19 @@ def de_reference_parse(filename, law_names):
     )
     identify_lawreference_law_name_in_soup(soup, laws_lookup)
 
-    save_soup(soup, f"{DE_REFERENCE_PARSED_PATH}/{filename}")
+    save_soup(soup, f"{dest}/{filename}")
     return logs
 
 
-def de_reference_parse_finish(logs_per_file):
+def de_reference_parse_finish(logs_per_file, regulations):
     logs = list(itertools.chain.from_iterable(logs_per_file))
-    ensure_exists(DE_HELPERS_PATH)
-    with open(DE_REFERENCE_PARSED_LOG_PATH, mode="w") as f:
+    ensure_exists(DE_RVO_HELPERS_PATH if regulations else DE_HELPERS_PATH)
+    with open(
+        DE_RVO_REFERENCE_PARSED_LOG_PATH
+        if regulations
+        else DE_REFERENCE_PARSED_LOG_PATH,
+        mode="w",
+    ) as f:
         f.write("\n".join(sorted(logs, key=lambda x: x.lower())))
 
 

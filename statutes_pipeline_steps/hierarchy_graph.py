@@ -36,7 +36,7 @@ def hierarchy_graph(filename, source, destination, add_subseqitems):
 ###########
 
 
-def nest_items(G, items):
+def nest_items(G, items, document_type):
     for item in items:
         if type(item.parent) is not BeautifulSoup:
             G.add_node(
@@ -47,6 +47,7 @@ def nest_items(G, items):
                 parent_key=item.parent.attrs["key"],
                 level=int(item.attrs["level"]),
                 type=item.name,
+                **(dict(document_type=document_type) if document_type else {}),
             )
             G.add_edge(item.parent.attrs["key"], item.attrs["key"])
         # handle root node
@@ -59,6 +60,7 @@ def nest_items(G, items):
                 parent_key="",
                 level=int(item.attrs["level"]),
                 type=item.name,
+                **(dict(document_type=document_type) if document_type else {}),
             )
             G.graph["name"] = item.attrs.get("heading", "")
     validate_graph(G)
@@ -91,14 +93,16 @@ def build_graph(filename, add_subseqitems=False):
     with open(filename, encoding="utf8") as f:
         soup = BeautifulSoup(f.read(), "lxml-xml")
 
+    document_type = soup.document.attrs.get("type", None)
+
     G = nx.DiGraph()
 
     items = soup.find_all(["document", "item", "seqitem"])
-    G = nest_items(G, items)
+    G = nest_items(G, items, document_type)
     subitems = []
     if add_subseqitems:
         subitems = soup.find_all("subseqitem")
-        G = nest_items(G, subitems)
+        G = nest_items(G, subitems, document_type)
 
     for item in items + subitems:
         text = item.get_text(" ")

@@ -14,6 +14,8 @@ from regex import regex
 from statics import (
     DE_LAW_NAMES_PATH,
     DE_LAW_NAMES_COMPILED_PATH,
+    DE_RVO_LAW_NAMES_PATH,
+    DE_RVO_LAW_NAMES_COMPILED_PATH,
 )
 
 
@@ -156,8 +158,8 @@ def clean_name(name):
     )
 
 
-def load_law_names():
-    df = pd.read_csv(DE_LAW_NAMES_PATH)
+def load_law_names(regulations):
+    df = pd.read_csv(DE_RVO_LAW_NAMES_PATH if regulations else DE_LAW_NAMES_PATH)
     data = [
         dict(
             citename=row.citename,
@@ -171,8 +173,11 @@ def load_law_names():
     return data
 
 
-def load_law_names_compiled():
-    with open(DE_LAW_NAMES_COMPILED_PATH, "rb") as f:
+def load_law_names_compiled(regulations):
+    with open(
+        DE_RVO_LAW_NAMES_COMPILED_PATH if regulations else DE_LAW_NAMES_COMPILED_PATH,
+        "rb",
+    ) as f:
         return pickle.load(f)
 
 

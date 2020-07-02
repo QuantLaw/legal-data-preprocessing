@@ -55,6 +55,8 @@ from statics import (
     US_SNAPSHOT_MAPPING_EDGELIST_PATH,
     DE_SNAPSHOT_MAPPING_EDGELIST_PATH,
     ALL_YEARS,
+    DE_RVO_REFERENCE_PARSED_PATH,
+    DE_RVO_HIERARCHY_GRAPH_PATH,
 )
 from statutes_pipeline_steps.us_crossreference_edgelist import (
     us_crossreference_edgelist_prepare,
@@ -229,14 +231,15 @@ if __name__ == "__main__":
 
     if "law_names" in steps:
         if dataset == "de":
-            items = de_law_names_prepare(overwrite)
+            items = de_law_names_prepare(overwrite, regulations)
             names = process_items(
                 items,
                 [],  # Ignore filter
                 action_method=de_law_names,
                 use_multiprocessing=use_multiprocessing,
+                args=[regulations],
             )
-            de_law_names_finish(names)
+            de_law_names_finish(names, regulations)
 
             print("Law names: done")
 
@@ -253,16 +256,16 @@ if __name__ == "__main__":
             us_reference_areas_finish(logs)
 
         elif dataset == "de":
-            law_names = load_law_names_compiled()
-            items = de_reference_areas_prepare(overwrite)
+            law_names = load_law_names_compiled(regulations)
+            items = de_reference_areas_prepare(overwrite, regulations)
             logs = process_items(
                 items,
                 selected_items,
                 action_method=de_reference_areas,
                 use_multiprocessing=use_multiprocessing,
-                args=(law_names,),
+                args=(law_names, regulations),
             )
-            de_reference_areas_finish(logs)
+            de_reference_areas_finish(logs, regulations)
         print("Extract reference areas: done")
 
     if "reference_parse" in steps:
@@ -276,16 +279,16 @@ if __name__ == "__main__":
             )
             us_reference_parse_finish(logs)
         if dataset == "de":
-            law_names = load_law_names_compiled()
-            items = de_reference_parse_prepare(overwrite)
+            law_names = load_law_names_compiled(regulations)
+            items = de_reference_parse_prepare(overwrite, regulations)
             logs = process_items(
                 items,
                 selected_items,
                 action_method=de_reference_parse,
                 use_multiprocessing=use_multiprocessing,
-                args=(law_names,),
+                args=(law_names, regulations),
             )
-            de_reference_parse_finish(logs)
+            de_reference_parse_finish(logs, regulations)
 
             print("Parse references: done")
 
@@ -295,8 +298,20 @@ if __name__ == "__main__":
                 source = US_REFERENCE_PARSED_PATH
                 destination = f'{US_HIERARCHY_GRAPH_PATH}/{"subseqitems" if subseqitems_conf else "seqitems"}'
             elif dataset == "de":
-                source = DE_REFERENCE_PARSED_PATH
-                destination = f'{DE_HIERARCHY_GRAPH_PATH}/{"subseqitems" if subseqitems_conf else "seqitems"}'
+                source = (
+                    DE_RVO_REFERENCE_PARSED_PATH
+                    if regulations
+                    else DE_REFERENCE_PARSED_PATH
+                )
+                destination = (
+                    (
+                        DE_RVO_HIERARCHY_GRAPH_PATH
+                        if regulations
+                        else DE_HIERARCHY_GRAPH_PATH
+                    )
+                    + "/"
+                    + ("subseqitems" if subseqitems_conf else "seqitems")
+                )
 
             items = hierarchy_graph_prepare(overwrite, source, destination)
             process_items(
@@ -319,7 +334,7 @@ if __name__ == "__main__":
             )
 
         elif dataset == "de":
-            items = de_crossreference_lookup_prepare(overwrite, snapshots)
+            items = de_crossreference_lookup_prepare(overwrite, snapshots, regulations)
             process_items(
                 items,
                 [],
@@ -345,7 +360,7 @@ if __name__ == "__main__":
             source = DE_REFERENCE_PARSED_PATH
             destination = DE_CROSSREFERENCE_EDGELIST_PATH
 
-            law_names_data = load_law_names()
+            law_names_data = load_law_names(regulations)
             items = de_crossreference_edgelist_prepare(overwrite, snapshots)
             process_items(
                 items,
@@ -368,7 +383,7 @@ if __name__ == "__main__":
                 edgelist_folder = DE_CROSSREFERENCE_EDGELIST_PATH
 
             items = crossreference_graph_prepare(
-                overwrite, snapshots, source, edgelist_folder, destination
+                overwrite, snapshots, source, edgelist_folder, destination, regulations
             )
             process_items(
                 items,
@@ -389,7 +404,7 @@ if __name__ == "__main__":
             source_graph = f"{DE_CROSSREFERENCE_GRAPH_PATH}/subseqitems"
             source_text = DE_REFERENCE_PARSED_PATH
             destination = f"{DE_SNAPSHOT_MAPPING_EDGELIST_PATH}/subseqitems"
-            law_names_data = load_law_names()
+            law_names_data = load_law_names(regulations)
 
         items = snapshot_mapping_edgelist_prepare(
             overwrite, snapshots, source_graph, source_text, destination, interval

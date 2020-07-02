@@ -9,10 +9,10 @@ from utils.common import (
 from statics import DE_CROSSREFERENCE_LOOKUP_PATH, DE_REFERENCE_PARSED_PATH
 
 
-def de_crossreference_lookup_prepare(overwrite, snapshots):
+def de_crossreference_lookup_prepare(overwrite, snapshots, regulations):
     ensure_exists(DE_CROSSREFERENCE_LOOKUP_PATH)
     files = []
-    law_names_data = load_law_names()
+    law_names_data = load_law_names(regulations)
     for snapshot in snapshots:
         files.append((snapshot, get_snapshot_law_list(snapshot, law_names_data)))
     return files

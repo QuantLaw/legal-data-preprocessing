@@ -16,25 +16,35 @@ from statics import (
     DE_HELPERS_PATH,
     DE_REFERENCE_AREAS_LOG_PATH,
     DE_XML_PATH,
+    DE_RVO_XML_PATH,
+    DE_RVO_REFERENCE_AREAS_PATH,
+    DE_RVO_HELPERS_PATH,
+    DE_RVO_REFERENCE_AREAS_LOG_PATH,
 )
 
 
-def de_reference_areas_prepare(overwrite):
-    ensure_exists(DE_REFERENCE_AREAS_PATH)
-    files = list_dir(DE_XML_PATH, ".xml")
+def de_reference_areas_prepare(overwrite, regulations):
+    src = DE_RVO_XML_PATH if regulations else DE_XML_PATH
+    dest = DE_RVO_REFERENCE_AREAS_PATH if regulations else DE_REFERENCE_AREAS_PATH
+
+    ensure_exists(dest)
+    files = list_dir(src, ".xml")
 
     if not overwrite:
-        existing_files = os.listdir(DE_REFERENCE_AREAS_PATH)
+        existing_files = os.listdir(dest)
         files = list(filter(lambda f: f not in existing_files, files))
 
     return files
 
 
-def de_reference_areas(filename, law_names):
+def de_reference_areas(filename, law_names, regulations):
+    src = DE_RVO_XML_PATH if regulations else DE_XML_PATH
+    dest = DE_RVO_REFERENCE_AREAS_PATH if regulations else DE_REFERENCE_AREAS_PATH
+
     laws_lookup = get_stemmed_law_names_for_filename(filename, law_names)
     logs = []
     laws_lookup_keys = sorted(laws_lookup.keys(), reverse=True)
-    soup = create_soup(f"{DE_XML_PATH}/{filename}")
+    soup = create_soup(f"{src}/{filename}")
     para, art, misc = analyze_type_of_headings(soup)
 
     logs.extend(find_references_in_soup(soup, laws_lookup, laws_lookup_keys, para, art))
@@ -51,15 +61,18 @@ def de_reference_areas(filename, law_names):
     #         section, soup, short_law_regex_pattern, clean_name
     #     )
 
-    save_soup_with_style(soup, f"{DE_REFERENCE_AREAS_PATH}/{filename}")
+    save_soup_with_style(soup, f"{dest}/{filename}")
 
     return logs
 
 
-def de_reference_areas_finish(logs_per_file):
+def de_reference_areas_finish(logs_per_file, regulations):
     logs = list(itertools.chain.from_iterable(logs_per_file))
-    ensure_exists(DE_HELPERS_PATH)
-    with open(DE_REFERENCE_AREAS_LOG_PATH, mode="w") as f:
+    ensure_exists(DE_RVO_HELPERS_PATH if regulations else DE_HELPERS_PATH)
+    with open(
+        DE_RVO_REFERENCE_AREAS_LOG_PATH if regulations else DE_REFERENCE_AREAS_LOG_PATH,
+        mode="w",
+    ) as f:
         f.write("\n".join(sorted(logs, key=lambda x: x.lower())))
 
 

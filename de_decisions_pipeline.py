@@ -28,7 +28,7 @@ if __name__ == "__main__":
         hierarchy()
 
     if "references" in steps:
-        reference_parse_areas()
+        reference_parse_areas(regulations=False)
 
     if "network" in steps:
         network()

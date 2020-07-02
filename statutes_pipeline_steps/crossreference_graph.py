@@ -12,7 +12,7 @@ from utils.common import (
 
 
 def crossreference_graph_prepare(
-    overwrite, snapshots, source, edgelist_folder, destination
+    overwrite, snapshots, source, edgelist_folder, destination, regulations
 ):
     ensure_exists(destination)
     if not snapshots:
@@ -41,7 +41,7 @@ def crossreference_graph_prepare(
             )
     else:  # is DE
         files = []
-        law_names_data = load_law_names()
+        law_names_data = load_law_names(regulations)
         for snapshot in snapshots:
             graph_files = get_snapshot_law_list(snapshot, law_names_data)
             files.append(

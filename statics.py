@@ -65,3 +65,18 @@ DE_RVO_TEMP_DATA_PATH = "temp/de_rvo"
 
 DE_RVO_ORIGINAL_PATH = f"{DE_RVO_TEMP_DATA_PATH}/11_gii_xml"
 DE_RVO_XML_PATH = f"{DE_RVO_TEMP_DATA_PATH}/12_xml"
+DE_RVO_LAW_NAMES_COMPILED_PATH = (
+    f"{DE_RVO_TEMP_DATA_PATH}/12_xml_law_names_compiled.pickle"
+)
+DE_RVO_LAW_NAMES_PATH = f"{DE_RVO_TEMP_DATA_PATH}/12_xml_law_names.csv"
+DE_RVO_REFERENCE_AREAS_PATH = f"{DE_RVO_TEMP_DATA_PATH}/13_reference_areas"
+DE_RVO_REFERENCE_PARSED_PATH = f"{DE_RVO_DATA_PATH}/2_xml"
+DE_RVO_HIERARCHY_GRAPH_PATH = f"{DE_RVO_DATA_PATH}/3_hierarchy_graph"
+
+DE_RVO_HELPERS_PATH = f"{DE_RVO_TEMP_DATA_PATH}/helpers"
+DE_RVO_REFERENCE_AREAS_LOG_PATH = (
+    f"{DE_RVO_HELPERS_PATH}/de_extract_reference_areas.log"
+)
+DE_RVO_REFERENCE_PARSED_LOG_PATH = (
+    f"{DE_RVO_HELPERS_PATH}/de_extract_reference_parsed.log"
+)

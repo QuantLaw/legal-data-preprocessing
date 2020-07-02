@@ -96,9 +96,9 @@ def find_references(decision):
         raise
 
 
-def reference_parse_areas():
+def reference_parse_areas(regulations):
     global law_names
-    law_names = load_law_names_compiled()
+    law_names = load_law_names_compiled(regulations)
     ensure_exists(DE_DECISIONS_REFERENCE_AREAS)
     ensure_exists(DE_DECISIONS_REFERENCE_PARSED_XML)
     decisions = list_dir(DE_DECISIONS_HIERARCHY, ".xml")

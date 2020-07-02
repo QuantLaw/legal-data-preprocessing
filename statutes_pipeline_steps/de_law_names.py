@@ -12,17 +12,23 @@ from statics import (
     DE_LAW_NAMES_PATH,
     DE_XML_PATH,
     DE_LAW_NAMES_COMPILED_PATH,
+    DE_RVO_XML_PATH,
+    DE_RVO_LAW_NAMES_COMPILED_PATH,
+    DE_RVO_LAW_NAMES_PATH,
 )
 
 
-def de_law_names_prepare(overwrite):
-    files = list_dir(DE_XML_PATH, ".xml")
+def de_law_names_prepare(overwrite, regulations):
+    src = DE_RVO_XML_PATH if regulations else DE_XML_PATH
+
+    files = list_dir(src, ".xml")
     return files
 
 
-def de_law_names(filename):
+def de_law_names(filename, regulations):
+    src = DE_RVO_XML_PATH if regulations else DE_XML_PATH
 
-    soup = create_soup(f"{DE_XML_PATH}/{filename}")
+    soup = create_soup(f"{src}/{filename}")
     document = soup.find("document", recursive=False)
     result = set()
     citekey = document.attrs["key"].split("_")[1]
@@ -45,21 +51,26 @@ def de_law_names(filename):
     return result
 
 
-def de_law_names_finish(names_per_file):
+def de_law_names_finish(names_per_file, regulations):
+    dest_compiled = (
+        DE_RVO_LAW_NAMES_COMPILED_PATH if regulations else DE_LAW_NAMES_COMPILED_PATH
+    )
+    dest_csv = DE_RVO_LAW_NAMES_PATH if regulations else DE_LAW_NAMES_PATH
+
     result = []
     for names_of_file in names_per_file:
         result.extend(names_of_file)
 
     df = pd.DataFrame(result, columns=["citename", "citekey", "filename"])
-    df.to_csv(DE_LAW_NAMES_PATH, index=False)
+    df.to_csv(dest_csv, index=False)
 
-    dated_law_names = compile_law_names()
-    with open(DE_LAW_NAMES_COMPILED_PATH, "wb") as f:
+    dated_law_names = compile_law_names(regulations)
+    with open(dest_compiled, "wb") as f:
         pickle.dump(dated_law_names, f)
 
 
-def compile_law_names():
-    data = load_law_names()
+def compile_law_names(regulations):
+    data = load_law_names(regulations)
     dates = sorted({r["start"] for r in data})
 
     dated_law_names = {}
