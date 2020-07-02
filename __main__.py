@@ -217,13 +217,13 @@ if __name__ == "__main__":
                 chunksize=10,
             )
         elif dataset == "de":
-            items = de_to_xml_prepare(overwrite, regulations)
+            items, dok_type_dict = de_to_xml_prepare(overwrite, regulations)
             process_items(
                 items,
                 selected_items,
                 action_method=de_to_xml,
                 use_multiprocessing=use_multiprocessing,
-                args=[regulations],
+                args=[regulations, dok_type_dict],
             )
         print("Convert to xml: done")
 

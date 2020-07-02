@@ -4,7 +4,23 @@ import re
 from bs4 import BeautifulSoup
 
 from utils.common import ensure_exists, list_dir
-from statics import DE_XML_PATH, DE_ORIGINAL_PATH, DE_RVO_XML_PATH, DE_RVO_ORIGINAL_PATH
+from statics import (
+    DE_XML_PATH,
+    DE_ORIGINAL_PATH,
+    DE_RVO_XML_PATH,
+    DE_RVO_ORIGINAL_PATH,
+    JURIS_EXPORT_GESETZE_LIST_PATH,
+    JURIS_EXPORT_RVO_LIST_PATH,
+)
+
+
+def get_type_for_doknr_dict():
+    with open(JURIS_EXPORT_GESETZE_LIST_PATH) as f:
+        gesetze_dirs = f.read().strip().split("\n")
+    with open(JURIS_EXPORT_RVO_LIST_PATH) as f:
+        rvo_dirs = f.read().strip().split("\n")
+
+    return {**{k: True for k in gesetze_dirs}, **{k: False for k in rvo_dirs}}
 
 
 def de_to_xml_prepare(overwrite, regulations):
@@ -23,16 +39,19 @@ def de_to_xml_prepare(overwrite, regulations):
         ]
         files = list(filter(lambda f: f not in converted_existing_files, files))
 
-    return sorted(files)
+    dok_type_dict = get_type_for_doknr_dict()
+
+    return sorted(files), dok_type_dict
 
 
-def de_to_xml(filename, regulations):
+def de_to_xml(filename, regulations, dok_type_dict):
     src = DE_RVO_ORIGINAL_PATH if regulations else DE_ORIGINAL_PATH
     dest = DE_RVO_XML_PATH if regulations else DE_XML_PATH
 
     with open(f"{src}/{filename}") as f:
         soup = BeautifulSoup(f.read(), "lxml-xml")
-    convert_to_xml(soup, filename, dest, regulations)
+    dok_is_statute = dok_type_dict[filename[:13]]
+    convert_to_xml(soup, filename, dest, regulations, dok_is_statute)
 
 
 #######################################
@@ -40,7 +59,7 @@ def de_to_xml(filename, regulations):
 #######################################
 
 
-def create_root_elment(s_rahmen, t_soup):
+def create_root_elment(s_rahmen, t_soup, dok_is_statute):
     t_document = t_soup.new_tag(
         "document",
         attrs={
@@ -49,6 +68,9 @@ def create_root_elment(s_rahmen, t_soup):
             "xsi:noNamespaceSchemaLocation": "../../pipeline/xml-schema.xsd",
         },
     )
+    if dok_is_statute is not None:
+        t_document.attrs["typ"] = "statute" if dok_is_statute else "regulation"
+
     heading = s_rahmen.langue
     heading = heading and heading.string.strip()
     if heading:
@@ -108,7 +130,7 @@ def nodeid_counter():
 citekey_enbez_pattern = re.compile(r"(§§?|Art[a-z\.]*)\s?(\d+[a-z]*)\b")
 
 
-def convert_to_xml(source_soup, filename, dest, regulations):
+def convert_to_xml(source_soup, filename, dest, regulations, dok_is_statute):
     t_soup = BeautifulSoup("", "lxml-xml")
 
     s_norms = source_soup.dokumente.find_all("norm", recursive=False)
@@ -120,7 +142,9 @@ def convert_to_xml(source_soup, filename, dest, regulations):
     s_rahmen = s_norms[0]
     s_norms = s_norms[1:]
 
-    t_document, jurabk = create_root_elment(s_rahmen, t_soup)
+    t_document, jurabk = create_root_elment(
+        s_rahmen, t_soup, dok_is_statute if regulations else None
+    )
 
     citekey_prefix = re.sub(r"[^\wäöüÄÖÜß]", "-", jurabk)
 
