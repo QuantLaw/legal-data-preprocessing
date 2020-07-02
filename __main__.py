@@ -217,7 +217,7 @@ if __name__ == "__main__":
                 chunksize=10,
             )
         elif dataset == "de":
-            items = de_to_xml_prepare(overwrite)
+            items = de_to_xml_prepare(overwrite, regulations)
             process_items(
                 items,
                 selected_items,

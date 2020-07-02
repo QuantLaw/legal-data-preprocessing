@@ -64,3 +64,4 @@ DE_RVO_DATA_PATH = "../legal-networks-data/de_rvo"
 DE_RVO_TEMP_DATA_PATH = "temp/de_rvo"
 
 DE_RVO_ORIGINAL_PATH = f"{DE_RVO_TEMP_DATA_PATH}/11_gii_xml"
+DE_RVO_XML_PATH = f"{DE_RVO_TEMP_DATA_PATH}/12_xml"

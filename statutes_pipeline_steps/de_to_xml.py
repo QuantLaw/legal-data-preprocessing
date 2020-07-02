@@ -4,15 +4,18 @@ import re
 from bs4 import BeautifulSoup
 
 from utils.common import ensure_exists, list_dir
-from statics import DE_XML_PATH, DE_ORIGINAL_PATH
+from statics import DE_XML_PATH, DE_ORIGINAL_PATH, DE_RVO_XML_PATH, DE_RVO_ORIGINAL_PATH
 
 
-def de_to_xml_prepare(overwrite):
-    ensure_exists(DE_XML_PATH)
-    files = list_dir(DE_ORIGINAL_PATH, ".xml")
+def de_to_xml_prepare(overwrite, regulations):
+    src = DE_RVO_ORIGINAL_PATH if regulations else DE_ORIGINAL_PATH
+    dest = DE_RVO_XML_PATH if regulations else DE_XML_PATH
+
+    ensure_exists(dest)
+    files = list_dir(src, ".xml")
 
     if not overwrite:
-        existing_files = list_dir(DE_XML_PATH, ".xml")
+        existing_files = list_dir(dest, ".xml")
 
         # Remove cite_key
         converted_existing_files = [
@@ -23,10 +26,13 @@ def de_to_xml_prepare(overwrite):
     return sorted(files)
 
 
-def de_to_xml(filename):
-    with open(f"{DE_ORIGINAL_PATH}/{filename}") as f:
+def de_to_xml(filename, regulations):
+    src = DE_RVO_ORIGINAL_PATH if regulations else DE_ORIGINAL_PATH
+    dest = DE_RVO_XML_PATH if regulations else DE_XML_PATH
+
+    with open(f"{src}/{filename}") as f:
         soup = BeautifulSoup(f.read(), "lxml-xml")
-    convert_to_xml(soup, filename)
+    convert_to_xml(soup, filename, dest, regulations)
 
 
 #######################################
@@ -102,7 +108,7 @@ def nodeid_counter():
 citekey_enbez_pattern = re.compile(r"(§§?|Art[a-z\.]*)\s?(\d+[a-z]*)\b")
 
 
-def convert_to_xml(source_soup, filename):
+def convert_to_xml(source_soup, filename, dest, regulations):
     t_soup = BeautifulSoup("", "lxml-xml")
 
     s_norms = source_soup.dokumente.find_all("norm", recursive=False)
@@ -142,8 +148,13 @@ def convert_to_xml(source_soup, filename):
             is_preamble = analyse_is_preamble(s_metadaten, s_enbez)
         if s_enbez and not is_appendix:
             is_appendix = bool(analyse_is_appendix_pattern.match(s_enbez))
-        if is_preamble or is_appendix:
-            continue
+
+        if regulations:
+            if is_appendix:
+                continue
+        else:
+            if is_preamble or is_appendix:
+                continue
 
         if s_gliederungseinheit:
             # is Item
@@ -195,14 +206,21 @@ def convert_to_xml(source_soup, filename):
                 cursor_gliederungskennzahl_lengths = cursor_gliederungskennzahl_lengths[
                     : corrected_level + 1
                 ]
-
-        if s_enbez and s_enbez.lower() in [
-            "inhaltsverzeichnis",
-            "eingangsformel",
-            "inhaltsübersicht",
-            "inhalt",
-        ]:
-            continue
+        if regulations:
+            if s_enbez and s_enbez.lower() in [
+                "inhaltsverzeichnis",
+                "inhaltsübersicht",
+                "inhalt",
+            ]:
+                continue
+        else:
+            if s_enbez and s_enbez.lower() in [
+                "inhaltsverzeichnis",
+                "eingangsformel",
+                "inhaltsübersicht",
+                "inhalt",
+            ]:
+                continue
 
         if s_text:  # is seqitem
             t_seqitem = t_soup.new_tag("seqitem", attrs={"level": len(cursor)})
@@ -273,9 +291,7 @@ def convert_to_xml(source_soup, filename):
 
     doknr, start_date, end_date = os.path.splitext(filename)[0].split("_")
     target_filename = (
-        f"{DE_XML_PATH}/"
-        + "_".join([doknr, citekey_prefix, start_date, end_date])
-        + ".xml"
+        f"{dest}/" + "_".join([doknr, citekey_prefix, start_date, end_date]) + ".xml"
     )
 
     nodeid_counter.counter = 0
@@ -289,7 +305,7 @@ def convert_to_xml(source_soup, filename):
                 match = citekey_enbez_pattern.match(heading)
                 if match:
                     t.attrs["citekey"] = f"{citekey_prefix}_{match[2]}"
-                else:
+                elif heading not in ["Präambel", "Eingangsformel"] and is_preamble:
                     print(f"Cannot create citekey of {heading} in {target_filename}")
 
     with open(target_filename, "w", encoding="utf8") as f:
