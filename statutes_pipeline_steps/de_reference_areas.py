@@ -26,7 +26,6 @@ def de_reference_areas_prepare(overwrite):
     if not overwrite:
         existing_files = os.listdir(DE_REFERENCE_AREAS_PATH)
         files = list(filter(lambda f: f not in existing_files, files))
-
     return files
 
 
@@ -86,6 +85,7 @@ reference_range_pattern_str = (
             r'letzte'
         r')r?s?)'
         r'(?<unit>'
+            r'\bArt\b\.?|'
             r'Artikels?n?|'
             r'§{1,2}|'
             r'Nrn?\b\.?|'
