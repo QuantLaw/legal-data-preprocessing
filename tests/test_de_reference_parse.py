@@ -52,7 +52,3 @@ class TestDeReferenceParse(unittest.TestCase):
         test_str = "nicht ohne Weiteres der Fall. Art. 2 Abs. 1 i.V.m. Art. 1 Abs. 1 GG bietet nicht scho"
         res = reference_range_pattern.search(test_str)
         self.assertEqual(str(res[0]), "Art. 2 Abs. 1 i.V.m. Art. 1 Abs. 1")
-
-
-if __name__ == "__main__":
-    unittest.main()
