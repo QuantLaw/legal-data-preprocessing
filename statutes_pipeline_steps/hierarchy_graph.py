@@ -49,10 +49,9 @@ def nest_items(G, items):
                 type=item.name,
             )
             G.add_edge(item.parent.attrs["key"], item.attrs["key"])
-        # handle root node
-        else:
-            G.add_node(
-                item.attrs["key"],
+
+        else:  # handle root node
+            node_attrs = dict(
                 key=item.attrs["key"],
                 citekey=item.attrs.get("citekey", ""),
                 heading=item.attrs.get("heading", ""),
@@ -60,16 +59,17 @@ def nest_items(G, items):
                 level=int(item.attrs["level"]),
                 type=item.name,
             )
+            if document_type:
+                document_type["document_type"] = document_type
+            if "abk_1" in item.attrs:
+                node_attrs["abk_1"] = item.attrs["abk_1"]
+            if "abk_2" in item.attrs:
+                node_attrs["abk_2"] = item.attrs["abk_2"]
+
+            G.add_node(item.attrs["key"], **node_attrs)
             G.graph["name"] = item.attrs.get("heading", "")
-    validate_graph(G)
+
     return G
-
-
-def validate_graph(G):
-    pass
-    # TODO LATER integrate test but handle repealed/empty laws correctly
-    # assert G.number_of_edges() == G.number_of_nodes() - 1, f"Failed on n-1: {G.graph['name']}, {list(G.nodes)[0]}" # necessary for being a tree
-    # assert max([d for _, d in G.in_degree()]) == 1, f"Failed on indegree test: {G.graph['name']}, {list(G.nodes)[0]}" # combined with the above, sufficient for being a tree
 
 
 def count_characters(text, whites=False):

@@ -12,6 +12,7 @@ from utils.common import (
     save_soup,
     stem_law_name,
     get_stemmed_law_names_for_filename,
+    copy_xml_schema_to_data_folder,
 )
 from statics import (
     DE_REFERENCE_AREAS_PATH,
@@ -28,6 +29,8 @@ def de_reference_parse_prepare(overwrite):
     if not overwrite:
         existing_files = os.listdir(DE_REFERENCE_PARSED_PATH)
         files = list(filter(lambda f: f not in existing_files, files))
+
+    copy_xml_schema_to_data_folder()
 
     return files
 

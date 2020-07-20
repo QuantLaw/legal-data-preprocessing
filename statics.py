@@ -1,5 +1,7 @@
 ALL_YEARS = list(range(1994, 2019))
 
+DATA_PATH = "../legal-networks-data"
+
 US_DATA_PATH = "../legal-networks-data/us"
 US_TEMP_DATA_PATH = "temp/us"
 

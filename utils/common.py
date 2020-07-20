@@ -4,6 +4,7 @@ import multiprocessing
 import os
 import pickle
 import re
+import shutil
 from collections import Counter
 from multiprocessing import cpu_count
 
@@ -14,6 +15,7 @@ from regex import regex
 from statics import (
     DE_LAW_NAMES_PATH,
     DE_LAW_NAMES_COMPILED_PATH,
+    DATA_PATH,
 )
 
 
@@ -223,3 +225,8 @@ def find_parent_with_name(tag, name):
         return tag
     else:
         return find_parent_with_name(tag.parent, name)
+
+
+def copy_xml_schema_to_data_folder():
+    ensure_exists(DATA_PATH)
+    shutil.copyfile("xml-schema.xsd", os.path.join(DATA_PATH, "xml-schema.xsd"))

@@ -40,7 +40,7 @@ def create_root_elment(s_rahmen, t_soup):
         attrs={
             "level": 0,
             "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
-            "xsi:noNamespaceSchemaLocation": "../../pipeline/xml-schema.xsd",
+            "xsi:noNamespaceSchemaLocation": "../../xml-schema.xsd",
         },
     )
     heading = s_rahmen.langue
