@@ -1,4 +1,5 @@
 [![codecov](https://codecov.io/gh/QuantLaw/legal-data-preprocessing/branch/master/graph/badge.svg?token=FABCUR680K)](https://codecov.io/gh/QuantLaw/legal-data-preprocessing)
+![Tests](https://github.com/QuantLaw/legal-data-preprocessing/workflows/Tests/badge.svg)
 
 # Legal data proprocessing
 
