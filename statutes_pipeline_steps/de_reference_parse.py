@@ -154,7 +154,7 @@ def split_citation_into_enum_parts(citation):
         r"(?>\s*,?(?>" r",\s*|" r"\s+und\s+|" r"\s+sowie\s+|"
         #             r'\s+bis\s+|'
         r"\s+oder\s+|"
-        r"(?>\s+jeweils)?(?>\s+auch)?\s+(?>in\s+Verbindung\s+mit|i\.?\sV\.?\sm\.?)\s+"
+        r"(?>\s+jeweils)?(?>\s+auch)?\s+(?>in\s+Verbindung\s+mit|i\.?\s?V\.?\s?m\.?)\s+"
         r"))"
         r"(?>nach\s+)?"
         r"(?>(?>der|des|den|die)\s+)?",

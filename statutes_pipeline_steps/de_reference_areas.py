@@ -118,7 +118,7 @@ reference_range_pattern_str = (
                 r'\s+sowie\s+|'
                 r'\s+bis\s+|'
                 r'\s+oder\s+|'
-                r'(?>\s+jeweils)?(?>\s+auch)?\s+(?>in\s+Verbindung\s+mit|i\.?\sV\.?\sm\.?)\s+'
+                r'(?>\s+jeweils)?(?>\s+auch)?\s+(?>in\s+Verbindung\s+mit|i\.?\s?V\.?\s?m\.?)\s+'
             r')'
             r'(?>nach\s+)?'
             r'(?>(?>der|des|den|die)\s+)?'
