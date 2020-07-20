@@ -36,6 +36,16 @@
       name="level"
       use="required"
     />
+    <xs:attribute
+      type="xs:string"
+      name="abk_1"
+      use="optional"
+    />
+    <xs:attribute
+      type="xs:string"
+      name="abk_2"
+      use="optional"
+    />
   </xs:complexType>
   <xs:complexType name="itemType">
     <xs:choice

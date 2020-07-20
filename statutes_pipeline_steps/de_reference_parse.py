@@ -12,6 +12,7 @@ from utils.common import (
     save_soup,
     stem_law_name,
     get_stemmed_law_names_for_filename,
+    copy_xml_schema_to_data_folder,
 )
 from statics import (
     DE_REFERENCE_AREAS_PATH,
@@ -35,6 +36,8 @@ def de_reference_parse_prepare(overwrite, regulations):
     if not overwrite:
         existing_files = os.listdir(dest)
         files = list(filter(lambda f: f not in existing_files, files))
+
+    copy_xml_schema_to_data_folder()
 
     return files
 
@@ -169,7 +172,7 @@ def split_citation_into_enum_parts(citation):
         r"(?>\s*,?(?>" r",\s*|" r"\s+und\s+|" r"\s+sowie\s+|"
         #             r'\s+bis\s+|'
         r"\s+oder\s+|"
-        r"(?>\s+jeweils)?(?>\s+auch)?\s+(?>in\s+Verbindung\s+mit|i\.?\sV\.?\sm\.?)\s+"
+        r"(?>\s+jeweils)?(?>\s+auch)?\s+(?>in\s+Verbindung\s+mit|i\.?\s?V\.?\s?m\.?)\s+"
         r"))"
         r"(?>nach\s+)?"
         r"(?>(?>der|des|den|die)\s+)?",

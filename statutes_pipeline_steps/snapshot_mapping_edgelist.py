@@ -343,3 +343,4 @@ def map_similar_text_common_neighbors(
     #         print('-')
     #         print(neighborhood_text2[max_index])
     #         print('=====\n')
+    # TODO recursively check if new matches possible

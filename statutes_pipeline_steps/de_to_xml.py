@@ -65,7 +65,7 @@ def create_root_elment(s_rahmen, t_soup, dok_is_statute):
         attrs={
             "level": 0,
             "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
-            "xsi:noNamespaceSchemaLocation": "../../pipeline/xml-schema.xsd",
+            "xsi:noNamespaceSchemaLocation": "../../xml-schema.xsd",
         },
     )
     if dok_is_statute is not None:
