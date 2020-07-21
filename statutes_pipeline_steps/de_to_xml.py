@@ -57,12 +57,12 @@ def create_root_elment(s_rahmen, t_soup):
     s_jurabk = s_jurabk and s_jurabk.string.strip()
     assert s_jurabk
     if s_jurabk:
-        t_document.attrs["abk_1"] = s_jurabk
+        t_document.attrs["abbr_1"] = s_jurabk
 
     s_amtabk = s_rahmen.amtabk
     s_amtabk = s_amtabk and s_amtabk.string.strip()
     if s_amtabk:
-        t_document.attrs["abk_2"] = s_amtabk
+        t_document.attrs["abbr_2"] = s_amtabk
     t_soup.append(t_document)
 
     return t_document, s_jurabk

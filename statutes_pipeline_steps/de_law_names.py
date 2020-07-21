@@ -35,12 +35,12 @@ def de_law_names(filename):
         law_name = stem_law_name(document.attrs["heading_short"])
         result.add((law_name, citekey, filename))
 
-    if "abk_1" in document.attrs:
-        law_name = stem_law_name(document.attrs["abk_1"])
+    if "abbr_1" in document.attrs:
+        law_name = stem_law_name(document.attrs["abbr_1"])
         result.add((law_name, citekey, filename))
 
-    if "abk_2" in document.attrs:
-        law_name = stem_law_name(document.attrs["abk_2"])
+    if "abbr_2" in document.attrs:
+        law_name = stem_law_name(document.attrs["abbr_2"])
         result.add((law_name, citekey, filename))
     return result
 
