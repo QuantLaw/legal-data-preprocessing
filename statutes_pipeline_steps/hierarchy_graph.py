@@ -59,8 +59,6 @@ def nest_items(G, items):
                 level=int(item.attrs["level"]),
                 type=item.name,
             )
-            if document_type:
-                document_type["document_type"] = document_type
             if "abbr_1" in item.attrs:
                 node_attrs["abbr_1"] = item.attrs["abbr_1"]
             if "abbr_2" in item.attrs:
