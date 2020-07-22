@@ -18,7 +18,7 @@ DOWNLOAD_BASE_URL = "https://uscode.house.gov/download/annualhistoricalarchives/
 
 def download(ref):
     year = re.match(r"XHTML/(\d+)\.zip", ref)[1]
-    print("leading", year)
+    print("loading", year)
     r = requests.get(DOWNLOAD_BASE_URL + ref, stream=True)
     if r.status_code == 200:
         zip_path = f"{US_INPUT_PATH}/{year}.zip"
