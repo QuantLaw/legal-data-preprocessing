@@ -10,5 +10,6 @@ class TestCommon(unittest.TestCase):
         self.assertTrue(str_to_bool("true"))
         self.assertFalse(str_to_bool("No"))
         self.assertTrue(str_to_bool(True))
+        print('test')
         with self.assertRaises(argparse.ArgumentTypeError):
             str_to_bool("hell!")
