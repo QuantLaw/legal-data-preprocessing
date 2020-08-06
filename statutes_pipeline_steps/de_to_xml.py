@@ -367,11 +367,9 @@ def correct_errors_gliederungskennzahl(filename, s_norm):
                 + s_norm.gliederungskennzahl.text[3:]
                 + "0"
             )
-            # TODO order of elements is still messed up
 
         if s_norm.gliederungskennzahl and s_norm.gliederungskennzahl.text == "050224":
             s_norm.gliederungskennzahl.string.replace_with("050002240")
-            # TODO order of elements is still messed up
 
         if (
             s_norm.gliederungskennzahl

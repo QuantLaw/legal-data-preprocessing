@@ -1,5 +1,3 @@
-# TODO LATER merge US and DE versions
-
 import json
 import os
 
@@ -71,12 +69,9 @@ def make_edge_list(yearfile_path, key_df):
                     try:
                         key = "_".join(ref[:2])
                         matches = key_df.at[key, "key"]
-                        # TODO LATER DEBUG - the way the lookup key is composed is likely a source of errors
                         if type(matches) != str:
                             problem_matches.add(tuple(matches))
-                        node_in = (
-                            matches if type(matches) == str else matches[0]
-                        )  # TODO
+                        node_in = matches if type(matches) == str else matches[0]
                         edge_df = edge_df.append(
                             pd.DataFrame(dict(in_node=[node_in], out_node=[node_out])),
                             ignore_index=True,
@@ -85,9 +80,8 @@ def make_edge_list(yearfile_path, key_df):
                     except KeyError:
                         problem_keys.add(key)
 
-    # FOR DEBUG TODO LATER REMOVE
-    if len(problem_matches) > 0:
-        print(f"{yearfile_path} Problem Matches:\n", sorted(list(problem_matches)))
-    if len(problem_keys) > 0:
-        print(f"{yearfile_path} Problem Matches:\n", sorted(list(problem_keys)))
+    # if len(problem_matches) > 0:
+    #     print(f"{yearfile_path} Problem Matches:\n", sorted(list(problem_matches)))
+    # if len(problem_keys) > 0:
+    #     print(f"{yearfile_path} Problem Matches:\n", sorted(list(problem_keys)))
     return edge_df[["out_node", "in_node"]]

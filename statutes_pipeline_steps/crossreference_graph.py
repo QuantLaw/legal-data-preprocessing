@@ -19,7 +19,6 @@ def crossreference_graph_prepare(
         snapshots = sorted(
             set([os.path.splitext(x)[0] for x in list_dir(edgelist_folder, ".csv")])
         )
-    # TODO LATER also check source (hierarchical graphml files)
 
     if not overwrite:
         existing_files = list_dir(destination, ".gpickle.gz")
@@ -30,7 +29,7 @@ def crossreference_graph_prepare(
     if not len(snapshots):
         return []
 
-    if len(snapshots[0]) == 4:  # TODO LATER is us
+    if len(snapshots[0]) == 4:  # is US
         files = []
         for snapshot in snapshots:
             files.append(
@@ -56,7 +55,6 @@ def crossreference_graph_prepare(
 
 def crossreference_graph(args, source, edgelist_folder, destination, add_subseqitems):
     year, files = args
-    # TODO LATER implement add_subseqitems. If referenced to subseqitem but not in list, reduce key until match
 
     # make forest from trees
     edge_list = pd.read_csv(f"{edgelist_folder}/{year}.csv")

@@ -159,7 +159,7 @@ def get_leaf_texts_to_compare(graph_filename, G, source_text, law_names_data):
 
     snapshot = graph_filename[: -len(".gpickle.gz")]
 
-    if len(snapshot) == 4:  # TODO LATER is US
+    if len(snapshot) == 4:  # is US
         files = sorted(
             [
                 x
@@ -221,7 +221,7 @@ def map_same_citekey_same_text(
         if not ids2 or not len(ids2):
             continue
         cite_key1 = G1.nodes[remaining_key1].get("citekey")
-        # TODO does not work for subseqitems. in this case to up to seqitem and use their citekey. Same for cite_key2.
+        # does not work for subseqitems. in this case to up to seqitem and use their citekey. Same for cite_key2.
         if not cite_key1:
             continue
         for id2 in ids2:
@@ -367,4 +367,3 @@ def map_similar_text_common_neighbors(
     #         print('-')
     #         print(neighborhood_text2[max_index])
     #         print('=====\n')
-    # TODO recursively check if new matches possible

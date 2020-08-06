@@ -72,7 +72,6 @@ def make_edge_list(file, key_df):
                             if type(matches) == numpy.ndarray:
                                 print(f"Multiple matches for {key}")
                                 matches = matches[0]
-                            # TODO LATER DEBUG - the way the lookup key is composed is likely a source of errors
                             if type(matches) is not str:
                                 problem_matches.add(tuple(matches))
                             node_in = matches if type(matches) == str else matches[0]
@@ -81,9 +80,9 @@ def make_edge_list(file, key_df):
                         except KeyError:
                             problem_keys.add(key)
 
-    # FOR DEBUG TODO LATER REMOVE
-    if len(problem_matches) > 0:
-        print(f"{file} Problem Matches:\n", sorted(list(problem_matches)))
-    if len(problem_keys) > 0:
-        print(f"{file} Problem Matches:\n", sorted(list(problem_keys)))
+    # FOR DEBUG
+    # if len(problem_matches) > 0:
+    #     print(f"{file} Problem Matches:\n", sorted(list(problem_matches)))
+    # if len(problem_keys) > 0:
+    #     print(f"{file} Problem Matches:\n", sorted(list(problem_keys)))
     return pd.DataFrame(edges, columns=["out_node", "in_node"])

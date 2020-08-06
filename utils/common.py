@@ -189,7 +189,6 @@ def get_stemmed_law_names(date, law_names):
     # Custom law names, stemmed as key.
     laws_lookup["grundgesetz"] = "GG"
 
-    # TODO Move to compile
     # Add law names without year number if key already used
     shortened_keys = {}
     for key, value in laws_lookup.items():

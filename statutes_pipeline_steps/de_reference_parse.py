@@ -137,12 +137,8 @@ def is_numb(token):
 
 def fix_errors_in_citation(citation):
     result = regex.sub(r"\s+", " ", citation)
-    result = regex.sub(
-        r"§(?=\d)", "§ ", result
-    )  # TODO this fix is probably not necessary anymore
-    result = regex.sub(
-        r",\sbis\s", " bis ", result
-    )  # TODO improve handling as iit might result in false parsing e.g. § 8 Abs. 2 Nr. 1, bis 3
+    result = regex.sub(r"§(?=\d)", "§ ", result)
+    result = regex.sub(r",\sbis\s", " bis ", result)
     return result
 
 
@@ -387,8 +383,7 @@ def identify_reference_law_name_in_soup(
                 elif lawid[1] in laws_lookup_keys:
                     lawid = lawid[1]
                 else:
-                    lawid = lawid[1]  # TODO remove for final
-                    # raise Exception(lawid) # TODO activate
+                    lawid = lawid[1]
 
         elif reference.lawname["type"] == "internal":
             if current_lawid is None:

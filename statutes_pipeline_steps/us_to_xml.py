@@ -628,9 +628,7 @@ def doc_to_soup(doc, soup, level, version, root=False):
 
 def content_to_soup(content, soup, level, version, doc):
     if type(content) is dict:
-        tag = soup.new_tag(
-            "subseqitem", level=level, heading=content.get("title", "")
-        )  # TODO LATER maybe add citekey (to align with DE)
+        tag = soup.new_tag("subseqitem", level=level, heading=content.get("title", ""))
 
         for subcontent in content["contents"]:
             tag.append(content_to_soup(subcontent, soup, level + 1, version, doc))
