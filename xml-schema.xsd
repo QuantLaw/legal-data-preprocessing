@@ -95,12 +95,12 @@
     <xs:attribute
       type="xs:string"
       name="citekey"
-      use="required"
+      use="optional"
     />
     <xs:attribute
       type="xs:string"
       name="heading"
-      use="required"
+      use="optional"
     />
     <xs:attribute
       type="xs:string"
