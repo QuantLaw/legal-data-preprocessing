@@ -140,7 +140,8 @@ def convert_to_xml(source_soup, filename, dest, regulations, dok_is_statute):
         return
 
     s_rahmen = s_norms[0]
-    s_norms = s_norms[1:]
+    if not s_norms[0].textdaten.contents and not s_norms[0].metadaten.gliederungskennzahl:
+        s_norms = s_norms[1:]
 
     t_document, jurabk = create_root_elment(
         s_rahmen, t_soup, dok_is_statute if regulations else None
@@ -189,13 +190,17 @@ def convert_to_xml(source_soup, filename, dest, regulations, dok_is_statute):
             assert level_3 % 3 == 0
             assert level_3 > 0
             if level_3 not in cursor_gliederungskennzahl_lengths:
-                assert cursor_gliederungskennzahl_lengths[-1] < level_3, (
-                    filename,
-                    cursor_gliederungskennzahl_lengths,
-                    level_3,
-                    s_norm,
-                )
-                cursor_gliederungskennzahl_lengths.append(level_3)
+                if not cursor_gliederungskennzahl_lengths[-1] < level_3:
+                    print(
+                        filename,
+                        cursor_gliederungskennzahl_lengths,
+                        level_3,
+                        s_norm,
+                    )
+                    cursor_gliederungskennzahl_lengths.append(level_3)
+                    cursor_gliederungskennzahl_lengths.sort()
+                else:
+                    cursor_gliederungskennzahl_lengths.append(level_3)
             level = cursor_gliederungskennzahl_lengths.index(level_3)
 
             if last_gliederungskennzahl != s_gliederungskennzahl:
