@@ -1,5 +1,6 @@
 import json
 import os
+from collections import deque
 
 import networkx as nx
 import textdistance
@@ -158,7 +159,7 @@ def get_leaf_texts_to_compare(graph_filename, G, source_text, law_names_data):
 
     snapshot = graph_filename[: -len(".gpickle.gz")]
 
-    if len(snapshot) == 4:  # TODO LATER is US
+    if len(snapshot) == 4:  # is US
         files = sorted(
             [
                 x
@@ -220,7 +221,7 @@ def map_same_citekey_same_text(
         if not ids2 or not len(ids2):
             continue
         cite_key1 = G1.nodes[remaining_key1].get("citekey")
-        # TODO does not work for subseqitems. in this case to up to seqitem and use their citekey. Same for cite_key2.
+        # does not work for subseqitems. in this case to up to seqitem and use their citekey. Same for cite_key2.
         if not cite_key1:
             continue
         for id2 in ids2:
@@ -282,6 +283,16 @@ def get_neighborhood(G, node, radius):
     )
 
 
+def cached_text_distance(s1, s2, cache):
+    key = (s1, s2)
+    if key not in cache:
+        distance = textdistance.jaro_winkler(s1, s2)
+        cache[key] = distance
+    else:
+        distance = cache[key]
+    return distance
+
+
 def map_similar_text_common_neighbors(
     new_mappings,
     leave_texts1,
@@ -296,11 +307,15 @@ def map_similar_text_common_neighbors(
     sG1 = graph_api.sequence_graph(G1)
     sG2 = graph_api.sequence_graph(G2)
 
-    remaining_keys1 = list(remaining_keys1)  # to show progress
-    for remaining_key1 in remaining_keys1:
+    text_distance_cache = dict()
+
+    key_queue = deque(remaining_keys1)  # to show progress
+    i = -1  # only to print the process
+    while len(key_queue):
+        remaining_key1 = key_queue.popleft()
+        i += 1  # only to print the process
         print(
-            f"\r{remaining_keys1.index(remaining_key1) / len(remaining_keys1) * 100:.1f}%",
-            end="",
+            f"\r{i} \tof {len(key_queue) + i}", end="",
         )
 
         remaining_text1 = leave_texts1[remaining_key1]
@@ -327,20 +342,28 @@ def map_similar_text_common_neighbors(
             leave_texts2[x] if x in leave_texts2 else None for x in neighborhood_nodes2
         ]
         similarity = [
-            textdistance.jaro_winkler(remaining_text1, x)
-            if x
-            else 0  # TODO choose textdistance method
+            cached_text_distance(remaining_text1, x, text_distance_cache) if x else 0
             for x in neighborhood_text2
         ]
 
         if len(similarity) and max(similarity) > distance_threshold:
+            # Add to mapping and update remaining_keys
             max_index = similarity.index(max(similarity))
             id2_to_match_to = neighborhood_nodes2[max_index]
             new_mappings[remaining_key1] = id2_to_match_to
             remaining_keys2.remove(id2_to_match_to)
+            remaining_keys1.remove(remaining_key1)
+
+            # Requeue neighborhood of newly mapped element
+            neighborghood_to_requeue = [
+                n
+                for n in neighborhood_nodes1
+                if n in remaining_keys1 and n not in key_queue
+            ]
+            key_queue.extend(neighborghood_to_requeue)
+
     #         print(max(similarity))
     #         print(remaining_text1)
     #         print('-')
     #         print(neighborhood_text2[max_index])
     #         print('=====\n')
-    # TODO recursively check if new matches possible

@@ -1,5 +1,6 @@
 [![codecov](https://codecov.io/gh/QuantLaw/legal-data-preprocessing/branch/master/graph/badge.svg?token=FABCUR680K)](https://codecov.io/gh/QuantLaw/legal-data-preprocessing)
-![Tests](https://github.com/QuantLaw/legal-data-preprocessing/workflows/Tests/badge.svg)
+[![Tests](https://github.com/QuantLaw/legal-data-preprocessing/workflows/Tests/badge.svg)](https://github.com/QuantLaw/legal-data-preprocessing/actions)
+[![Maintainability](https://api.codeclimate.com/v1/badges/8cffa9a56ce357314456/maintainability)](https://codeclimate.com/repos/5f1bf2a3fccc45014c00c615/maintainability)
 
 # Legal data proprocessing
 

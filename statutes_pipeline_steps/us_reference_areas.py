@@ -81,8 +81,6 @@ usc_pattern_string = (
     r'(?!\w*(\sApp\.)?\s(U\.?S\.?C\.?|C\.?F\.?R\.?|Stat\.))'
 )
 
-# TODO LATER get other inline references e.g. chapter xx of Title 23
-
 inline_pattern_string = (
     regex_definitions +
     r'(Sec(?:tion|\.)?|§)\s*'

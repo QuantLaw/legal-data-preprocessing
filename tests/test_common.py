@@ -12,7 +12,3 @@ class TestCommon(unittest.TestCase):
         self.assertTrue(str_to_bool(True))
         with self.assertRaises(argparse.ArgumentTypeError):
             str_to_bool("hell!")
-
-
-if __name__ == "__main__":
-    unittest.main()

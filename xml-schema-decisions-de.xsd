@@ -8,23 +8,31 @@
     type="documentType"
   />
   <xs:complexType name="documentType">
-    <xs:choice
-      maxOccurs="unbounded"
-      minOccurs="0"
-    >
+    <xs:sequence>
       <xs:element
-        type="itemType"
-        name="item"
+        type="textType"
+        name="norm"
+        maxOccurs="1"
+        minOccurs="0"
       />
-      <xs:element
-        type="seqitemType"
-        name="seqitem"
-      />
-    </xs:choice>
+      <xs:choice
+        maxOccurs="unbounded"
+        minOccurs="0"
+      >
+        <xs:element
+          type="itemType"
+          name="item"
+        />
+        <xs:element
+          type="seqitemType"
+          name="seqitem"
+        />
+      </xs:choice>
+    </xs:sequence>
     <xs:attribute
       type="xs:string"
       name="heading"
-      use="required"
+      use="optional"
     />
     <xs:attribute
       type="xs:string"
@@ -44,6 +52,31 @@
     <xs:attribute
       type="xs:string"
       name="abbr_2"
+      use="optional"
+    />
+    <xs:attribute
+      type="xs:string"
+      name="doktyp"
+      use="optional"
+    />
+    <xs:attribute
+      type="xs:string"
+      name="az"
+      use="optional"
+    />
+    <xs:attribute
+      type="xs:string"
+      name="datum"
+      use="optional"
+    />
+    <xs:attribute
+      type="xs:string"
+      name="gericht"
+      use="optional"
+    />
+    <xs:attribute
+      type="xs:string"
+      name="spruchkoerper"
       use="optional"
     />
   </xs:complexType>

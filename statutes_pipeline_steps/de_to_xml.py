@@ -85,12 +85,12 @@ def create_root_elment(s_rahmen, t_soup, dok_is_statute):
     s_jurabk = s_jurabk and s_jurabk.string.strip()
     assert s_jurabk
     if s_jurabk:
-        t_document.attrs["abk_1"] = s_jurabk
+        t_document.attrs["abbr_1"] = s_jurabk
 
     s_amtabk = s_rahmen.amtabk
     s_amtabk = s_amtabk and s_amtabk.string.strip()
     if s_amtabk:
-        t_document.attrs["abk_2"] = s_amtabk
+        t_document.attrs["abbr_2"] = s_amtabk
     t_soup.append(t_document)
 
     return t_document, s_jurabk
@@ -407,11 +407,9 @@ def correct_errors_gliederungskennzahl(filename, s_norm):
                 + s_norm.gliederungskennzahl.text[3:]
                 + "0"
             )
-            # TODO order of elements is still messed up
 
         if s_norm.gliederungskennzahl and s_norm.gliederungskennzahl.text == "050224":
             s_norm.gliederungskennzahl.string.replace_with("050002240")
-            # TODO order of elements is still messed up
 
         if (
             s_norm.gliederungskennzahl

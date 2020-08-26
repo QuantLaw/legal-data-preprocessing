@@ -61,12 +61,10 @@ def nest_items(G, items, document_type):
                 type=item.name,
                 **(dict(document_type=document_type) if document_type else {}),
             )
-            if document_type:
-                document_type["document_type"] = document_type
-            if "abk_1" in item.attrs:
-                node_attrs["abk_1"] = item.attrs["abk_1"]
-            if "abk_2" in item.attrs:
-                node_attrs["abk_2"] = item.attrs["abk_2"]
+            if "abbr_1" in item.attrs:
+                node_attrs["abbr_1"] = item.attrs["abbr_1"]
+            if "abbr_2" in item.attrs:
+                node_attrs["abbr_2"] = item.attrs["abbr_2"]
 
             G.add_node(item.attrs["key"], **node_attrs)
             G.graph["name"] = item.attrs.get("heading", "")

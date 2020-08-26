@@ -12,7 +12,7 @@ REPO_PATH = "../gesetze-im-internet"
 REPO_PARENT_PATH = "../"
 ITEMS_PATH = f"{REPO_PATH}/data/items/"
 
-GII_REPO_URL = "https://github.com/legal-networks/gesetze-im-internet.git"
+GII_REPO_URL = "https://github.com/QuantLaw/gesetze-im-internet.git"
 
 
 def copy_and_simplify_file(xml_file):

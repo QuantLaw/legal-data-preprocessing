@@ -62,8 +62,6 @@ def sequence_graph(G, seq_decay_func=decay_function(1), seq_ref_ratio=1):
            from each other and a reference edge weight
     """
 
-    # TODO LATER perhaps create more flexible interface
-    #  (allow to specify whether the seqgraph should be undirected and simple, e.g.)
     hG = hierarchy_graph(G)
     # make sure we get _all_ seqitems as leaves, not only the ones without outgoing references
     leaves = [n for n in hG.nodes() if hG.out_degree(n) == 0]

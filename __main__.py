@@ -356,7 +356,7 @@ if __name__ == "__main__":
                 use_multiprocessing=use_multiprocessing,
             )
 
-        elif dataset == "de":  # TODO LATER unify US and DE py
+        elif dataset == "de":
             source = DE_REFERENCE_PARSED_PATH
             destination = DE_CROSSREFERENCE_EDGELIST_PATH
 

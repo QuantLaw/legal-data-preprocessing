@@ -48,8 +48,7 @@ def de_reference_areas(filename, law_names, regulations):
 
     logs.extend(find_references_in_soup(soup, laws_lookup, laws_lookup_keys, para, art))
 
-    # Find references without preceding article or §
-    # TODO LATER currently not working
+    # Find references without preceding article or § (currently not implemented)
     # long_law_regex_pattern = law_keys_to_regex(laws_lookup_keys, 5)
     # short_law_regex_pattern = law_keys_to_regex(laws_lookup_keys, 3, 4)
     # for section in soup.find_all("text"):
@@ -140,7 +139,7 @@ reference_range_pattern_str = (
     r'(?P<trigger>'
         r'('
             r'§{1,2}|'
-            r'\bArt\b\.?|' # TODO remove maybe?
+            r'\bArt\b\.?|'
             r'Artikels?n?'
         r')\s*'
     r')'
@@ -182,7 +181,7 @@ suffix_ignore_pattern_str = (
         r'Anlage\b|'
         r'([\wäöüÄÖÜß]+\s)?[\wäöüÄÖÜß]*(Gesetz|Übereinkommen|vereinbarung|verordnung|Abkommens|Vertrag|Konvention|Protokoll|Anordnung|Satzung|bestimmung|Verfassung)e?s?n?\s\s?(zur|über|vom|zum|zu dem|von|zwischen|des|der|betreffend)|'
         r'[\wäöüÄÖÜß]*-(vertrag|abkommen)e?s?|'
-        r'(in\s(?!Artikels?n?)[\w\s\.]{2,100}?\s)?(vor)?(genannten|bezeichneten)\s\w*(Verordnung|Gesetz)e?s?n?|' # TODO Reference
+        r'(in\s(?!Artikels?n?)[\w\s\.]{2,100}?\s)?(vor)?(genannten|bezeichneten)\s\w*(Verordnung|Gesetz)e?s?n?|'
         r'in\s(?=(Art|§)[\w\s\.§]{2,100}?\s(vor)?(genannten|bezeichneten)\s\w*(Verordnung|Gesetz)e?s?n?)' # Similiar to pattern above, but stops before next reference trigger (Art...|§)
     r')'
 )
