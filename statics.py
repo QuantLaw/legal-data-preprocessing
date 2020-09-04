@@ -1,7 +1,6 @@
 ALL_YEARS = list(range(1994, 2019))
 
 DATA_PATH = "../legal-networks-data"
-
 US_DATA_PATH = "../legal-networks-data/us"
 US_TEMP_DATA_PATH = "temp/us"
 
@@ -21,6 +20,12 @@ US_HELPERS_PATH = f"{US_TEMP_DATA_PATH}/helpers"
 US_REFERENCE_AREAS_LOG_PATH = f"{US_HELPERS_PATH}/us_extract_reference_areas.log"
 US_REFERENCE_PARSED_LOG_PATH = f"{US_HELPERS_PATH}/us_extract_reference_parsed.log"
 
+US_REG_DATA_PATH = "../legal-networks-data/us_reg"
+US_REG_TEMP_DATA_PATH = "temp/us_reg"
+
+US_REG_INPUT_PATH = f"{US_REG_DATA_PATH}/1_input"
+US_REG_ORIGINAL_PATH = f"{US_REG_TEMP_DATA_PATH}/11_htm"
+US_REG_XML_PATH = f"{US_REG_TEMP_DATA_PATH}/12_xml"
 
 DE_DATA_PATH = "../legal-networks-data/de"
 DE_TEMP_DATA_PATH = "temp/de"

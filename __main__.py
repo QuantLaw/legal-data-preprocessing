@@ -11,6 +11,7 @@ from statutes_pipeline_steps.de_crossreference_lookup import (
     de_crossreference_lookup,
 )
 from statutes_pipeline_steps.de_prepare_input import de_prepare_input
+from statutes_pipeline_steps.us_reg_prepare_input import us_reg_prepare_input
 
 from utils.common import (
     str_to_bool,
@@ -203,7 +204,10 @@ if __name__ == "__main__":
 
     if "prepare_input" in steps:
         if dataset == "us":
-            us_prepare_input()
+            if regulations:
+                us_reg_prepare_input()
+            else:
+                us_prepare_input()
         elif dataset == "de":
             de_prepare_input(regulations)
         print("Filter input: done")
