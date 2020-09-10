@@ -1,3 +1,4 @@
+import json
 import os
 import re
 
@@ -93,7 +94,35 @@ def create_root_elment(s_rahmen, t_soup, dok_is_statute):
         t_document.attrs["abbr_2"] = s_amtabk
     t_soup.append(t_document)
 
+    s_juris = s_rahmen.juris
+    add_juris_data_to_tag(s_juris, t_document)
+
     return t_document, s_jurabk
+
+
+def add_juris_data_to_tag(s_juris, t_tag):
+    for tag_name in ["normgeber", "mitwirkende", "sachgebiete"]:
+        juris_tags_strings = [
+            tag.string for tag in s_juris.find_all(tag_name, recursive=False)
+        ]
+        if tag_name == "sachgebiete":
+            juris_tags_strings = [
+                x for x in juris_tags_strings if x.lower().startswith("fna")
+            ]
+        for t in juris_tags_strings:
+            assert ";" not in juris_tags_strings
+        t_tag.attrs[tag_name] = ";".join(juris_tags_strings)
+
+    s_v_entries = [
+        {
+            "typ": t.attrs.get("verweistyp"),
+            # "datum": t.attrs.get("datum"),
+            "enbez": t.enbez and t.enbez.string,
+            "normabk": t.normabk and t.normabk.string,
+        }
+        for t in s_juris.find_all("v_eintrag", recursive=False)
+    ]
+    t_tag.attrs["verweise"] = json.dumps(s_v_entries, ensure_ascii=False)
 
 
 analyse_is_preamble_pattern = re.compile(
@@ -140,7 +169,10 @@ def convert_to_xml(source_soup, filename, dest, regulations, dok_is_statute):
         return
 
     s_rahmen = s_norms[0]
-    if not s_norms[0].textdaten.contents and not s_norms[0].metadaten.gliederungskennzahl:
+    if (
+        not s_norms[0].textdaten.contents
+        and not s_norms[0].metadaten.gliederungskennzahl
+    ):
         s_norms = s_norms[1:]
 
     t_document, jurabk = create_root_elment(
@@ -192,10 +224,7 @@ def convert_to_xml(source_soup, filename, dest, regulations, dok_is_statute):
             if level_3 not in cursor_gliederungskennzahl_lengths:
                 if not cursor_gliederungskennzahl_lengths[-1] < level_3:
                     print(
-                        filename,
-                        cursor_gliederungskennzahl_lengths,
-                        level_3,
-                        s_norm,
+                        filename, cursor_gliederungskennzahl_lengths, level_3, s_norm,
                     )
                     cursor_gliederungskennzahl_lengths.append(level_3)
                     cursor_gliederungskennzahl_lengths.sort()
@@ -284,6 +313,9 @@ def convert_to_xml(source_soup, filename, dest, regulations, dok_is_statute):
 
             if texts:
                 cursor[-1].append(t_seqitem)
+
+            s_juris = s_metadaten.juris
+            add_juris_data_to_tag(s_juris, t_seqitem)
 
     # iterate over soup in reverse item order to ensure empty item removal works
     for t in reversed(t_items):
