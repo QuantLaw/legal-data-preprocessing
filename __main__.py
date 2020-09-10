@@ -57,7 +57,8 @@ from statics import (
     DE_SNAPSHOT_MAPPING_EDGELIST_PATH,
     ALL_YEARS,
     DE_RVO_REFERENCE_PARSED_PATH,
-    DE_RVO_HIERARCHY_GRAPH_PATH,
+    DE_RVO_HIERARCHY_GRAPH_PATH, DE_RVO_CROSSREFERENCE_EDGELIST_PATH, DE_RVO_CROSSREFERENCE_GRAPH_PATH,
+    DE_RVO_SNAPSHOT_MAPPING_EDGELIST_PATH,
 )
 from statutes_pipeline_steps.us_crossreference_edgelist import (
     us_crossreference_edgelist_prepare,
@@ -344,6 +345,7 @@ if __name__ == "__main__":
                 [],
                 action_method=de_crossreference_lookup,
                 use_multiprocessing=use_multiprocessing,
+                args=[regulations]
             )
         print("Create crossreference lookup: done")
 
@@ -365,13 +367,13 @@ if __name__ == "__main__":
             destination = DE_CROSSREFERENCE_EDGELIST_PATH
 
             law_names_data = load_law_names(regulations)
-            items = de_crossreference_edgelist_prepare(overwrite, snapshots)
+            items = de_crossreference_edgelist_prepare(overwrite, snapshots, regulations)
             process_items(
                 items,
                 [],
                 action_method=de_crossreference_edgelist,
                 use_multiprocessing=use_multiprocessing,
-                args=(law_names_data,),
+                args=(law_names_data, regulations),
             )
         print("Create crossreference edgelist: done")
 
@@ -382,9 +384,11 @@ if __name__ == "__main__":
                 destination = f'{US_CROSSREFERENCE_GRAPH_PATH}/{"subseqitems" if subseqitems_conf else "seqitems"}'
                 edgelist_folder = US_CROSSREFERENCE_EDGELIST_PATH
             elif dataset == "de":
-                source = f'{DE_HIERARCHY_GRAPH_PATH}/{"subseqitems" if subseqitems_conf else "seqitems"}'
-                destination = f'{DE_CROSSREFERENCE_GRAPH_PATH}/{"subseqitems" if subseqitems_conf else "seqitems"}'
-                edgelist_folder = DE_CROSSREFERENCE_EDGELIST_PATH
+                source = DE_RVO_HIERARCHY_GRAPH_PATH if regulations else DE_HIERARCHY_GRAPH_PATH
+                source += f'/{"subseqitems" if subseqitems_conf else "seqitems"}'
+                destination = DE_RVO_CROSSREFERENCE_GRAPH_PATH if regulations else DE_CROSSREFERENCE_GRAPH_PATH
+                destination += f'/{"subseqitems" if subseqitems_conf else "seqitems"}'
+                edgelist_folder = DE_RVO_CROSSREFERENCE_EDGELIST_PATH if regulations else DE_CROSSREFERENCE_EDGELIST_PATH
 
             items = crossreference_graph_prepare(
                 overwrite, snapshots, source, edgelist_folder, destination, regulations
@@ -405,9 +409,9 @@ if __name__ == "__main__":
             destination = f"{US_SNAPSHOT_MAPPING_EDGELIST_PATH}/subseqitems"
             law_names_data = None
         elif dataset == "de":
-            source_graph = f"{DE_CROSSREFERENCE_GRAPH_PATH}/subseqitems"
-            source_text = DE_REFERENCE_PARSED_PATH
-            destination = f"{DE_SNAPSHOT_MAPPING_EDGELIST_PATH}/subseqitems"
+            source_graph = f"{DE_RVO_CROSSREFERENCE_GRAPH_PATH if regulations else DE_CROSSREFERENCE_GRAPH_PATH}/subseqitems"
+            source_text = DE_RVO_REFERENCE_PARSED_PATH if regulations else DE_REFERENCE_PARSED_PATH
+            destination = f"{DE_RVO_SNAPSHOT_MAPPING_EDGELIST_PATH if regulations else DE_SNAPSHOT_MAPPING_EDGELIST_PATH}/subseqitems"
             law_names_data = load_law_names(regulations)
 
         items = snapshot_mapping_edgelist_prepare(

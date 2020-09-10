@@ -309,7 +309,7 @@ def get_sgb_law_name_len(test_str):
     match = regex.match(
         r"^("
             r"(erst|zweit|dritt|viert|fünft|sechst|siebt|acht|neunt|zehnt|elft|zwölft|\d{1,2}\.)"
-            r"en?s? buche?s?(( des)? sozialgesetzbuche?s?)?"
+            r"e(n|s)? buche?s?(( des)? sozialgesetzbuche?s?)?"
         r"|"
             r"SGB"
             r"(\s|\-)"

@@ -91,7 +91,7 @@ def build_graph(filename, add_subseqitems=False):
     with open(filename, encoding="utf8") as f:
         soup = BeautifulSoup(f.read(), "lxml-xml")
 
-    document_type = soup.document.attrs.get("type", None)
+    document_type = soup.document.attrs.get("document_type", None)
 
     G = nx.DiGraph()
 

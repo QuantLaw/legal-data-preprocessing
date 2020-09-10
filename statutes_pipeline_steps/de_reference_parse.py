@@ -86,7 +86,7 @@ unit_patterns = {
     r"§{1,2}": "§",
     r"Art\b\.?|[Aa]rtikels?n?": "Art",
     r"Nr\b\.?|Nummer|Nrn?\b\.?": "Nr",
-    r"[Aa][Bb]s\b\.?|Absatz|Absätze": "Abs",
+    r"[Aa][Bb][Ss]\b\.?|Absatz|Absätze": "Abs",
     r"Unter[Aa]bsatz|Unter[Aa]bs\b\.?": "Uabs",
     r"S\b\.?|Satz|Sätze": "Satz",
     r"Ziffern?|Ziffn?\b\.?": "Ziffer",
@@ -186,7 +186,7 @@ class StringCaseException(Exception):
     pass
 
 
-def split_citation_part(string):
+def split_citation_part(string, debug_context=None):
     # fmt: off
     string = regex.sub(
         r"(" 
@@ -220,7 +220,11 @@ def split_citation_part(string):
         elif is_pre_numb(token):
             numb = token
             token = tokens.pop(0)
-            assert is_unit(token)
+            if not is_unit(token):
+                print(token, 'is not a unit in', string, 'debug context', debug_context)
+                continue
+                # to fix citation "§ 30 DRITTER ABSCHNITT"
+                # Last part in now ignored, but reference areas can still be improved.
             unit = stem_unit(token)
         elif is_numb(token):
             #             assert len(reference_paths) > 0
@@ -276,7 +280,7 @@ def infer_units(reference_path, prev_reference_path):
 #         print(f'Insert all error: {citation}')
 
 
-def parse_reference_content(reference):
+def parse_reference_content(reference, debug_context=None):
     citation = reference.main.get_text().strip()
     citation = fix_errors_in_citation(citation)
 
@@ -288,7 +292,7 @@ def parse_reference_content(reference):
     reference_paths = []
     for enum_part in enum_parts:
         for string in enum_part:
-            splitted_citation_part_list = list(split_citation_part(string))
+            splitted_citation_part_list = list(split_citation_part(string, debug_context))
             if len(splitted_citation_part_list):
                 reference_paths.append(splitted_citation_part_list)
             else:
@@ -311,7 +315,7 @@ def parse_reference_content_in_soup(soup, debug_context=None):
     for reference in soup.find_all("reference", {"pattern": "inline"}):
         if reference.main:
             try:
-                parse_reference_content(reference)
+                parse_reference_content(reference, debug_context)
             except StringCaseException as error:
                 print(error, "context", debug_context)
 
@@ -409,7 +413,11 @@ def identify_reference_law_name_in_soup(
         else:
             continue  # ignore or unknown
 
-        ref_parts = json.loads(reference["parsed_verbose"])
+        try:
+            ref_parts = json.loads(reference["parsed_verbose"])
+        except:
+            print(current_lawid, 'xx', reference["parsed_verbose"])
+            raise
         for ref_part in ref_parts:
             ref_part.insert(0, ["Gesetz", lawid])
         reference["parsed_verbose"] = json.dumps(ref_parts, ensure_ascii=False)

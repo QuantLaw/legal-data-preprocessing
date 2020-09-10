@@ -12,7 +12,8 @@ from utils.common import (
 from statics import (
     DE_CROSSREFERENCE_EDGELIST_PATH,
     DE_CROSSREFERENCE_LOOKUP_PATH,
-    DE_REFERENCE_PARSED_PATH,
+    DE_REFERENCE_PARSED_PATH, DE_RVO_CROSSREFERENCE_LOOKUP_PATH, DE_RVO_CROSSREFERENCE_EDGELIST_PATH,
+    DE_RVO_REFERENCE_PARSED_PATH,
 )
 
 
@@ -20,8 +21,8 @@ def get_filename(date):
     return f"{date}.csv"
 
 
-def de_crossreference_edgelist_prepare(overwrite, snapshots):
-    ensure_exists(DE_CROSSREFERENCE_EDGELIST_PATH)
+def de_crossreference_edgelist_prepare(overwrite, snapshots, regulations):
+    ensure_exists(DE_RVO_CROSSREFERENCE_EDGELIST_PATH if regulations else DE_CROSSREFERENCE_EDGELIST_PATH)
 
     if not overwrite:
         existing_files = os.listdir(DE_CROSSREFERENCE_EDGELIST_PATH)
@@ -32,22 +33,24 @@ def de_crossreference_edgelist_prepare(overwrite, snapshots):
     return snapshots
 
 
-def de_crossreference_edgelist(snapshot, law_names_data):
+def de_crossreference_edgelist(snapshot, law_names_data, regulations):
     files = get_snapshot_law_list(snapshot, law_names_data)
+    source_folder = DE_RVO_CROSSREFERENCE_LOOKUP_PATH if regulations else DE_CROSSREFERENCE_LOOKUP_PATH
+    target_folder = DE_RVO_CROSSREFERENCE_EDGELIST_PATH if regulations else DE_CROSSREFERENCE_EDGELIST_PATH
     key_df = (
-        pd.read_csv(f"{DE_CROSSREFERENCE_LOOKUP_PATH}/{snapshot}.csv")
+        pd.read_csv(f"{source_folder}/{snapshot}.csv")
         .dropna()
         .set_index("citekey")
     )
     df = None
     for file in files:
-        edge_df = make_edge_list(file, key_df)
+        edge_df = make_edge_list(file, key_df, regulations)
         df = edge_df if df is None else df.append(edge_df, ignore_index=True)
-    df.to_csv(f"{DE_CROSSREFERENCE_EDGELIST_PATH}/{snapshot}.csv", index=False)
+    df.to_csv(f"{target_folder}/{snapshot}.csv", index=False)
 
 
-def make_edge_list(file, key_df):
-    soup = create_soup(f"{DE_REFERENCE_PARSED_PATH}/{file}")
+def make_edge_list(file, key_df, regulations):
+    soup = create_soup(f"{DE_RVO_REFERENCE_PARSED_PATH if regulations else DE_REFERENCE_PARSED_PATH}/{file}")
     edges = []
 
     # FOR DEBUG

@@ -70,7 +70,7 @@ def create_root_elment(s_rahmen, t_soup, dok_is_statute):
         },
     )
     if dok_is_statute is not None:
-        t_document.attrs["typ"] = "statute" if dok_is_statute else "regulation"
+        t_document.attrs["document_type"] = "statute" if dok_is_statute else "regulation"
 
     heading = s_rahmen.langue
     heading = heading and heading.string.strip()
