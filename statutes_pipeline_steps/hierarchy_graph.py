@@ -35,20 +35,31 @@ def hierarchy_graph(filename, source, destination, add_subseqitems):
 # Functions
 ###########
 
+def add_juris_attrs(item, node_attrs):
+    if item.attrs.get('normgeber'):
+        node_attrs['legislators'] = item.attrs["normgeber"]
+    if item.attrs.get('mitwirkende'):
+        node_attrs['contributors'] = item.attrs["mitwirkende"]
+    if item.attrs.get('sachgebiete'):
+        node_attrs['subject_areas'] = item.attrs["sachgebiete"]
+
 
 def nest_items(G, items, document_type):
     for item in items:
         if type(item.parent) is not BeautifulSoup:
-            G.add_node(
-                item.attrs["key"],
+            node_attrs = dict(
                 key=item.attrs["key"],
                 citekey=item.attrs.get("citekey", ""),
                 heading=item.attrs.get("heading", ""),
                 parent_key=item.parent.attrs["key"],
                 level=int(item.attrs["level"]),
                 type=item.name,
-                **(dict(document_type=document_type) if document_type else {}),
             )
+            if document_type:
+                node_attrs['document_type'] = document_type
+            add_juris_attrs(item, node_attrs)
+
+            G.add_node(item.attrs["key"], **node_attrs)
             G.add_edge(item.parent.attrs["key"], item.attrs["key"])
 
         else:  # handle root node
@@ -65,6 +76,7 @@ def nest_items(G, items, document_type):
                 node_attrs["abbr_1"] = item.attrs["abbr_1"]
             if "abbr_2" in item.attrs:
                 node_attrs["abbr_2"] = item.attrs["abbr_2"]
+            add_juris_attrs(item, node_attrs)
 
             G.add_node(item.attrs["key"], **node_attrs)
             G.graph["name"] = item.attrs.get("heading", "")
