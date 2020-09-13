@@ -55,12 +55,9 @@ def de_authority_edgelist(snapshot, law_names_data, regulations):
 
 
 def make_edge_list(file, key_df, law_citekeys_dict, regulations):
-    try:
-        soup = create_soup(
-            f"{DE_RVO_REFERENCE_PARSED_PATH if regulations else DE_REFERENCE_PARSED_PATH}/{file}"
-        )
-    except FileNotFoundError:
-        return pd.DataFrame([], columns=["out_node", "in_node"])
+    soup = create_soup(
+        f"{DE_RVO_REFERENCE_PARSED_PATH if regulations else DE_REFERENCE_PARSED_PATH}/{file}"
+    )
     edges = []
 
     # FOR DEBUG
