@@ -3,6 +3,7 @@ import os
 import networkx as nx
 import pandas as pd
 
+from statics import DE_RVO_AUTHORITY_EDGELIST_PATH
 from utils.common import (
     ensure_exists,
     list_dir,
@@ -53,7 +54,9 @@ def crossreference_graph_prepare(
     return files
 
 
-def crossreference_graph(args, source, edgelist_folder, destination, add_subseqitems):
+def crossreference_graph(
+    args, source, edgelist_folder, destination, add_subseqitems, regulations
+):
     year, files = args
 
     # make forest from trees
@@ -79,8 +82,17 @@ def crossreference_graph(args, source, edgelist_folder, destination, add_subseqi
     for node_from, node_to in edges:
         assert G.has_node(node_from)
         assert G.has_node(node_to)
-
     G.add_edges_from(edges, edge_type="reference")
+
+    # add authority edges
+    if regulations and len(year) != 4:  # is DE
+        edge_list = pd.read_csv(f"{DE_RVO_AUTHORITY_EDGELIST_PATH}/{year}.csv")
+        edges = [tuple(edge[1].values) for edge in edge_list.iterrows()]
+        for node_from, node_to in edges:
+            assert G.has_node(node_from)
+            assert G.has_node(node_to)
+        G.add_edges_from(edges, edge_type="authority")
+
     G.graph["name"] = f"{year}"
     # print(
     #     f"{year} graph stats"

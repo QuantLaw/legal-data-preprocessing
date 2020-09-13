@@ -426,7 +426,13 @@ if __name__ == "__main__":
                 [],
                 action_method=crossreference_graph,
                 use_multiprocessing=use_multiprocessing,
-                args=(source, edgelist_folder, destination, subseqitems_conf),
+                args=(
+                    source,
+                    edgelist_folder,
+                    destination,
+                    subseqitems_conf,
+                    regulations,
+                ),
             )
         print("Make crossreference graph: done")
 
