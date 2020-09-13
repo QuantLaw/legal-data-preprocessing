@@ -45,8 +45,8 @@ def identify_reference_in_juris_vso_list(soup, laws_lookup, laws_lookup_keys):
             match = match_law_name(lawname_stem, laws_lookup, laws_lookup_keys)
             if match:
                 lawid = laws_lookup[match]
-                parsed_vso_ref = [["Gesetz", lawid]]
-                parsed_vso_ref_simple = [lawid]
+                parsed_vso_ref = [[["Gesetz", lawid]]]
+                parsed_vso_ref_simple = [[lawid]]
 
                 # Append ref. details if present in raw data
                 enbez = verweis["enbez"]
@@ -58,9 +58,11 @@ def identify_reference_in_juris_vso_list(soup, laws_lookup, laws_lookup_keys):
                             reference_paths_simple,
                         ) = parse_reference_string(enbez, debug_context=None)
 
-                        parsed_vso_ref = [parsed_vso_ref + r for r in reference_paths]
+                        parsed_vso_ref = [
+                            parsed_vso_ref[0] + r for r in reference_paths
+                        ]
                         parsed_vso_ref_simple = [
-                            parsed_vso_ref_simple + r for r in reference_paths_simple
+                            parsed_vso_ref_simple[0] + r for r in reference_paths_simple
                         ]
 
                     except StringCaseException as error:

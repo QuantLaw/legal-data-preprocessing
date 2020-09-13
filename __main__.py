@@ -353,9 +353,6 @@ if __name__ == "__main__":
 
     if "crossreference_edgelist" in steps:
         if dataset == "us":
-            source = US_REFERENCE_PARSED_PATH
-            destination = US_CROSSREFERENCE_EDGELIST_PATH
-
             items = us_crossreference_edgelist_prepare(overwrite, snapshots)
             process_items(
                 items,
@@ -365,9 +362,6 @@ if __name__ == "__main__":
             )
 
         elif dataset == "de":
-            source = DE_REFERENCE_PARSED_PATH
-            destination = DE_CROSSREFERENCE_EDGELIST_PATH
-
             law_names_data = load_law_names(regulations)
             items = de_crossreference_edgelist_prepare(
                 overwrite, snapshots, regulations
