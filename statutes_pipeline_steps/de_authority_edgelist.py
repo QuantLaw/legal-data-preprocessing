@@ -75,6 +75,7 @@ def make_edge_list(file, key_df, law_citekeys_dict, regulations):
         node_out = item.get("key")
         refs = json.loads(item_parsed_ref_str)
         for ref in refs:
+            # TODO multiple laws with the same bnormabk
             if len(ref) > 1:  # Ref to seqitem at least
                 try:
                     key = "_".join(ref[:2])
@@ -89,8 +90,9 @@ def make_edge_list(file, key_df, law_citekeys_dict, regulations):
                 except KeyError:
                     problem_keys.add(key)
             else:  # ref to document only
-                node_in = law_citekeys_dict[ref[0]]
-                edges.append((node_out, node_in))
+                node_in = law_citekeys_dict.get(ref[0])
+                if node_in:
+                    edges.append((node_out, node_in))
 
     # FOR DEBUG
     # if len(problem_matches) > 0:
