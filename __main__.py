@@ -2,6 +2,10 @@ import argparse
 import multiprocessing
 import re
 
+from statutes_pipeline_steps.de_authority_edgelist import (
+    de_authority_edgelist_prepare,
+    de_authority_edgelist,
+)
 from statutes_pipeline_steps.de_crossreference_edgelist import (
     de_crossreference_edgelist_prepare,
     de_crossreference_edgelist,
@@ -188,6 +192,7 @@ if __name__ == "__main__":
             "hierarchy_graph",
             "crossreference_lookup",
             "crossreference_edgelist",
+            "authority_edgelist",  # DE only
             "crossreference_graph",
             "snapshot_mapping_edgelist",  # creates edgelist to map nodes between snapshots for DYNAMIC graph
         ]
@@ -374,6 +379,19 @@ if __name__ == "__main__":
                 args=(law_names_data, regulations),
             )
         print("Create crossreference edgelist: done")
+
+    if "authority_edgelist" in steps:
+        if dataset == "de" and regulations:
+            law_names_data = load_law_names(regulations)
+            items = de_authority_edgelist_prepare(overwrite, snapshots, regulations)
+            process_items(
+                items,
+                [],
+                action_method=de_authority_edgelist,
+                use_multiprocessing=use_multiprocessing,
+                args=(law_names_data, regulations),
+            )
+        print("Create authority edgelist: done")
 
     if "crossreference_graph" in steps:
         for subseqitems_conf in get_subseqitem_conf(args.subseqitems):
