@@ -10,6 +10,7 @@ from utils.common import (
     create_soup,
     stem_law_name,
     get_stemmed_law_names_for_filename,
+    match_law_name,
 )
 from statics import (
     DE_REFERENCE_AREAS_PATH,
@@ -196,14 +197,6 @@ suffix_ignore_pattern = regex.compile(
 ########################################
 # Functions general and normal citations
 ########################################
-
-
-def match_law_name(more_stemmed, laws, laws_keys_ordered):
-    x = 1
-    for law in laws_keys_ordered:
-        if more_stemmed[: len(law)] == law:
-            return law
-    return None
 
 
 def save_soup_with_style(soup, path):

@@ -13,6 +13,7 @@ from utils.common import (
     stem_law_name,
     get_stemmed_law_names_for_filename,
     copy_xml_schema_to_data_folder,
+    match_law_name,
 )
 from statics import (
     DE_REFERENCE_AREAS_PATH,
@@ -221,7 +222,7 @@ def split_citation_part(string, debug_context=None):
             numb = token
             token = tokens.pop(0)
             if not is_unit(token):
-                print(token, 'is not a unit in', string, 'debug context', debug_context)
+                print(token, "is not a unit in", string, "debug context", debug_context)
                 continue
                 # to fix citation "§ 30 DRITTER ABSCHNITT"
                 # Last part in now ignored, but reference areas can still be improved.
@@ -292,7 +293,9 @@ def parse_reference_content(reference, debug_context=None):
     reference_paths = []
     for enum_part in enum_parts:
         for string in enum_part:
-            splitted_citation_part_list = list(split_citation_part(string, debug_context))
+            splitted_citation_part_list = list(
+                split_citation_part(string, debug_context)
+            )
             if len(splitted_citation_part_list):
                 reference_paths.append(splitted_citation_part_list)
             else:
@@ -376,13 +379,6 @@ def generate_sgb_dict():
 sgb_dict = generate_sgb_dict()
 
 
-def match_law_name(more_stemmed, laws, laws_keys_ordered):
-    for law in laws_keys_ordered:
-        if more_stemmed[: len(law)] == law:
-            return law
-    return None
-
-
 def identify_reference_law_name_in_soup(
     soup, laws_lookup, laws_lookup_keys, current_lawid
 ):
@@ -416,7 +412,7 @@ def identify_reference_law_name_in_soup(
         try:
             ref_parts = json.loads(reference["parsed_verbose"])
         except:
-            print(current_lawid, 'xx', reference["parsed_verbose"])
+            print(current_lawid, "xx", reference["parsed_verbose"])
             raise
         for ref_part in ref_parts:
             ref_part.insert(0, ["Gesetz", lawid])

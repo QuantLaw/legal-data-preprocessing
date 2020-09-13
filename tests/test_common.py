@@ -14,4 +14,4 @@ class TestCommon(unittest.TestCase):
             str_to_bool("hell!")
 
     def test_stem_law_name(self):
-        print(stem_law_name('fuenften buch sozialgesetzbuch'))
+        print(stem_law_name("fuenften buch sozialgesetzbuch"))

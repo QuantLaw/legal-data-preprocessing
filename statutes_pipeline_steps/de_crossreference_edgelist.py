@@ -12,7 +12,9 @@ from utils.common import (
 from statics import (
     DE_CROSSREFERENCE_EDGELIST_PATH,
     DE_CROSSREFERENCE_LOOKUP_PATH,
-    DE_REFERENCE_PARSED_PATH, DE_RVO_CROSSREFERENCE_LOOKUP_PATH, DE_RVO_CROSSREFERENCE_EDGELIST_PATH,
+    DE_REFERENCE_PARSED_PATH,
+    DE_RVO_CROSSREFERENCE_LOOKUP_PATH,
+    DE_RVO_CROSSREFERENCE_EDGELIST_PATH,
     DE_RVO_REFERENCE_PARSED_PATH,
 )
 
@@ -22,7 +24,11 @@ def get_filename(date):
 
 
 def de_crossreference_edgelist_prepare(overwrite, snapshots, regulations):
-    ensure_exists(DE_RVO_CROSSREFERENCE_EDGELIST_PATH if regulations else DE_CROSSREFERENCE_EDGELIST_PATH)
+    ensure_exists(
+        DE_RVO_CROSSREFERENCE_EDGELIST_PATH
+        if regulations
+        else DE_CROSSREFERENCE_EDGELIST_PATH
+    )
 
     if not overwrite:
         existing_files = os.listdir(DE_CROSSREFERENCE_EDGELIST_PATH)
@@ -35,12 +41,18 @@ def de_crossreference_edgelist_prepare(overwrite, snapshots, regulations):
 
 def de_crossreference_edgelist(snapshot, law_names_data, regulations):
     files = get_snapshot_law_list(snapshot, law_names_data)
-    source_folder = DE_RVO_CROSSREFERENCE_LOOKUP_PATH if regulations else DE_CROSSREFERENCE_LOOKUP_PATH
-    target_folder = DE_RVO_CROSSREFERENCE_EDGELIST_PATH if regulations else DE_CROSSREFERENCE_EDGELIST_PATH
+    source_folder = (
+        DE_RVO_CROSSREFERENCE_LOOKUP_PATH
+        if regulations
+        else DE_CROSSREFERENCE_LOOKUP_PATH
+    )
+    target_folder = (
+        DE_RVO_CROSSREFERENCE_EDGELIST_PATH
+        if regulations
+        else DE_CROSSREFERENCE_EDGELIST_PATH
+    )
     key_df = (
-        pd.read_csv(f"{source_folder}/{snapshot}.csv")
-        .dropna()
-        .set_index("citekey")
+        pd.read_csv(f"{source_folder}/{snapshot}.csv").dropna().set_index("citekey")
     )
     df = None
     for file in files:
@@ -50,7 +62,9 @@ def de_crossreference_edgelist(snapshot, law_names_data, regulations):
 
 
 def make_edge_list(file, key_df, regulations):
-    soup = create_soup(f"{DE_RVO_REFERENCE_PARSED_PATH if regulations else DE_REFERENCE_PARSED_PATH}/{file}")
+    soup = create_soup(
+        f"{DE_RVO_REFERENCE_PARSED_PATH if regulations else DE_REFERENCE_PARSED_PATH}/{file}"
+    )
     edges = []
 
     # FOR DEBUG

@@ -134,6 +134,18 @@ def invert_dict_mapping_unique(source_dict):
     return {v: k for k, v in source_dict.items() if v in unique}
 
 
+################################
+# DE Reference areas and parsing
+################################
+
+
+def match_law_name(more_stemmed, laws, laws_keys_ordered):
+    for law in laws_keys_ordered:
+        if more_stemmed[: len(law)] == law:
+            return law
+    return None
+
+
 ####################
 # DE Crossreferences
 ####################

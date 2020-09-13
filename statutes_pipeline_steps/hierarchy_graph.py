@@ -35,13 +35,14 @@ def hierarchy_graph(filename, source, destination, add_subseqitems):
 # Functions
 ###########
 
+
 def add_juris_attrs(item, node_attrs):
-    if item.attrs.get('normgeber'):
-        node_attrs['legislators'] = item.attrs["normgeber"]
-    if item.attrs.get('mitwirkende'):
-        node_attrs['contributors'] = item.attrs["mitwirkende"]
-    if item.attrs.get('sachgebiete'):
-        node_attrs['subject_areas'] = item.attrs["sachgebiete"]
+    if item.attrs.get("normgeber"):
+        node_attrs["legislators"] = item.attrs["normgeber"]
+    if item.attrs.get("mitwirkende"):
+        node_attrs["contributors"] = item.attrs["mitwirkende"]
+    if item.attrs.get("sachgebiete"):
+        node_attrs["subject_areas"] = item.attrs["sachgebiete"]
 
 
 def nest_items(G, items, document_type):
@@ -56,7 +57,7 @@ def nest_items(G, items, document_type):
                 type=item.name,
             )
             if document_type:
-                node_attrs['document_type'] = document_type
+                node_attrs["document_type"] = document_type
             add_juris_attrs(item, node_attrs)
 
             G.add_node(item.attrs["key"], **node_attrs)
