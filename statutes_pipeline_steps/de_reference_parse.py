@@ -5,6 +5,9 @@ from collections import Counter
 
 from regex import regex
 
+from statutes_pipeline_steps.de_reference_parse_vso_list import (
+    identify_reference_in_juris_vso_list,
+)
 from utils.common import (
     ensure_exists,
     list_dir,
@@ -62,6 +65,8 @@ def de_reference_parse(filename, law_names, regulations):
         soup, laws_lookup, laws_lookup_keys, current_lawid
     )
     identify_lawreference_law_name_in_soup(soup, laws_lookup)
+
+    identify_reference_in_juris_vso_list(soup, laws_lookup, laws_lookup_keys)
 
     save_soup(soup, f"{dest}/{filename}")
     return logs
@@ -282,8 +287,16 @@ def infer_units(reference_path, prev_reference_path):
 
 
 def parse_reference_content(reference, debug_context=None):
-    citation = reference.main.get_text().strip()
-    citation = fix_errors_in_citation(citation)
+    reference_string = reference.main.get_text().strip()
+    reference_paths, reference_paths_simple = parse_reference_string(
+        reference_string, debug_context
+    )
+    reference["parsed_verbose"] = json.dumps(reference_paths, ensure_ascii=False)
+    reference["parsed"] = json.dumps(reference_paths_simple, ensure_ascii=False)
+
+
+def parse_reference_string(reference_string, debug_context=None):
+    citation = fix_errors_in_citation(reference_string)
 
     # For debug
     # print(citation + ' ' + reference.lawname.get_text(), file=debug_file)
@@ -307,11 +320,11 @@ def parse_reference_content(reference, debug_context=None):
         prev_reference_path = reference_paths[reference_paths.index(reference_path) - 1]
         infer_units(reference_path, prev_reference_path)
 
-    reference["parsed_verbose"] = json.dumps(reference_paths, ensure_ascii=False)
     reference_paths_simple = [
         [component[1] for component in path] for path in reference_paths
     ]
-    reference["parsed"] = json.dumps(reference_paths_simple, ensure_ascii=False)
+
+    return reference_paths, reference_paths_simple
 
 
 def parse_reference_content_in_soup(soup, debug_context=None):
