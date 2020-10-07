@@ -2,10 +2,9 @@ import os
 
 import networkx as nx
 import pandas as pd
+from quantlaw.utils.files import ensure_exists, list_dir
 
 from utils.common import (
-    ensure_exists,
-    list_dir,
     get_snapshot_law_list,
     load_law_names,
 )

@@ -4,6 +4,9 @@ import sys
 import traceback
 
 from bs4 import BeautifulSoup
+from quantlaw.de_extract.statutes import StatutesExtractor
+from quantlaw.utils.beautiful_soup import save_soup
+from quantlaw.utils.files import ensure_exists, list_dir
 
 from statics import (
     DE_DECISIONS_HIERARCHY,
@@ -17,10 +20,6 @@ from statutes_pipeline_steps.de_reference_parse import (
     identify_lawreference_law_name_in_soup,
 )
 from utils.common import (
-    list_dir,
-    ensure_exists,
-    save_soup,
-    stem_law_name,
     load_law_names_compiled,
     get_stemmed_law_names,
 )
@@ -62,13 +61,13 @@ def find_references(decision):
             # Get laws in effect at time of decision
             laws_lookup = get_stemmed_law_names(date, law_names)
             laws_lookup_keys = sorted(laws_lookup.keys(), reverse=True)
+            extractor = StatutesExtractor(laws_lookup)
 
         if not areas_exists:
             logs.append(
                 find_references_in_soup(
                     soup,
-                    laws_lookup,
-                    laws_lookup_keys,
+                    extractor,
                     para=0,
                     art=0,
                     text_tag_name=["text", "norm"],

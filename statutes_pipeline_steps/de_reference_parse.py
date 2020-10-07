@@ -3,14 +3,12 @@ import json
 import os
 from collections import Counter
 
+from quantlaw.de_extract.stemming import stem_law_name
+from quantlaw.utils.beautiful_soup import create_soup, save_soup
+from quantlaw.utils.files import ensure_exists, list_dir
 from regex import regex
 
 from utils.common import (
-    ensure_exists,
-    list_dir,
-    create_soup,
-    save_soup,
-    stem_law_name,
     get_stemmed_law_names_for_filename,
     copy_xml_schema_to_data_folder,
 )

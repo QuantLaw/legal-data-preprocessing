@@ -1,11 +1,11 @@
 import pickle
 
 import pandas as pd
+from quantlaw.de_extract.stemming import stem_law_name
+from quantlaw.utils.beautiful_soup import create_soup
+from quantlaw.utils.files import list_dir
 
 from utils.common import (
-    list_dir,
-    stem_law_name,
-    create_soup,
     load_law_names,
 )
 from statics import (

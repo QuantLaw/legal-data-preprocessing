@@ -3,8 +3,7 @@ import re
 
 import networkx as nx
 from bs4 import BeautifulSoup
-
-from utils.common import ensure_exists, list_dir
+from quantlaw.utils.files import ensure_exists, list_dir
 
 
 def get_graphml_filename(filename):

@@ -3,10 +3,9 @@ import os
 
 import numpy
 import pandas as pd
+from quantlaw.utils.files import ensure_exists
 
 from utils.common import (
-    ensure_exists,
-    create_soup,
     get_snapshot_law_list,
 )
 from statics import (

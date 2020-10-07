@@ -3,10 +3,10 @@ import os
 import re
 
 from bs4 import BeautifulSoup
+from quantlaw.utils.files import ensure_exists, list_dir
 
 from de_decisions_pipeline_steps.common import get_docparts_with_p
 from statics import DE_DECISIONS_HIERARCHY, DE_DECISIONS_XML
-from utils.common import ensure_exists, list_dir
 
 
 def extract_number(text, token_position=0):

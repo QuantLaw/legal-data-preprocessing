@@ -3,7 +3,7 @@ import re
 from collections import OrderedDict
 import bs4
 from bs4 import BeautifulSoup
-from utils.common import ensure_exists, list_dir
+from quantlaw.utils.files import list_dir, ensure_exists
 
 from statics import US_XML_PATH, US_ORIGINAL_PATH
 

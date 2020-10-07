@@ -2,14 +2,10 @@ import itertools
 import os
 
 import bs4
+from quantlaw.utils.beautiful_soup import create_soup, save_soup
+from quantlaw.utils.files import ensure_exists, list_dir
 from regex import regex
 
-from utils.common import (
-    ensure_exists,
-    list_dir,
-    create_soup,
-    save_soup,
-)
 from statics import (
     US_REFERENCE_AREAS_PATH,
     US_XML_PATH,

@@ -2,8 +2,8 @@ import os
 import re
 
 from bs4 import BeautifulSoup
+from quantlaw.utils.files import list_dir, ensure_exists
 
-from utils.common import ensure_exists, list_dir
 from statics import DE_XML_PATH, DE_ORIGINAL_PATH
 
 

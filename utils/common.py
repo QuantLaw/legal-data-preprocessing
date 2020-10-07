@@ -1,15 +1,13 @@
 import argparse
-import json
 import multiprocessing
 import os
 import pickle
-import re
 import shutil
 from collections import Counter
 from multiprocessing import cpu_count
 
-import bs4
 import pandas as pd
+from quantlaw.utils.files import ensure_exists
 from regex import regex
 
 from statics import (
@@ -72,41 +70,6 @@ def str_to_bool(v):
         raise argparse.ArgumentTypeError("Boolean value expected.")
 
 
-#############
-# File system
-#############
-
-
-def ensure_exists(path):
-    if not os.path.exists(path):
-        os.makedirs(path)
-    return path
-
-
-def list_dir(path, type):
-    return [f for f in os.listdir(path) if f.endswith(type)]
-
-
-###############
-# BeautifulSoup
-###############
-
-
-def create_soup(path):
-    with open(path, encoding="utf8") as f:
-        return bs4.BeautifulSoup(f.read(), "lxml-xml")
-
-
-def save_soup(soup, path):
-    try:
-        with open(path, "w") as f:
-            f.write(str(soup))
-    except:  # Clean file if error
-        if os.path.exists(path):
-            os.remove(path)
-        raise
-
-
 ########################
 # Generic Data Wrangling
 ########################
@@ -135,27 +98,6 @@ def invert_dict_mapping_unique(source_dict):
 ####################
 # DE Crossreferences
 ####################
-
-
-def stem_law_name(name):
-    """
-    Stems name of laws to prepare for recognizing laws in the code
-    """
-    result = re.sub(
-        r"(?<!\b)(er|en|es|s|e)(?=\b)", "", name.strip(), flags=re.IGNORECASE
-    )
-    return clean_name(result)
-
-
-def clean_name(name):
-    result = re.sub(r"\s+", " ", name)
-    return (
-        result.replace("ß", "ss")
-        .lower()
-        .replace("ä", "ae")
-        .replace("ü", "ue")
-        .replace("ö", "oe")
-    )
 
 
 def load_law_names():
@@ -212,18 +154,6 @@ def get_snapshot_law_list(date, law_names_data):
     }
     assert len(law_names_list) == len({x.split("_")[0] for x in law_names_list})
     return law_names_list
-
-
-def find_parent_with_name(tag, name):
-    """
-    :param tag: A tag of a BeautifulSoup
-    :param name: name to search in parents
-    :return: the nearest ancestor with the name
-    """
-    if tag.name == name:
-        return tag
-    else:
-        return find_parent_with_name(tag.parent, name)
 
 
 def copy_xml_schema_to_data_folder():

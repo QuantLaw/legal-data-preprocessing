@@ -4,13 +4,12 @@ from collections import deque
 
 import networkx as nx
 import textdistance
+from quantlaw.utils.files import ensure_exists, list_dir
+from quantlaw.utils.networkx import get_leaves
 from regex import regex
 
 
 from utils.common import (
-    ensure_exists,
-    list_dir,
-    create_soup,
     invert_dict_mapping_all,
     invert_dict_mapping_unique,
     get_snapshot_law_list,
@@ -155,7 +154,7 @@ def get_leaf_texts_to_compare(graph_filename, G, source_text, law_names_data):
     get text for leaves of a hierarchy graph. Can be seqitem or supseqitem graph.
     Leaves are only seqitems or supseqitems.
     """
-    leaf_keys = graph_api.get_leaves(G)
+    leaf_keys = get_leaves(G)
 
     snapshot = graph_filename[: -len(".gpickle.gz")]
 
