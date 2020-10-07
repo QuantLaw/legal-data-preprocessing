@@ -4,7 +4,7 @@ import sys
 import traceback
 
 from bs4 import BeautifulSoup
-from quantlaw.de_extract.statutes import StatutesExtractor
+from quantlaw.de_extract.statutes import StatutesExtractor, StatutesParser
 from quantlaw.utils.beautiful_soup import save_soup
 from quantlaw.utils.files import ensure_exists, list_dir
 
@@ -60,7 +60,7 @@ def find_references(decision):
 
             # Get laws in effect at time of decision
             laws_lookup = get_stemmed_law_names(date, law_names)
-            laws_lookup_keys = sorted(laws_lookup.keys(), reverse=True)
+            parser = StatutesParser(laws_lookup)
             extractor = StatutesExtractor(laws_lookup)
 
         if not areas_exists:
@@ -81,9 +81,9 @@ def find_references(decision):
                 f"{DE_DECISIONS_REFERENCE_AREAS}/{decision}", encoding="utf8"
             ) as f:
                 soup = BeautifulSoup(f.read(), "lxml-xml")
-            parse_reference_content_in_soup(soup, decision)
+            parse_reference_content_in_soup(soup, parser, decision)
             identify_reference_law_name_in_soup(
-                soup, laws_lookup, laws_lookup_keys, current_lawid=None
+                soup, parser, current_lawid=None
             )
             identify_lawreference_law_name_in_soup(soup, laws_lookup)
 

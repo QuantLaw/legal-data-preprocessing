@@ -5,7 +5,7 @@ from collections import deque
 import networkx as nx
 import textdistance
 from quantlaw.utils.files import ensure_exists, list_dir
-from quantlaw.utils.networkx import get_leaves
+from quantlaw.utils.networkx import get_leaves, sequence_graph
 from regex import regex
 
 
@@ -18,7 +18,6 @@ from utils.common import (
 import sys
 
 sys.path.append("../")
-from utils import graph_api
 
 
 def mapping_filename(mapping):
@@ -303,8 +302,8 @@ def map_similar_text_common_neighbors(
     radius=5,
     distance_threshold=0.9,
 ):
-    sG1 = graph_api.sequence_graph(G1)
-    sG2 = graph_api.sequence_graph(G2)
+    sG1 = sequence_graph(G1)
+    sG2 = sequence_graph(G2)
 
     text_distance_cache = dict()
 
