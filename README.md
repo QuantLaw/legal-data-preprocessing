@@ -3,7 +3,7 @@
 [![Maintainability](https://api.codeclimate.com/v1/badges/8cffa9a56ce357314456/maintainability)](https://codeclimate.com/repos/5f1bf2a3fccc45014c00c615/maintainability)
 [![DOI](https://zenodo.org/badge/doi/10.5281/zenodo.4070773.svg)](http://dx.doi.org/10.5281/zenodo.4070773)
 
-# Legal data preprocessing
+# Legal Data Preprocessing
 
 This repository contains code to preprocess legal text documents.
 It is, inter alia, used to produce the results reported in the following publication:
