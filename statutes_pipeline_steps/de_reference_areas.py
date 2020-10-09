@@ -2,7 +2,8 @@ import itertools
 import os
 
 import bs4
-from quantlaw.de_extract.statutes import StatutesExtractor, StatutesMatchWithMainArea
+from quantlaw.de_extract.statutes_abstract import StatutesMatchWithMainArea
+from quantlaw.de_extract.statutes_areas import StatutesExtractor
 from quantlaw.utils.beautiful_soup import create_soup
 from quantlaw.utils.files import ensure_exists, list_dir
 

@@ -2,10 +2,10 @@ import itertools
 import json
 import os
 
+from quantlaw.de_extract.statutes_parse import StringCaseException, StatutesParser
 from quantlaw.de_extract.stemming import stem_law_name
 from quantlaw.utils.beautiful_soup import create_soup, save_soup
 from quantlaw.utils.files import ensure_exists, list_dir
-from quantlaw.de_extract.statutes import StatutesParser, StringCaseException
 
 from utils.common import (
     get_stemmed_law_names_for_filename,
