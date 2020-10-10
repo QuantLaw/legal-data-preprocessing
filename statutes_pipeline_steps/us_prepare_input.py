@@ -1,4 +1,3 @@
-# Roughly validate the input files
 import os
 import re
 import shutil
@@ -9,7 +8,9 @@ from statics import US_INPUT_PATH, US_ORIGINAL_PATH
 
 
 def us_prepare_input():
-    """moves files into main dir and validate files roughly"""
+    """
+    moves source files into main dir and validate files roughly
+    """
 
     ensure_exists(US_ORIGINAL_PATH)
 

@@ -3,60 +3,84 @@ import re
 from collections import OrderedDict
 
 import bs4
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from quantlaw.utils.files import ensure_exists, list_dir
+from quantlaw.utils.pipeline import PipelineStep
 
 from statics import US_ORIGINAL_PATH, US_XML_PATH
 
 
-def us_to_xml_prepare(overwrite):
-    ensure_exists(US_XML_PATH)
-    files = os.listdir(US_ORIGINAL_PATH)
-    pattern = re.compile(r"\d+0_\d+\.htm")  # appendices are ignored
-    html_files = list(filter(pattern.fullmatch, files))
+class UsToXmlStep(PipelineStep):
+    def get_items(self, overwrite) -> list:
+        # Create target folder
+        ensure_exists(US_XML_PATH)
 
-    if not overwrite:
-        existing_files = list_dir(US_XML_PATH, ".xml")
-        existing_files_sources = list(
-            map(lambda x: x.replace(".xml", ".htm"), existing_files)
-        )
+        # Get source files
+        files = list_dir(US_ORIGINAL_PATH, ".htm")
 
-        html_files = list(filter(lambda f: f not in existing_files_sources, html_files))
+        # Filter appendices
+        pattern = re.compile(r"\d+0_\d+\.htm")
+        html_files = list(filter(pattern.fullmatch, files))
 
-    return html_files
+        # Prevent file overwrite
+        if not overwrite:
+            existing_files = list_dir(US_XML_PATH, ".xml")
+            existing_files_sources = list(
+                map(lambda x: x.replace(".xml", ".htm"), existing_files)
+            )
+
+            html_files = list(
+                filter(lambda f: f not in existing_files_sources, html_files)
+            )
+
+        return html_files
+
+    def execute_item(self, item):
+        filepath = f"{US_ORIGINAL_PATH}/{item}"
+
+        # get snapshot
+        match = re.fullmatch(r"(\d+)_(\d+)\.htm", item)
+        snapshot = match[2]
+
+        # Read the source file
+        soup = htm_to_soup(filepath)
+
+        # Split into documents (roughly sections)
+        documents = split_into_documents(soup)
+
+        # Create a nested structure of sections
+        roots = nest_documents(documents)
+
+        # Create a nested structure below section level
+        for document in documents:
+            convert_statute_field_to_contents(document)
+
+        # Generate xml and save
+        export_to_xml(roots, snapshot)
 
 
-def us_to_xml(filename):
-    filepath = f"{US_ORIGINAL_PATH}/{filename}"
-    # try:
-    match = re.fullmatch(r"(\d+)_(\d+)\.htm", filename)
-    assert match
-    version = match[2]
-    soup = htm_to_soup(filepath)
-    documents = split_into_documents(soup)
-    roots = nest_documents(documents)
-    for document in documents:
-        convert_statute_field_to_contents(document)
-    export_to_xml(roots, version)
-
-
-# except AssertionError as err:
-#     print(f"error in {filename}")
-#     traceback.print_exc()
-
-
-#######################################
+#################
 # Load html files
-#######################################
+#################
 
 
-def all_indices_of_object(target, my_list):
+def htm_to_soup(filename: str) -> BeautifulSoup:
     """
-    returns an array of indices where the target is in my_list
+    Opens and parses a file.
     """
-    for i in range(len(my_list)):
-        if my_list[i] == target:
-            yield i
+    with open(filename, "rb") as f:
+        lines = f.readlines()
+
+    # Cleanup some errors manually
+    correct_errors_in_source(filename, lines)
+
+    # Remove weird formatting
+    content = b"".join(lines).decode("utf-8-sig", errors="ignore")
+    content = content.replace("\x1a", "")
+
+    # Parse file
+    soup = BeautifulSoup(content, "lxml")
+    return soup
 
 
 def correct_errors_in_source(filepath, lines):
@@ -128,76 +152,18 @@ def correct_errors_in_source(filepath, lines):
             lines[i] = b""
 
 
-def htm_to_soup(filename):
+def all_indices_of_object(target, my_list):
     """
-    Opens and parses a file.
+    Returns: array of indices where the target is in my_list
     """
-    with open(filename, "rb") as f:
-        lines = f.readlines()
-        correct_errors_in_source(filename, lines)
-        content = b"".join(lines).decode("utf-8-sig", errors="ignore")
-        content = content.replace("\x1a", "")
-        soup = BeautifulSoup(content, "lxml")
-    return soup
+    for i in range(len(my_list)):
+        if my_list[i] == target:
+            yield i
 
 
-#######################################
+#################
 # Load html files
-#######################################
-
-
-def remove_elements(soup, tag_name):
-    tags = list(soup.find_all(tag_name))
-    for tag in tags:
-        tag.extract()
-
-
-def analyze_comment(comment):
-    assert type(comment) is bs4.element.Comment
-    comment_components = comment.string.strip().split(":")
-    return comment_components[0], ":".join(comment_components[1:])
-
-
-def introduction_ends(element):
-    return (
-        type(element) is bs4.element.Comment
-        and analyze_comment(element)[0] == "documentid"
-    )
-
-
-def close_and_new_document(doc_properties, doc_fields, docs):
-    if "documentid" in doc_properties:
-        docs.append({**doc_properties, "fields": doc_fields})
-
-
-def assert_comment_format(comment, open_fields, doc_properties):
-    comment_key, comment_value = analyze_comment(comment)
-
-    if comment_key not in {
-        "documentid",
-        "expcite",
-        "itempath",
-        "itemsortkey",
-        "field-start",
-        "field-end",
-        "PDFPage",
-    }:
-        raise Exception("Unknown Comment: " + comment)
-
-    if comment_key in ["PDFPage", "field-start", "field-end"]:
-        assert len(comment.string.strip().split(":")) == 2  # No ':' in field name
-    elif comment_key == "field-start":
-        # All properties set above first field
-        assert set(doc_properties.keys()) == {
-            "documentid",
-            "expcite",
-            "itempath",
-            "itemsortkey",
-        }
-    elif comment_key == "documentid":
-        assert open_fields == []  # All fields closed, when opening new document
-    elif comment_key == "field-start":
-        assert "/" not in comment_value, comment_value
+#################
 
 
 def split_into_documents(soup):
@@ -216,7 +182,7 @@ def split_into_documents(soup):
     # Filled with tags between 'field-start' and 'field-start' comments.
     # Cleared when beginning new document.
     doc_fields = {}
-    #     pdf_page = None
+
     open_fields = []  # Filled with open tags, using 'field-start' as start marker and
     # 'field-start' as end marker.
     last_tag = None
@@ -277,7 +243,6 @@ def split_into_documents(soup):
                     elif comment_key == "field-end":
                         field_closed = open_fields.pop()
                         assert field_closed == comment_value
-
         else:
             raise Exception(f"Unknown item type: {tag}")
 
@@ -285,12 +250,108 @@ def split_into_documents(soup):
     return docs
 
 
+def remove_elements(soup, tag_name):
+    """
+    Removes all elements with a given tage name from the tree
+    """
+    tags = list(soup.find_all(tag_name))
+    for tag in tags:
+        tag.extract()
+
+
+def introduction_ends(element) -> bool:
+    """
+    Checks weather the given element indicates that the introduction of the statute
+    ends
+    """
+    return (
+        type(element) is bs4.element.Comment
+        and analyze_comment(element)[0] == "documentid"
+    )
+
+
+def close_and_new_document(doc_properties, doc_fields, docs):
+    if "documentid" in doc_properties:
+        docs.append({**doc_properties, "fields": doc_fields})
+
+
+def assert_comment_format(comment, open_fields, doc_properties):
+    """
+    Validates the format of the comment
+    """
+    comment_key, comment_value = analyze_comment(comment)
+
+    if comment_key not in {
+        "documentid",
+        "expcite",
+        "itempath",
+        "itemsortkey",
+        "field-start",
+        "field-end",
+        "PDFPage",
+    }:
+        raise Exception("Unknown Comment: " + comment)
+
+    if comment_key in ["PDFPage", "field-start", "field-end"]:
+        assert len(comment.string.strip().split(":")) == 2  # No ':' in field name
+    elif comment_key == "field-start":
+        # All properties set above first field
+        assert set(doc_properties.keys()) == {
+            "documentid",
+            "expcite",
+            "itempath",
+            "itemsortkey",
+        }
+    elif comment_key == "documentid":
+        assert open_fields == []  # All fields closed, when opening new document
+    elif comment_key == "field-start":
+        assert "/" not in comment_value, comment_value
+
+
+def analyze_comment(comment) -> tuple:
+    """
+    Extracts content from a comment
+    """
+    assert type(comment) is bs4.element.Comment
+    comment_components = comment.string.strip().split(":")
+    return comment_components[0], ":".join(comment_components[1:])
+
+
 #######################################
 # Nest documents
 #######################################
 
 
+def nest_documents(documents):
+    """
+    Use itempathcomponents attribute of each document to nest the provided documents
+    """
+
+    for document in documents:
+        add_pathcomponents(document)
+    docs_by_itempath = {doc["itempathcomponents"]: doc for doc in documents}
+    roots = []
+    for doc in documents:
+        assert len(doc["itempathcomponents"]) > 0
+
+        if len(doc["itempathcomponents"]) == 1:
+            # Append to root
+            roots.append(doc)
+
+        else:
+            # For elements ar lower levels (create and) get parent to add the document
+            # to.
+            parent = get_or_create_parent(docs_by_itempath, doc)
+            parent["children"].append(doc)
+
+    return roots
+
+
 def add_pathcomponents(document):
+    """
+    Analyze document attributes and add another attribute for path components and
+    an empty list for possible children.
+    """
     itempathcomponents = document["expcite"].split("!@!")
     assert len(itempathcomponents) > 0
     itempathcomponents[0] = document["itempath"].split("/")[1]
@@ -299,6 +360,10 @@ def add_pathcomponents(document):
 
 
 def get_or_create_parent(docs_by_itempath, doc):
+    """
+    Get the parent for a document based on the itempathcomponents. If the parent does
+    not exist yet it will be created.
+    """
     parent = docs_by_itempath.get(doc["itempathcomponents"][:-1])
 
     if not parent:
@@ -313,24 +378,6 @@ def get_or_create_parent(docs_by_itempath, doc):
         grandparent["children"].append(parent)
 
     return parent
-
-
-def nest_documents(documents):
-    for document in documents:
-        add_pathcomponents(document)
-    docs_by_itempath = {doc["itempathcomponents"]: doc for doc in documents}
-    roots = []
-    for doc in documents:
-        assert len(doc["itempathcomponents"]) > 0
-
-        if len(doc["itempathcomponents"]) == 1:
-            roots.append(doc)
-
-        else:
-            parent = get_or_create_parent(docs_by_itempath, doc)
-            parent["children"].append(doc)
-
-    return roots
 
 
 #######################################
@@ -391,6 +438,10 @@ STATUTE_STRUCTURE = OrderedDict(
 STATUTE_STRUCTURE_VALUES = list(STATUTE_STRUCTURE.values())
 
 # mappings a text block to an element type. Normally this belongs to previous item.
+# E.g. This is a sentence
+#      1. with an list item
+#      2. and another
+#      and this is the continuation of the initial sencente after the enumeration.
 CONTINUATIONS = {
     "statutory-body-block": "text",
     "statutory-body-block-1em": "text-enumeration1",
@@ -401,6 +452,7 @@ CONTINUATIONS = {
     "statutory-body-flush2_hang3": "text-enumeration3",  # discretion
     "statutory-body-flush2_hang4": "text-enumeration4",  # discretion
 }
+
 
 # classes that are ignored in further process.
 SKIP_CLASS = {
@@ -420,6 +472,9 @@ ALLOWED_SUBTAGS = ["i", "sup", "a", "cap-smallcap", "strong", "sub", "em", "br"]
 
 
 def assert_statutes_child(child):
+    """
+    Validates that the document content contains only expected elements.
+    """
     assert (
         not child.get("class") or len(child.get("class")) == 1
     )  # Max. one class per child
@@ -437,7 +492,10 @@ def assert_statutes_child(child):
             )
 
 
-def check_allowed_div_table_subtags(tag):
+def check_allowed_div_table_subtags(tag) -> bool:
+    """
+    Checks that the tag only contains expected children
+    """
     for descendant in tag.descendants if tag.descendants else []:
         if not (
             type(descendant) in [bs4.element.Comment, bs4.element.NavigableString]
@@ -460,13 +518,14 @@ def check_allowed_div_table_subtags(tag):
 
 
 def tag_to_string(tag):
+    """
+    Converts a tag to string and ensures that the contents of cells in a table are
+    separated by a space
+    """
     tag = BeautifulSoup(str(tag), "lxml")
     for tag in [*tag.findAll("th"), *tag.findAll("td")]:
         tag.contents.append(bs4.element.NavigableString(" "))
     return re.sub(r"\s+", " ", BeautifulSoup(str(tag), "lxml").text.strip())
-
-
-# check_prevent_double_paths = [] # Global var to assert that each path is unique
 
 
 def get_subitem_path(document, open_elements, current_title):
@@ -479,14 +538,13 @@ def get_subitem_path(document, open_elements, current_title):
         [*document["itempathcomponents"], *section_path_elements, last_path_component]
     )
 
-    # if path in check_prevent_double_paths:
-    #     print(f'duplicate {path}')
-    # check_prevent_double_paths.append(path)
-
     return path
 
 
 def convert_statute_field_to_contents(document):
+    """
+    Converts the contents of a document which is in this case a section.
+    """
     if not document["fields"].get("statute"):
         return
 
@@ -613,12 +671,15 @@ def convert_statute_field_to_contents(document):
                 raise Exception(child)
 
 
-#######################################
+########
 # Export
-#######################################
+########
 
 
-def doc_to_soup(doc, soup, level, version, root=False):
+def doc_to_soup(doc, soup, level, version, root=False) -> Tag:
+    """
+    Converts the intermediate structure to a xml soup
+    """
     tag_name = "document" if root else ("item" if len(doc["children"]) else "seqitem")
     tag = soup.new_tag(tag_name, level=level, heading=doc["expcite"].split("!@!")[-1])
     if tag_name == "seqitem":
@@ -636,7 +697,10 @@ def doc_to_soup(doc, soup, level, version, root=False):
     return tag
 
 
-def content_to_soup(content, soup, level, version, doc):
+def content_to_soup(content, soup, level, version, doc) -> Tag:
+    """
+    Converts the intermediate structure within a document to a xml soup
+    """
     if type(content) is dict:
         tag = soup.new_tag("subseqitem", level=level, heading=content.get("title", ""))
 
@@ -653,6 +717,10 @@ def content_to_soup(content, soup, level, version, doc):
 
 
 def remove_unnecessary_subseqitems(soup):
+    """
+    Cleans the soup from unnecessary items, such as subseqitems if a seqitem only
+    contains one subseqitem.
+    """
     for seqitem in soup.find_all("seqitem"):
         if (
             len(seqitem.contents) == 1
@@ -665,17 +733,26 @@ def remove_unnecessary_subseqitems(soup):
 
 
 def nodeid_counter():
+    """
+    Get next counter number
+    """
     nodeid_counter.counter += 1
     return nodeid_counter.counter
 
 
 def add_keys_to_items(soup, prefix):
+    """
+    Add attrs to tags in soup
+    """
     nodeid_counter.counter = 0
     for tag in soup.find_all(["document", "item", "seqitem", "subseqitem"]):
         tag.attrs["key"] = f"{prefix}_{nodeid_counter():06d}"
 
 
 def export_to_xml(roots, version):
+    """
+    Converts the intermediate structure to a soup and saves the xml
+    """
     for root in roots:
         with open(f'{US_XML_PATH}/{root["itempath"][1:]}_{version}.xml', "wb") as f:
             soup = BeautifulSoup("", "lxml")
@@ -683,21 +760,3 @@ def export_to_xml(roots, version):
             remove_unnecessary_subseqitems(soup)
             add_keys_to_items(soup, f'{root["itempathcomponents"][0]}_{version}')
             f.write(soup.encode("utf-8"))
-
-
-#######################################
-# Main
-#######################################
-
-
-def section_already_converted(filepath):
-    filename_match = re.fullmatch(
-        r"(\d{4})usc(\d{2})(\w?)\.html?",
-        os.path.basename(filepath),
-        flags=re.IGNORECASE,
-    )
-    assert filename_match
-    version = filename_match[1]
-    title = str(int(filename_match[2])).zfill(2)
-    title = title + "1" if filename_match[3] else title + "0"
-    return os.path.exists(f"{US_XML_PATH}/{version}output{title}.xml")
