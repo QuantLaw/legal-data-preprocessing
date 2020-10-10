@@ -2,7 +2,6 @@ import unittest
 
 from bs4 import BeautifulSoup
 
-from statutes_pipeline_steps.de_reference_areas import reference_range_pattern
 from statutes_pipeline_steps.de_reference_parse import parse_reference_content
 
 

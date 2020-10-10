@@ -2,12 +2,13 @@ import json
 import os
 
 import pandas as pd
-from quantlaw.utils.files import list_dir
+from quantlaw.utils.beautiful_soup import create_soup
+from quantlaw.utils.files import ensure_exists, list_dir
 
 from statics import (
-    US_REFERENCE_PARSED_PATH,
-    US_CROSSREFERENCE_LOOKUP_PATH,
     US_CROSSREFERENCE_EDGELIST_PATH,
+    US_CROSSREFERENCE_LOOKUP_PATH,
+    US_REFERENCE_PARSED_PATH,
 )
 
 

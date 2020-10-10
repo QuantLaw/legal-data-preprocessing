@@ -3,16 +3,15 @@ import os
 
 import numpy
 import pandas as pd
+from quantlaw.utils.beautiful_soup import create_soup
 from quantlaw.utils.files import ensure_exists
 
-from utils.common import (
-    get_snapshot_law_list,
-)
 from statics import (
     DE_CROSSREFERENCE_EDGELIST_PATH,
     DE_CROSSREFERENCE_LOOKUP_PATH,
     DE_REFERENCE_PARSED_PATH,
 )
+from utils.common import get_snapshot_law_list
 
 
 def get_filename(date):

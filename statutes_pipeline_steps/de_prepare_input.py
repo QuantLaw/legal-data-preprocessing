@@ -4,7 +4,7 @@ import shutil
 
 from quantlaw.utils.files import ensure_exists
 
-from statics import JURIS_EXPORT_PATH, DE_ORIGINAL_PATH, JURIS_EXPORT_GESETZE_LIST_PATH
+from statics import DE_ORIGINAL_PATH, JURIS_EXPORT_GESETZE_LIST_PATH, JURIS_EXPORT_PATH
 
 
 def de_prepare_input():

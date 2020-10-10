@@ -7,15 +7,13 @@ from quantlaw.de_extract.statutes_areas import StatutesExtractor
 from quantlaw.utils.beautiful_soup import create_soup
 from quantlaw.utils.files import ensure_exists, list_dir
 
-from utils.common import (
-    get_stemmed_law_names_for_filename,
-)
 from statics import (
-    DE_REFERENCE_AREAS_PATH,
     DE_HELPERS_PATH,
     DE_REFERENCE_AREAS_LOG_PATH,
+    DE_REFERENCE_AREAS_PATH,
     DE_XML_PATH,
 )
+from utils.common import get_stemmed_law_names_for_filename
 
 
 def de_reference_areas_prepare(overwrite):
@@ -34,7 +32,6 @@ def de_reference_areas(filename, law_names):
     logs = []
     soup = create_soup(f"{DE_XML_PATH}/{filename}")
     para, art, misc = analyze_type_of_headings(soup)
-
 
     logs.extend(find_references_in_soup(soup, extractor, para, art))
 
@@ -113,26 +110,25 @@ def split_reference(string, len_main, len_suffix, soup):
     return result
 
 
-def handle_reference_match(
-    match: StatutesMatchWithMainArea, section, soup, para, art
-):
-    # Set internal references to ignore if seqitem unit (Art|§) does not match between reference and target law
+def handle_reference_match(match: StatutesMatchWithMainArea, section, soup, para, art):
+    # Set internal references to ignore if seqitem unit (Art|§) does not match between
+    # reference and target law
     if match.law_match_type == "internal":
-        if (section.contents[-1][match.start:].startswith("§") and para == 0) or (
-            section.contents[-1][match.start:].lower().startswith("art") and art == 0
+        if (section.contents[-1][match.start :].startswith("§") and para == 0) or (
+            section.contents[-1][match.start :].lower().startswith("art") and art == 0
         ):
-            law_match_type = "ignore"
+            match.law_match_type = "ignore"
 
     ref_tag = soup.new_tag("reference", pattern="inline")
     section.contents[-1:] = add_tag(
         section.contents[-1],
         match.start,
-        match.end + match.suffix_len + match.law_len, ref_tag
+        match.end + match.suffix_len + match.law_len,
+        ref_tag,
     )
     ref_tag.contents = split_reference(
-        ref_tag.string,
-        match.end - match.start,
-        match.suffix_len, soup)
+        ref_tag.string, match.end - match.start, match.suffix_len, soup
+    )
     ref_tag.contents[-1]["type"] = match.law_match_type
 
 
@@ -141,29 +137,20 @@ def find_references_in_section(section, soup, extractor: StatutesExtractor, para
     match = extractor.search(section.contents[-1])  # Search first match
     while match:
         if match.has_main_area():
-            handle_reference_match(
-                match, section, soup, para, art
-            )
+            handle_reference_match(match, section, soup, para, art)
         match = extractor.search(
-            section.contents[-1],
-            pos=(0 if match.has_main_area() else match.end)
+            section.contents[-1], pos=(0 if match.has_main_area() else match.end)
         )
     return logs
 
 
-def find_references_in_soup(
-    soup, extractor, para, art, text_tag_name="text"
-):
+def find_references_in_soup(soup, extractor, para, art, text_tag_name="text"):
     logs = []
     for text in soup.find_all(text_tag_name):
         if text.is_empty_element:
             continue
         assert text.string
-        logs.extend(
-            find_references_in_section(
-                text, soup, extractor, para, art
-            )
-        )
+        logs.extend(find_references_in_section(text, soup, extractor, para, art))
     return logs
 
 
@@ -177,7 +164,8 @@ def find_references_in_soup(
 #     prefix = stemmed[:i]
 #     stemmed_tokens = regex.findall(r"[\w']+|[\W']+", prefix)
 #     orig_tokens = regex.findall(r"[\w']+|[\W']+", orig)
-#     #     return len(''.join(orig_tokens[:len(stemmed_tokens)-1])) + len(stemmed_tokens[-1]) # Precise position
+#     # return (len(''.join(orig_tokens[:len(stemmed_tokens)-1])) +
+#     #         len(stemmed_tokens[-1]) # Precise position
 #     return len("".join(orig_tokens[: len(stemmed_tokens)]))  # Round to next boundary
 #
 #

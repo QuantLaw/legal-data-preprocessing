@@ -1,7 +1,7 @@
 import re
 
-from bs4 import BeautifulSoup, Tag, NavigableString
-from quantlaw.utils.beautiful_soup import save_soup, create_soup
+from bs4 import BeautifulSoup, NavigableString
+from quantlaw.utils.beautiful_soup import create_soup, save_soup
 
 
 def simplify_gii_xml(source, destination):

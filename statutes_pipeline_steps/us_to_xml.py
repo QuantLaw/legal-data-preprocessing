@@ -1,11 +1,12 @@
 import os
 import re
 from collections import OrderedDict
+
 import bs4
 from bs4 import BeautifulSoup
-from quantlaw.utils.files import list_dir, ensure_exists
+from quantlaw.utils.files import ensure_exists, list_dir
 
-from statics import US_XML_PATH, US_ORIGINAL_PATH
+from statics import US_ORIGINAL_PATH, US_XML_PATH
 
 
 def us_to_xml_prepare(overwrite):
@@ -60,9 +61,11 @@ def all_indices_of_object(target, my_list):
 
 def correct_errors_in_source(filepath, lines):
     """
-    Modifies a file to correct errors in the source data
-    :param filename: relative path to the file
-    :param lines: array of lines of the file that should be corrected. This array will be modified.
+    Modifies a file to correct errors in the source
+    Args:
+        filename: relative path to the file
+        lines: array of lines of the file that should be corrected.
+            This array will be modified.
     """
 
     filename = os.path.split(filepath)[1]
@@ -80,22 +83,25 @@ def correct_errors_in_source(filepath, lines):
     ]:  # remove double closing </div> tag
         replace_indexes = list(
             all_indices_of_object(
-                b'<div class="analysis-head-right"><em>Amount&nbsp;&nbsp;</em></div></div>\r\n',
+                b'<div class="analysis-head-right">'
+                b"<em>Amount&nbsp;&nbsp;</em>"
+                b"</div></div>\r\n",
                 lines,
             )
         )
         assert len(replace_indexes) == 6
         for replace_indexe in replace_indexes:
-            lines[
-                replace_indexe
-            ] = b'<div class="analysis-head-right"><em>Amount&nbsp;&nbsp;</em></div>\r\n'
+            lines[replace_indexe] = (
+                b'<div class="analysis-head-right">'
+                b"<em>Amount&nbsp;&nbsp;</em>"
+                b"</div>\r\n"
+            )
 
     elif title == "281" and year == "2017":  # remove inconsistent document
         # filename == "2017usc28a.htm"
-        assert (
-            str(lines[3468])
-            == "b'<!-- documentid:28a_-FEDERAL_RULES_OF_APPELLATE_PROCEDURE-&#160;&#160; "
-            "currentthrough:20180112 documentPDFPage:92 -->\\r\\n'"
+        assert str(lines[3468]) == (
+            "b'<!-- documentid:28a_-FEDERAL_RULES_OF_APPELLATE_PROCEDURE-"
+            "&#160;&#160; currentthrough:20180112 documentPDFPage:92 -->\\r\\n'"
         )
         del lines[3468:3475]
 
@@ -207,12 +213,12 @@ def split_into_documents(soup):
     doc_properties = (
         {}
     )  # Filled with properties of html comments. Cleared when beginning new document.
-    # Filled with tags between 'field-start' and 'field-start' comments. Cleared when beginning new document.
+    # Filled with tags between 'field-start' and 'field-start' comments.
+    # Cleared when beginning new document.
     doc_fields = {}
     #     pdf_page = None
-    open_fields = (
-        []
-    )  # Filled with open tags, using 'field-start' as start marker and 'field-start' as end marker.
+    open_fields = []  # Filled with open tags, using 'field-start' as start marker and
+    # 'field-start' as end marker.
     last_tag = None
     introduction = (
         True  # True if the iterator has recognized the beginning of the first document
@@ -392,13 +398,14 @@ CONTINUATIONS = {
     "statutory-body-block-2em": "text-enumeration2",
     "statutory-body-block-4em": "text-enumeration4",
     "statutory-body-flush0_hang2": "text-enumeration2",  # discretion
-    "statutory-body-flush2_hang3": "text-enumeration3",  # discretion, maybe double check
+    "statutory-body-flush2_hang3": "text-enumeration3",  # discretion
     "statutory-body-flush2_hang4": "text-enumeration4",  # discretion
 }
 
 # classes that are ignored in further process.
 SKIP_CLASS = {
-    "rules-form-source-credit",  # /281/FEDERAL RULES OF APPELLATE PROCEDURE/APPENDIX OF FORMS/Form 4
+    # /281/FEDERAL RULES OF APPELLATE PROCEDURE/APPENDIX OF FORMS/Form 4
+    "rules-form-source-credit",
     "analysis-style-table",
     "leader-work-left",
     "leader-work-right",
@@ -419,7 +426,8 @@ def assert_statutes_child(child):
     # Assertion: allowed subtags
     if child.name in ["h4", "p", "h3"]:
         for descendant in child.descendants if child.descendants else []:
-            # only contains string or comment elements or if comment tag, allow only allowed tag.names
+            # only contains string or comment elements or
+            # if comment tag, allow only allowed tag.names
             assert type(descendant) in [
                 bs4.element.NavigableString,
                 bs4.element.Comment,
@@ -515,7 +523,8 @@ def convert_statute_field_to_contents(document):
             remove_from = None
             for open_element_type in open_element_types:
                 if open_element_type in types_to_remove:
-                    # get highest element in hierarchy that must be closed by removing it from open_elements
+                    # get highest element in hierarchy that must be closed
+                    # by removing it from open_elements
                     remove_from = open_element_type
                     break
             if remove_from:
@@ -588,7 +597,8 @@ def convert_statute_field_to_contents(document):
                 ]  # regenerate open_element_types
 
             # Close subelements and continue element of current level
-            # This is the only actions required, if the continued element already exists in the tree
+            # This is the only actions required,
+            # if the continued element already exists in the tree
             parent_level = open_element_types.index(continued_item_type)
             del open_elements[parent_level + 1 :]
             open_elements[-1]["contents"].append(child.get_text())

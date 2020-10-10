@@ -4,10 +4,7 @@ import networkx as nx
 import pandas as pd
 from quantlaw.utils.files import ensure_exists, list_dir
 
-from utils.common import (
-    get_snapshot_law_list,
-    load_law_names,
-)
+from utils.common import get_snapshot_law_list, load_law_names
 
 
 def crossreference_graph_prepare(
@@ -81,10 +78,4 @@ def crossreference_graph(args, source, edgelist_folder, destination, add_subseqi
 
     G.add_edges_from(edges, edge_type="reference")
     G.graph["name"] = f"{year}"
-    # print(
-    #     f"{year} graph stats"
-    #     f"reference edges:   {len([e for e in G.edges.data() if e[2]['edge_type'] == 'reference'])}"
-    #     f"containment edges: {len([e for e in G.edges.data() if e[2]['edge_type'] == 'containment'])}"
-    #     f"nodes:             {G.number_of_nodes()}"
-    # )
     nx.write_gpickle(G, f"{destination}/{year}.gpickle.gz")

@@ -7,10 +7,10 @@ from quantlaw.utils.files import ensure_exists, list_dir
 from regex import regex
 
 from statics import (
+    US_HELPERS_PATH,
+    US_REFERENCE_AREAS_LOG_PATH,
     US_REFERENCE_AREAS_PATH,
     US_XML_PATH,
-    US_REFERENCE_AREAS_LOG_PATH,
-    US_HELPERS_PATH,
 )
 
 
@@ -65,8 +65,7 @@ regex_definitions = (
     r')'
 )
 
-usc_pattern_string = (
-    regex_definitions +
+usc_pattern_string = regex_definitions + (
     r'('
         r'(\d+)\s*'
         r'U\.?S\.?C\.?\s*'
@@ -77,8 +76,7 @@ usc_pattern_string = (
     r'(?!\w*(\sApp\.)?\s(U\.?S\.?C\.?|C\.?F\.?R\.?|Stat\.))'
 )
 
-inline_pattern_string = (
-    regex_definitions +
+inline_pattern_string = regex_definitions + (
     r'(Sec(?:tion|\.)?|§)\s*'
     r'(?&sec)'
     r'('

@@ -3,14 +3,14 @@ import json
 import os
 
 import regex
-from quantlaw.utils.beautiful_soup import save_soup, create_soup
+from quantlaw.utils.beautiful_soup import create_soup, save_soup
 from quantlaw.utils.files import ensure_exists, list_dir
 
 from statics import (
-    US_REFERENCE_PARSED_PATH,
-    US_REFERENCE_AREAS_PATH,
     US_HELPERS_PATH,
+    US_REFERENCE_AREAS_PATH,
     US_REFERENCE_PARSED_LOG_PATH,
+    US_REFERENCE_PARSED_PATH,
 )
 
 
@@ -139,7 +139,10 @@ def parse_references(soup, this_title):
             if sortable_paragraph_number(match[1]) <= sortable_paragraph_number(
                 match[2]
             ):
-                sub_text = f"{sub_text[:match.start()]}{match[1]} through {match[2]}{sub_text[match.end():]}"
+                sub_text = (
+                    f"{sub_text[:match.start()]}{match[1]} through "
+                    f"{match[2]}{sub_text[match.end():]}"
+                )
 
         sub_text = sub_text.replace(" and following", " et. seq.")
 
@@ -159,7 +162,7 @@ def parse_references(soup, this_title):
                 flags=regex.IGNORECASE,
             )
             if not match:
-                #                 test_list.append(f'{test_text} -- {sub_text} -- {file}')
+                # test_list.append(f'{test_text} -- {sub_text} -- {file}')
                 continue
             sections = [match[1]]
             sub_sections = regex.split(r"[\(\)]+", match[2])

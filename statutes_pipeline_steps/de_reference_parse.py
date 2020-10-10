@@ -2,20 +2,20 @@ import itertools
 import json
 import os
 
-from quantlaw.de_extract.statutes_parse import StringCaseException, StatutesParser
+from quantlaw.de_extract.statutes_parse import StatutesParser, StringCaseException
 from quantlaw.de_extract.stemming import stem_law_name
 from quantlaw.utils.beautiful_soup import create_soup, save_soup
 from quantlaw.utils.files import ensure_exists, list_dir
 
-from utils.common import (
-    get_stemmed_law_names_for_filename,
-    copy_xml_schema_to_data_folder,
-)
 from statics import (
-    DE_REFERENCE_AREAS_PATH,
     DE_HELPERS_PATH,
+    DE_REFERENCE_AREAS_PATH,
     DE_REFERENCE_PARSED_LOG_PATH,
     DE_REFERENCE_PARSED_PATH,
+)
+from utils.common import (
+    copy_xml_schema_to_data_folder,
+    get_stemmed_law_names_for_filename,
 )
 
 
@@ -44,9 +44,7 @@ def de_reference_parse(filename, law_names):
     soup = create_soup(f"{DE_REFERENCE_AREAS_PATH}/{filename}")
     parse_reference_content_in_soup(soup, parser, debug_context=filename)
     current_lawid = soup.document.attrs["key"].split("_")[1]
-    identify_reference_law_name_in_soup(
-        soup, parser, current_lawid
-    )
+    identify_reference_law_name_in_soup(soup, parser, current_lawid)
     identify_lawreference_law_name_in_soup(soup, laws_lookup)
 
     save_soup(soup, f"{DE_REFERENCE_PARSED_PATH}/{filename}")
@@ -58,7 +56,6 @@ def de_reference_parse_finish(logs_per_file):
     ensure_exists(DE_HELPERS_PATH)
     with open(DE_REFERENCE_PARSED_LOG_PATH, mode="w") as f:
         f.write("\n".join(sorted(logs, key=lambda x: x.lower())))
-
 
 
 def parse_reference_content(reference, parser):
@@ -81,12 +78,12 @@ def parse_reference_content_in_soup(soup, parser, debug_context=None):
                 print(error, "context", debug_context)
 
 
-def identify_reference_law_name_in_soup(
-    soup, parser, current_lawid
-):
+def identify_reference_law_name_in_soup(soup, parser, current_lawid):
     for reference in soup.find_all("reference", {"pattern": "inline"}):
 
-        lawid = parser.parse_law(reference.lawname.string,reference.lawname["type"], current_lawid)
+        lawid = parser.parse_law(
+            reference.lawname.string, reference.lawname["type"], current_lawid
+        )
 
         ref_parts = json.loads(reference["parsed_verbose"])
         for ref_part in ref_parts:

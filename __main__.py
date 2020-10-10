@@ -1,85 +1,84 @@
 import argparse
 import multiprocessing
+import os
 import re
 
+from statics import (
+    ALL_YEARS,
+    DE_CROSSREFERENCE_EDGELIST_PATH,
+    DE_CROSSREFERENCE_GRAPH_PATH,
+    DE_HIERARCHY_GRAPH_PATH,
+    DE_REFERENCE_PARSED_PATH,
+    DE_SNAPSHOT_MAPPING_EDGELIST_PATH,
+    US_CROSSREFERENCE_EDGELIST_PATH,
+    US_CROSSREFERENCE_GRAPH_PATH,
+    US_HIERARCHY_GRAPH_PATH,
+    US_REFERENCE_PARSED_PATH,
+    US_SNAPSHOT_MAPPING_EDGELIST_PATH,
+)
+from statutes_pipeline_steps.crossreference_graph import (
+    crossreference_graph,
+    crossreference_graph_prepare,
+)
 from statutes_pipeline_steps.de_crossreference_edgelist import (
-    de_crossreference_edgelist_prepare,
     de_crossreference_edgelist,
+    de_crossreference_edgelist_prepare,
 )
 from statutes_pipeline_steps.de_crossreference_lookup import (
-    de_crossreference_lookup_prepare,
     de_crossreference_lookup,
-)
-from statutes_pipeline_steps.de_prepare_input import de_prepare_input
-
-from utils.common import (
-    str_to_bool,
-    process_items,
-    load_law_names_compiled,
-    load_law_names,
+    de_crossreference_lookup_prepare,
 )
 from statutes_pipeline_steps.de_law_names import (
-    de_law_names_finish,
     de_law_names,
+    de_law_names_finish,
     de_law_names_prepare,
 )
+from statutes_pipeline_steps.de_prepare_input import de_prepare_input
 from statutes_pipeline_steps.de_reference_areas import (
-    de_reference_areas_prepare,
-    de_reference_areas_finish,
     de_reference_areas,
+    de_reference_areas_finish,
+    de_reference_areas_prepare,
 )
 from statutes_pipeline_steps.de_reference_parse import (
-    de_reference_parse_prepare,
     de_reference_parse,
     de_reference_parse_finish,
+    de_reference_parse_prepare,
 )
-from statutes_pipeline_steps.de_to_xml import de_to_xml_prepare, de_to_xml
-
+from statutes_pipeline_steps.de_to_xml import de_to_xml, de_to_xml_prepare
 from statutes_pipeline_steps.hierarchy_graph import (
     hierarchy_graph,
     hierarchy_graph_prepare,
 )
 from statutes_pipeline_steps.snapshot_mapping_edgelist import (
-    snapshot_mapping_edgelist_prepare,
     snapshot_mapping_edgelist,
-)
-from statics import (
-    US_REFERENCE_PARSED_PATH,
-    US_HIERARCHY_GRAPH_PATH,
-    US_CROSSREFERENCE_EDGELIST_PATH,
-    US_CROSSREFERENCE_GRAPH_PATH,
-    DE_HIERARCHY_GRAPH_PATH,
-    DE_REFERENCE_PARSED_PATH,
-    DE_CROSSREFERENCE_EDGELIST_PATH,
-    DE_CROSSREFERENCE_GRAPH_PATH,
-    US_SNAPSHOT_MAPPING_EDGELIST_PATH,
-    DE_SNAPSHOT_MAPPING_EDGELIST_PATH,
-    ALL_YEARS,
+    snapshot_mapping_edgelist_prepare,
 )
 from statutes_pipeline_steps.us_crossreference_edgelist import (
-    us_crossreference_edgelist_prepare,
     us_crossreference_edgelist,
-)
-from statutes_pipeline_steps.crossreference_graph import (
-    crossreference_graph_prepare,
-    crossreference_graph,
+    us_crossreference_edgelist_prepare,
 )
 from statutes_pipeline_steps.us_crossreference_lookup import (
-    us_crossreference_lookup_prepare,
     us_crossreference_lookup,
+    us_crossreference_lookup_prepare,
 )
+from statutes_pipeline_steps.us_prepare_input import us_prepare_input
 from statutes_pipeline_steps.us_reference_areas import (
-    us_reference_areas_prepare,
     us_reference_areas,
     us_reference_areas_finish,
+    us_reference_areas_prepare,
 )
 from statutes_pipeline_steps.us_reference_parse import (
-    us_reference_parse_prepare,
     us_reference_parse,
     us_reference_parse_finish,
+    us_reference_parse_prepare,
 )
 from statutes_pipeline_steps.us_to_xml import us_to_xml, us_to_xml_prepare
-from statutes_pipeline_steps.us_prepare_input import us_prepare_input
+from utils.common import (
+    load_law_names,
+    load_law_names_compiled,
+    process_items,
+    str_to_bool,
+)
 
 
 def get_subseqitem_conf(subseqitems):
@@ -128,8 +127,8 @@ if __name__ == "__main__":
         type=str,
         default=["all"],
         help=(
-            "snapshots for crossreferences. Eg. 2010-01-01 for de dataset or 2010 for us dataset. "
-            "To run on whole research window: all"
+            "snapshots for crossreferences. Eg. 2010-01-01 for de dataset or 2010 for "
+            "us dataset. To run on whole research window: all"
         ),
     )
     parser.add_argument(
@@ -139,7 +138,8 @@ if __name__ == "__main__":
         type=int,
         default=1,
         help=(
-            "Only for snapshot_mapping_edgelist. Interval for mapped snapshots. Default 1 (snapshot)"
+            "Only for snapshot_mapping_edgelist. Interval for mapped snapshots. "
+            "Default 1 (snapshot)"
         ),
     )
     args = parser.parse_args()
@@ -172,7 +172,8 @@ if __name__ == "__main__":
             "crossreference_lookup",
             "crossreference_edgelist",
             "crossreference_graph",
-            "snapshot_mapping_edgelist",  # creates edgelist to map nodes between snapshots for DYNAMIC graph
+            # creates edgelist to map nodes between snapshots for DYNAMIC graph
+            "snapshot_mapping_edgelist",
         ]
 
     if (
@@ -185,7 +186,8 @@ if __name__ == "__main__":
                 if not re.fullmatch(r"\d{4}(-\d{2}-\d{2})?", snapshot):
                     raise Exception(
                         "Add --snapshots as argument. "
-                        "E.g. for de --snapshots 2012-01-31 2013-01-31 or for us --snapshot 2001"
+                        "E.g. for de --snapshots 2012-01-31 2013-01-31 or for us "
+                        "--snapshot 2001"
                     )
 
     if "prepare_input" in steps:
@@ -281,10 +283,16 @@ if __name__ == "__main__":
         for subseqitems_conf in get_subseqitem_conf(args.subseqitems):
             if dataset == "us":
                 source = US_REFERENCE_PARSED_PATH
-                destination = f'{US_HIERARCHY_GRAPH_PATH}/{"subseqitems" if subseqitems_conf else "seqitems"}'
+                destination = os.path.join(
+                    US_HIERARCHY_GRAPH_PATH,
+                    "subseqitems" if subseqitems_conf else "seqitems",
+                )
             elif dataset == "de":
                 source = DE_REFERENCE_PARSED_PATH
-                destination = f'{DE_HIERARCHY_GRAPH_PATH}/{"subseqitems" if subseqitems_conf else "seqitems"}'
+                destination = os.path.join(
+                    DE_HIERARCHY_GRAPH_PATH,
+                    "subseqitems" if subseqitems_conf else "seqitems",
+                )
 
             items = hierarchy_graph_prepare(overwrite, source, destination)
             process_items(
@@ -347,12 +355,24 @@ if __name__ == "__main__":
     if "crossreference_graph" in steps:
         for subseqitems_conf in get_subseqitem_conf(args.subseqitems):
             if dataset == "us":
-                source = f'{US_HIERARCHY_GRAPH_PATH}/{"subseqitems" if subseqitems_conf else "seqitems"}'
-                destination = f'{US_CROSSREFERENCE_GRAPH_PATH}/{"subseqitems" if subseqitems_conf else "seqitems"}'
+                source = os.path.join(
+                    US_HIERARCHY_GRAPH_PATH,
+                    "subseqitems" if subseqitems_conf else "seqitems",
+                )
+                destination = os.path.join(
+                    US_CROSSREFERENCE_GRAPH_PATH,
+                    "subseqitems" if subseqitems_conf else "seqitems",
+                )
                 edgelist_folder = US_CROSSREFERENCE_EDGELIST_PATH
             elif dataset == "de":
-                source = f'{DE_HIERARCHY_GRAPH_PATH}/{"subseqitems" if subseqitems_conf else "seqitems"}'
-                destination = f'{DE_CROSSREFERENCE_GRAPH_PATH}/{"subseqitems" if subseqitems_conf else "seqitems"}'
+                source = os.path.join(
+                    DE_HIERARCHY_GRAPH_PATH,
+                    "subseqitems" if subseqitems_conf else "seqitems",
+                )
+                destination = os.path.join(
+                    DE_CROSSREFERENCE_GRAPH_PATH,
+                    "subseqitems" if subseqitems_conf else "seqitems",
+                )
                 edgelist_folder = DE_CROSSREFERENCE_EDGELIST_PATH
 
             items = crossreference_graph_prepare(

@@ -5,14 +5,8 @@ from quantlaw.de_extract.stemming import stem_law_name
 from quantlaw.utils.beautiful_soup import create_soup
 from quantlaw.utils.files import list_dir
 
-from utils.common import (
-    load_law_names,
-)
-from statics import (
-    DE_LAW_NAMES_PATH,
-    DE_XML_PATH,
-    DE_LAW_NAMES_COMPILED_PATH,
-)
+from statics import DE_LAW_NAMES_COMPILED_PATH, DE_LAW_NAMES_PATH, DE_XML_PATH
+from utils.common import load_law_names
 
 
 def de_law_names_prepare(overwrite):

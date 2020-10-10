@@ -2,9 +2,9 @@ import os
 import re
 
 from bs4 import BeautifulSoup
-from quantlaw.utils.files import list_dir, ensure_exists
+from quantlaw.utils.files import ensure_exists, list_dir
 
-from statics import DE_XML_PATH, DE_ORIGINAL_PATH
+from statics import DE_ORIGINAL_PATH, DE_XML_PATH
 
 
 def de_to_xml_prepare(overwrite):
@@ -85,7 +85,8 @@ def analyse_is_preamble(s_metadaten, s_enbez):
 
 
 analyse_is_appendix_pattern = re.compile(
-    r"(Anlagen?|Anhang|Schlu.s?formel|Tabelle \w+ zu)\b", flags=re.IGNORECASE,
+    r"(Anlagen?|Anhang|Schlu.s?formel|Tabelle \w+ zu)\b",
+    flags=re.IGNORECASE,
 )
 
 remove_removed_items_pattern = re.compile(

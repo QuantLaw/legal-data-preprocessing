@@ -8,8 +8,8 @@ from quantlaw.utils.files import ensure_exists
 
 from statics import (
     DE_DECISIONS_DOWNLOAD_TOC,
-    DE_DECISIONS_DOWNLOAD_ZIP,
     DE_DECISIONS_DOWNLOAD_XML,
+    DE_DECISIONS_DOWNLOAD_ZIP,
     DE_DECISIONS_TEMP_DATA_PATH,
 )
 
