@@ -72,7 +72,7 @@ from statutes_pipeline_steps.us_reference_parse import (
     us_reference_parse_finish,
     us_reference_parse_prepare,
 )
-from statutes_pipeline_steps.us_to_xml import us_to_xml, us_to_xml_prepare
+from statutes_pipeline_steps.us_to_xml import UsToXmlStep
 from utils.common import (
     load_law_names,
     load_law_names_compiled,
@@ -147,6 +147,7 @@ if __name__ == "__main__":
     steps = [step.lower() for step in args.steps]
     dataset = args.dataset.lower()
     use_multiprocessing = args.use_multiprocessing
+    processes = None if args.use_multiprocessing else 1
     overwrite = args.overwrite
     snapshots = args.snapshots
     interval = args.interval
@@ -199,14 +200,9 @@ if __name__ == "__main__":
 
     if "xml" in steps:
         if dataset == "us":
-            items = us_to_xml_prepare(overwrite)
-            process_items(
-                items,
-                selected_items,
-                action_method=us_to_xml,
-                use_multiprocessing=use_multiprocessing,
-                chunksize=10,
-            )
+            step = UsToXmlStep(processes)
+            items = step.get_items(overwrite)
+            step.execute_items(items)
         elif dataset == "de":
             items = de_to_xml_prepare(overwrite)
             process_items(
