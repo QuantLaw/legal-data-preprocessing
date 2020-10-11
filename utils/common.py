@@ -1,10 +1,8 @@
 import argparse
-import multiprocessing
 import os
 import pickle
 import shutil
 from collections import Counter
-from multiprocessing import cpu_count
 
 import pandas as pd
 from quantlaw.utils.files import ensure_exists
@@ -15,43 +13,6 @@ from statics import DATA_PATH, DE_LAW_NAMES_COMPILED_PATH, DE_LAW_NAMES_PATH
 ##########
 # Pipeline
 ##########
-
-
-def process_items(
-    items,
-    selected_items,
-    action_method,
-    use_multiprocessing,
-    args=[],
-    chunksize=None,
-    processes=None,
-    spawn=False,
-):
-    if len(selected_items) > 0:
-        filtered_items = []
-        for item in list(items):
-            for selected_item in selected_items:
-                if selected_item in item:
-                    filtered_items.append(item)
-                    break
-        items = filtered_items
-    if not processes:
-        processes = int(cpu_count() - 2)
-    if use_multiprocessing and len(items) > 1:
-        if spawn:
-            ctx = multiprocessing.get_context("spawn")
-        else:
-            ctx = multiprocessing.get_context()
-            # A bit slower, but it reimports everything which is necessary to make
-            # matplotlib working. Chunksize should be higher or none
-        with ctx.Pool(processes=processes) as p:
-            logs = p.starmap(action_method, [(i, *args) for i in items], chunksize)
-    else:
-        logs = []
-        for item in items:
-            logs.append(action_method(item, *args))
-
-    return logs
 
 
 def str_to_bool(v):

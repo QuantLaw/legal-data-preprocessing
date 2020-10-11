@@ -6,6 +6,7 @@ from quantlaw.de_extract.statutes_abstract import StatutesMatchWithMainArea
 from quantlaw.de_extract.statutes_areas import StatutesExtractor
 from quantlaw.utils.beautiful_soup import create_soup
 from quantlaw.utils.files import ensure_exists, list_dir
+from quantlaw.utils.pipeline import PipelineStep
 
 from statics import (
     DE_HELPERS_PATH,
@@ -16,46 +17,49 @@ from statics import (
 from utils.common import get_stemmed_law_names_for_filename
 
 
-def de_reference_areas_prepare(overwrite):
-    ensure_exists(DE_REFERENCE_AREAS_PATH)
-    files = list_dir(DE_XML_PATH, ".xml")
+class DeReferenceAreasStep(PipelineStep):
+    def __init__(self, law_names, *args, **kwargs):
+        self.law_names = law_names
+        super().__init__(*args, **kwargs)
 
-    if not overwrite:
-        existing_files = os.listdir(DE_REFERENCE_AREAS_PATH)
-        files = list(filter(lambda f: f not in existing_files, files))
-    return files
+    def get_items(self, overwrite) -> list:
+        ensure_exists(DE_REFERENCE_AREAS_PATH)
+        files = list_dir(DE_XML_PATH, ".xml")
 
+        if not overwrite:
+            existing_files = os.listdir(DE_REFERENCE_AREAS_PATH)
+            files = list(filter(lambda f: f not in existing_files, files))
+        return files
 
-def de_reference_areas(filename, law_names):
-    laws_lookup = get_stemmed_law_names_for_filename(filename, law_names)
-    extractor = StatutesExtractor(laws_lookup)
-    logs = []
-    soup = create_soup(f"{DE_XML_PATH}/{filename}")
-    para, art, misc = analyze_type_of_headings(soup)
+    def execute_item(self, item):
+        laws_lookup = get_stemmed_law_names_for_filename(item, self.law_names)
+        extractor = StatutesExtractor(laws_lookup)
+        result = []
+        soup = create_soup(f"{DE_XML_PATH}/{item}")
+        para, art, misc = analyze_type_of_headings(soup)
 
-    logs.extend(find_references_in_soup(soup, extractor, para, art))
+        result.extend(find_references_in_soup(soup, extractor, para, art))
 
-    # Find references without preceding article or § (currently not implemented)
-    # long_law_regex_pattern = law_keys_to_regex(laws_lookup_keys, 5)
-    # short_law_regex_pattern = law_keys_to_regex(laws_lookup_keys, 3, 4)
-    # for section in soup.find_all("text"):
-    #     find_law_references_in_section(
-    #         section, soup, long_law_regex_pattern, stem_law_name
-    #     )
-    #     find_law_references_in_section(
-    #         section, soup, short_law_regex_pattern, clean_name
-    #     )
+        # Find references without preceding article or § (currently not implemented)
+        # long_law_regex_pattern = law_keys_to_regex(laws_lookup_keys, 5)
+        # short_law_regex_pattern = law_keys_to_regex(laws_lookup_keys, 3, 4)
+        # for section in soup.find_all("text"):
+        #     find_law_references_in_section(
+        #         section, soup, long_law_regex_pattern, stem_law_name
+        #     )
+        #     find_law_references_in_section(
+        #         section, soup, short_law_regex_pattern, clean_name
+        #     )
 
-    save_soup_with_style(soup, f"{DE_REFERENCE_AREAS_PATH}/{filename}")
+        save_soup_with_style(soup, f"{DE_REFERENCE_AREAS_PATH}/{item}")
 
-    return logs
+        return result
 
-
-def de_reference_areas_finish(logs_per_file):
-    logs = list(itertools.chain.from_iterable(logs_per_file))
-    ensure_exists(DE_HELPERS_PATH)
-    with open(DE_REFERENCE_AREAS_LOG_PATH, mode="w") as f:
-        f.write("\n".join(sorted(logs, key=lambda x: x.lower())))
+    def finish_execution(self, results):
+        logs = list(itertools.chain.from_iterable(results))
+        ensure_exists(DE_HELPERS_PATH)
+        with open(DE_REFERENCE_AREAS_LOG_PATH, mode="w") as f:
+            f.write("\n".join(sorted(logs, key=lambda x: x.lower())))
 
 
 ########################################
@@ -154,9 +158,9 @@ def find_references_in_soup(soup, extractor, para, art, text_tag_name="text"):
     return logs
 
 
-#######################################################
+########################################################
 # Functions: references without preceding 'article' or §
-#######################################################
+########################################################
 #
 #
 #

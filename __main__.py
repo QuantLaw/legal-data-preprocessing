@@ -16,31 +16,13 @@ from statics import (
     US_SNAPSHOT_MAPPING_EDGELIST_PATH,
 )
 from statutes_pipeline_steps.crossreference_graph import CrossreferenceGraphStep
-from statutes_pipeline_steps.de_crossreference_edgelist import (
-    de_crossreference_edgelist,
-    de_crossreference_edgelist_prepare,
-)
-from statutes_pipeline_steps.de_crossreference_lookup import (
-    de_crossreference_lookup,
-    de_crossreference_lookup_prepare,
-)
-from statutes_pipeline_steps.de_law_names import (
-    de_law_names,
-    de_law_names_finish,
-    de_law_names_prepare,
-)
+from statutes_pipeline_steps.de_crossreference_edgelist import DeCrossreferenceEdgelist
+from statutes_pipeline_steps.de_crossreference_lookup import DeCrossreferenceLookup
+from statutes_pipeline_steps.de_law_names import DeLawNamesStep
 from statutes_pipeline_steps.de_prepare_input import de_prepare_input
-from statutes_pipeline_steps.de_reference_areas import (
-    de_reference_areas,
-    de_reference_areas_finish,
-    de_reference_areas_prepare,
-)
-from statutes_pipeline_steps.de_reference_parse import (
-    de_reference_parse,
-    de_reference_parse_finish,
-    de_reference_parse_prepare,
-)
-from statutes_pipeline_steps.de_to_xml import de_to_xml, de_to_xml_prepare
+from statutes_pipeline_steps.de_reference_areas import DeReferenceAreasStep
+from statutes_pipeline_steps.de_reference_parse import DeReferenceParseStep
+from statutes_pipeline_steps.de_to_xml import DeToXmlStep
 from statutes_pipeline_steps.hierarchy_graph import HierarchyGraphStep
 from statutes_pipeline_steps.snapshot_mapping_edgelist import (
     SnapshotMappingEdgelistStep,
@@ -51,12 +33,7 @@ from statutes_pipeline_steps.us_prepare_input import us_prepare_input
 from statutes_pipeline_steps.us_reference_areas import UsReferenceAreasStep
 from statutes_pipeline_steps.us_reference_parse import UsReferenceParseStep
 from statutes_pipeline_steps.us_to_xml import UsToXmlStep
-from utils.common import (
-    load_law_names,
-    load_law_names_compiled,
-    process_items,
-    str_to_bool,
-)
+from utils.common import load_law_names, load_law_names_compiled, str_to_bool
 
 
 def get_subseqitem_conf(subseqitems):
@@ -180,65 +157,44 @@ if __name__ == "__main__":
         if dataset == "us":
             step = UsToXmlStep(processes)
             items = step.get_items(overwrite)
-            step.execute_items(items)
+            step.execute_filtered_items(items, selected_items)
         elif dataset == "de":
-            items = de_to_xml_prepare(overwrite)
-            process_items(
-                items,
-                selected_items,
-                action_method=de_to_xml,
-                use_multiprocessing=use_multiprocessing,
-            )
+            step = DeToXmlStep(processes)
+            items = step.get_items(overwrite)
+            step.execute_filtered_items(items, selected_items)
         print("Convert to xml: done")
 
     if "law_names" in steps:
         if dataset == "de":
-            items = de_law_names_prepare(overwrite)
-            names = process_items(
-                items,
-                [],  # Ignore filter
-                action_method=de_law_names,
-                use_multiprocessing=use_multiprocessing,
-            )
-            de_law_names_finish(names)
-
+            step = DeLawNamesStep(processes)
+            items = step.get_items()
+            step.execute_items(items)
             print("Law names: done")
 
     if "reference_areas" in steps:
         if dataset == "us":
             step = UsReferenceAreasStep(processes)
             items = step.get_items(overwrite)
-            step.execute_items(items)
+            step.execute_filtered_items(items)
 
         elif dataset == "de":
             law_names = load_law_names_compiled()
-            items = de_reference_areas_prepare(overwrite)
-            logs = process_items(
-                items,
-                selected_items,
-                action_method=de_reference_areas,
-                use_multiprocessing=use_multiprocessing,
-                args=(law_names,),
-            )
-            de_reference_areas_finish(logs)
+            step = DeReferenceAreasStep(law_names, processes)
+            items = step.get_items(overwrite)
+            step.execute_filtered_items(items)
+
         print("Extract reference areas: done")
 
     if "reference_parse" in steps:
         if dataset == "us":
             step = UsReferenceParseStep(processes)
             items = step.get_items(overwrite)
-            step.execute_items(items)
+            step.execute_filtered_items(items)
         if dataset == "de":
             law_names = load_law_names_compiled()
-            items = de_reference_parse_prepare(overwrite)
-            logs = process_items(
-                items,
-                selected_items,
-                action_method=de_reference_parse,
-                use_multiprocessing=use_multiprocessing,
-                args=(law_names,),
-            )
-            de_reference_parse_finish(logs)
+            step = DeReferenceParseStep(law_names, processes)
+            items = step.get_items(overwrite)
+            step.execute_filtered_items(items)
 
             print("Parse references: done")
 
@@ -264,7 +220,7 @@ if __name__ == "__main__":
                 processes=processes,
             )
             items = step.get_items(overwrite)
-            step.execute_items(items)
+            step.execute_filtered_items(items)
         print("Make hierarchy graphs: done")
 
     if "crossreference_lookup" in steps:
@@ -274,13 +230,10 @@ if __name__ == "__main__":
             step.execute_items(items)
 
         elif dataset == "de":
-            items = de_crossreference_lookup_prepare(overwrite, snapshots)
-            process_items(
-                items,
-                [],
-                action_method=de_crossreference_lookup,
-                use_multiprocessing=use_multiprocessing,
-            )
+            step = DeCrossreferenceLookup(processes)
+            items = step.get_items(snapshots)
+            step.execute_items(items)
+
         print("Create crossreference lookup: done")
 
     if "crossreference_edgelist" in steps:
@@ -291,14 +244,10 @@ if __name__ == "__main__":
 
         elif dataset == "de":
             law_names_data = load_law_names()
-            items = de_crossreference_edgelist_prepare(overwrite, snapshots)
-            process_items(
-                items,
-                [],
-                action_method=de_crossreference_edgelist,
-                use_multiprocessing=use_multiprocessing,
-                args=(law_names_data,),
-            )
+            step = DeCrossreferenceEdgelist(law_names_data, processes)
+            items = step.get_items(overwrite, snapshots)
+            step.execute_items(items)
+
         print("Create crossreference edgelist: done")
 
     if "crossreference_graph" in steps:

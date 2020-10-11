@@ -6,6 +6,7 @@ from quantlaw.de_extract.statutes_parse import StatutesParser, StringCaseExcepti
 from quantlaw.de_extract.stemming import stem_law_name
 from quantlaw.utils.beautiful_soup import create_soup, save_soup
 from quantlaw.utils.files import ensure_exists, list_dir
+from quantlaw.utils.pipeline import PipelineStep
 
 from statics import (
     DE_HELPERS_PATH,
@@ -19,43 +20,46 @@ from utils.common import (
 )
 
 
-def de_reference_parse_prepare(overwrite):
-    ensure_exists(DE_REFERENCE_PARSED_PATH)
-    files = list_dir(DE_REFERENCE_AREAS_PATH, ".xml")
+class DeReferenceParseStep(PipelineStep):
+    def __init__(self, law_names, *args, **kwargs):
+        self.law_names = law_names
+        super().__init__(*args, **kwargs)
 
-    if not overwrite:
-        existing_files = os.listdir(DE_REFERENCE_PARSED_PATH)
-        files = list(filter(lambda f: f not in existing_files, files))
+    def get_items(self, overwrite) -> list:
+        ensure_exists(DE_REFERENCE_PARSED_PATH)
+        files = list_dir(DE_REFERENCE_AREAS_PATH, ".xml")
 
-    copy_xml_schema_to_data_folder()
+        if not overwrite:
+            existing_files = os.listdir(DE_REFERENCE_PARSED_PATH)
+            files = list(filter(lambda f: f not in existing_files, files))
 
-    return files
+        copy_xml_schema_to_data_folder()
 
+        return files
 
-def de_reference_parse(filename, law_names):
-    laws_lookup = get_stemmed_law_names_for_filename(filename, law_names)
-    parser = StatutesParser(laws_lookup)
+    def execute_item(self, item):
+        laws_lookup = get_stemmed_law_names_for_filename(item, self.law_names)
+        parser = StatutesParser(laws_lookup)
 
-    logs = list()
+        logs = list()
 
-    # for debug
-    logs.append(f"Start file - {filename}")
+        # for debug
+        logs.append(f"Start file - {item}")
 
-    soup = create_soup(f"{DE_REFERENCE_AREAS_PATH}/{filename}")
-    parse_reference_content_in_soup(soup, parser, debug_context=filename)
-    current_lawid = soup.document.attrs["key"].split("_")[1]
-    identify_reference_law_name_in_soup(soup, parser, current_lawid)
-    identify_lawreference_law_name_in_soup(soup, laws_lookup)
+        soup = create_soup(f"{DE_REFERENCE_AREAS_PATH}/{item}")
+        parse_reference_content_in_soup(soup, parser, debug_context=item)
+        current_lawid = soup.document.attrs["key"].split("_")[1]
+        identify_reference_law_name_in_soup(soup, parser, current_lawid)
+        identify_lawreference_law_name_in_soup(soup, laws_lookup)
 
-    save_soup(soup, f"{DE_REFERENCE_PARSED_PATH}/{filename}")
-    return logs
+        save_soup(soup, f"{DE_REFERENCE_PARSED_PATH}/{item}")
+        return logs
 
-
-def de_reference_parse_finish(logs_per_file):
-    logs = list(itertools.chain.from_iterable(logs_per_file))
-    ensure_exists(DE_HELPERS_PATH)
-    with open(DE_REFERENCE_PARSED_LOG_PATH, mode="w") as f:
-        f.write("\n".join(sorted(logs, key=lambda x: x.lower())))
+    def finish_execution(self, results):
+        logs = list(itertools.chain.from_iterable(results))
+        ensure_exists(DE_HELPERS_PATH)
+        with open(DE_REFERENCE_PARSED_LOG_PATH, mode="w") as f:
+            f.write("\n".join(sorted(logs, key=lambda x: x.lower())))
 
 
 def parse_reference_content(reference, parser):
@@ -86,13 +90,19 @@ def identify_reference_law_name_in_soup(soup, parser, current_lawid):
         )
 
         ref_parts = json.loads(reference["parsed_verbose"])
-        for ref_part in ref_parts:
-            ref_part.insert(0, ["Gesetz", lawid])
+
+        if reference.lawname.attrs["type"] in ["internal", "dict", "sgb"]:
+            for ref_part in ref_parts:
+                if not lawid:
+                    print(reference)
+                ref_part.insert(0, ["Gesetz", lawid])
         reference["parsed_verbose"] = json.dumps(ref_parts, ensure_ascii=False)
 
         ref_parts = json.loads(reference["parsed"])
-        for ref_part in ref_parts:
-            ref_part.insert(0, lawid)
+        if reference.lawname.attrs["type"] in ["internal", "dict", "sgb"]:
+            for ref_part in ref_parts:
+                assert lawid
+                ref_part.insert(0, lawid)
         reference["parsed"] = json.dumps(ref_parts, ensure_ascii=False)
 
 

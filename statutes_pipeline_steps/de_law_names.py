@@ -4,52 +4,51 @@ import pandas as pd
 from quantlaw.de_extract.stemming import stem_law_name
 from quantlaw.utils.beautiful_soup import create_soup
 from quantlaw.utils.files import list_dir
+from quantlaw.utils.pipeline import PipelineStep
 
 from statics import DE_LAW_NAMES_COMPILED_PATH, DE_LAW_NAMES_PATH, DE_XML_PATH
 from utils.common import load_law_names
 
 
-def de_law_names_prepare(overwrite):
-    files = list_dir(DE_XML_PATH, ".xml")
-    return files
+class DeLawNamesStep(PipelineStep):
+    def get_items(self) -> list:
+        files = list_dir(DE_XML_PATH, ".xml")
+        return files
 
+    def execute_item(self, item):
+        soup = create_soup(f"{DE_XML_PATH}/{item}")
+        document = soup.find("document", recursive=False)
+        result = set()
+        citekey = document.attrs["key"].split("_")[1]
 
-def de_law_names(filename):
+        if "heading" in document.attrs:
+            law_name = stem_law_name(document.attrs["heading"])
+            result.add((law_name, citekey, item))
 
-    soup = create_soup(f"{DE_XML_PATH}/{filename}")
-    document = soup.find("document", recursive=False)
-    result = set()
-    citekey = document.attrs["key"].split("_")[1]
+        if "heading_short" in document.attrs:
+            law_name = stem_law_name(document.attrs["heading_short"])
+            result.add((law_name, citekey, item))
 
-    if "heading" in document.attrs:
-        law_name = stem_law_name(document.attrs["heading"])
-        result.add((law_name, citekey, filename))
+        if "abbr_1" in document.attrs:
+            law_name = stem_law_name(document.attrs["abbr_1"])
+            result.add((law_name, citekey, item))
 
-    if "heading_short" in document.attrs:
-        law_name = stem_law_name(document.attrs["heading_short"])
-        result.add((law_name, citekey, filename))
+        if "abbr_2" in document.attrs:
+            law_name = stem_law_name(document.attrs["abbr_2"])
+            result.add((law_name, citekey, item))
+        return result
 
-    if "abbr_1" in document.attrs:
-        law_name = stem_law_name(document.attrs["abbr_1"])
-        result.add((law_name, citekey, filename))
+    def finish_execution(self, names_per_file):
+        result = []
+        for names_of_file in names_per_file:
+            result.extend(names_of_file)
 
-    if "abbr_2" in document.attrs:
-        law_name = stem_law_name(document.attrs["abbr_2"])
-        result.add((law_name, citekey, filename))
-    return result
+        df = pd.DataFrame(result, columns=["citename", "citekey", "filename"])
+        df.to_csv(DE_LAW_NAMES_PATH, index=False)
 
-
-def de_law_names_finish(names_per_file):
-    result = []
-    for names_of_file in names_per_file:
-        result.extend(names_of_file)
-
-    df = pd.DataFrame(result, columns=["citename", "citekey", "filename"])
-    df.to_csv(DE_LAW_NAMES_PATH, index=False)
-
-    dated_law_names = compile_law_names()
-    with open(DE_LAW_NAMES_COMPILED_PATH, "wb") as f:
-        pickle.dump(dated_law_names, f)
+        dated_law_names = compile_law_names()
+        with open(DE_LAW_NAMES_COMPILED_PATH, "wb") as f:
+            pickle.dump(dated_law_names, f)
 
 
 def compile_law_names():
