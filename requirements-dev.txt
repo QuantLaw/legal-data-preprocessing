@@ -6,6 +6,7 @@ networkx
 numpy
 pandas
 pre-commit
+quantlaw
 regex
 requests
 textdistance
