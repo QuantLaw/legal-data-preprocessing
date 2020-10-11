@@ -1,9 +1,11 @@
 import itertools
+import multiprocessing
 import os
 
 import bs4
 from quantlaw.utils.beautiful_soup import create_soup, save_soup
 from quantlaw.utils.files import ensure_exists, list_dir
+from quantlaw.utils.pipeline import PipelineStep
 from regex import regex
 
 from statics import (
@@ -14,30 +16,31 @@ from statics import (
 )
 
 
-def us_reference_areas_prepare(overwrite):
-    ensure_exists(US_REFERENCE_AREAS_PATH)
-    files = list_dir(US_XML_PATH, ".xml")
+class UsReferenceAreasStep(PipelineStep):
+    max_number_of_processes = max(int(multiprocessing.cpu_count() / 2), 1)
 
-    if not overwrite:
-        existing_files = os.listdir(US_REFERENCE_AREAS_PATH)
-        files = list(filter(lambda f: f not in existing_files, files))
+    def get_items(self, overwrite) -> list:
+        ensure_exists(US_REFERENCE_AREAS_PATH)
+        files = list_dir(US_XML_PATH, ".xml")
 
-    return files
+        if not overwrite:
+            existing_files = os.listdir(US_REFERENCE_AREAS_PATH)
+            files = list(filter(lambda f: f not in existing_files, files))
 
+        return files
 
-def us_reference_areas(filename):
-    soup = create_soup(f"{US_XML_PATH}/{filename}")
-    logs = find_references(soup, usc_pattern, {"pattern": "block"})
-    logs += find_references(soup, inline_pattern, {"pattern": "inline"})
-    save_soup(soup, f"{US_REFERENCE_AREAS_PATH}/{filename}")
-    return logs
+    def execute_item(self, item):
+        soup = create_soup(f"{US_XML_PATH}/{item}")
+        logs = find_references(soup, usc_pattern, {"pattern": "block"})
+        logs += find_references(soup, inline_pattern, {"pattern": "inline"})
+        save_soup(soup, f"{US_REFERENCE_AREAS_PATH}/{item}")
+        return logs
 
-
-def us_reference_areas_finish(logs_per_file):
-    logs = list(itertools.chain.from_iterable(logs_per_file))
-    ensure_exists(US_HELPERS_PATH)
-    with open(US_REFERENCE_AREAS_LOG_PATH, mode="w") as f:
-        f.write("\n".join(sorted(logs, key=lambda x: x.lower())))
+    def finish_execution(self, results):
+        logs = list(itertools.chain.from_iterable(results))
+        ensure_exists(US_HELPERS_PATH)
+        with open(US_REFERENCE_AREAS_LOG_PATH, mode="w") as f:
+            f.write("\n".join(sorted(logs, key=lambda x: x.lower())))
 
 
 ################
@@ -75,6 +78,7 @@ usc_pattern_string = regex_definitions + (
     r')'
     r'(?!\w*(\sApp\.)?\s(U\.?S\.?C\.?|C\.?F\.?R\.?|Stat\.))'
 )
+usc_pattern = regex.compile(usc_pattern_string, flags=regex.IGNORECASE)
 
 inline_pattern_string = regex_definitions + (
     r'(Sec(?:tion|\.)?|§)\s*'
@@ -92,12 +96,9 @@ inline_pattern_string = regex_definitions + (
         r'(of\stitle\s\d+)'
     r')'
 )
+inline_pattern = regex.compile(inline_pattern_string, flags=regex.IGNORECASE)
 
 # fmt: on
-
-usc_pattern = regex.compile(usc_pattern_string, flags=regex.IGNORECASE)
-
-inline_pattern = regex.compile(inline_pattern_string, flags=regex.IGNORECASE)
 
 ###########
 # Functions
@@ -105,7 +106,9 @@ inline_pattern = regex.compile(inline_pattern_string, flags=regex.IGNORECASE)
 
 
 def add_tag(string, pos, end, tag):
-    """Wraps part of a string a given tag"""
+    """
+    Wraps part of a string a given tag
+    """
     tag.string = string[pos:end]
     return [
         bs4.element.NavigableString(string[:pos]),
@@ -115,6 +118,9 @@ def add_tag(string, pos, end, tag):
 
 
 def find_references(soup, pattern, attrs):
+    """
+    Finds the references in the soup and marks them a tag
+    """
     logs = []  # For debug
 
     text_tags = list(soup.find_all("text"))

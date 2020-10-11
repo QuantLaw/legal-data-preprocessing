@@ -1,10 +1,12 @@
 import itertools
 import json
+import multiprocessing
 import os
 
 import regex
 from quantlaw.utils.beautiful_soup import create_soup, save_soup
 from quantlaw.utils.files import ensure_exists, list_dir
+from quantlaw.utils.pipeline import PipelineStep
 
 from statics import (
     US_HELPERS_PATH,
@@ -14,31 +16,32 @@ from statics import (
 )
 
 
-def us_reference_parse_prepare(overwrite):
-    ensure_exists(US_REFERENCE_PARSED_PATH)
-    files = list_dir(US_REFERENCE_AREAS_PATH, ".xml")
+class UsReferenceParseStep(PipelineStep):
+    max_number_of_processes = max(int(multiprocessing.cpu_count() / 2), 1)
 
-    if not overwrite:
-        existing_files = os.listdir(US_REFERENCE_PARSED_PATH)
-        files = list(filter(lambda f: f not in existing_files, files))
+    def get_items(self, overwrite) -> list:
+        ensure_exists(US_REFERENCE_PARSED_PATH)
+        files = list_dir(US_REFERENCE_AREAS_PATH, ".xml")
 
-    return files
+        if not overwrite:
+            existing_files = os.listdir(US_REFERENCE_PARSED_PATH)
+            files = list(filter(lambda f: f not in existing_files, files))
 
+        return files
 
-def us_reference_parse(filename):
-    soup = create_soup(f"{US_REFERENCE_AREAS_PATH}/{filename}")
+    def execute_item(self, item):
+        soup = create_soup(f"{US_REFERENCE_AREAS_PATH}/{item}")
 
-    this_title = get_title_from_filename(filename)
-    logs = parse_references(soup, this_title)
-    save_soup(soup, f"{US_REFERENCE_PARSED_PATH}/{filename}")
-    return logs
+        this_title = get_title_from_filename(item)
+        logs = parse_references(soup, this_title)
+        save_soup(soup, f"{US_REFERENCE_PARSED_PATH}/{item}")
+        return logs
 
-
-def us_reference_parse_finish(logs_per_file):
-    logs = list(itertools.chain.from_iterable(logs_per_file))
-    ensure_exists(US_HELPERS_PATH)
-    with open(US_REFERENCE_PARSED_LOG_PATH, mode="w") as f:
-        f.write("\n".join(sorted(logs, key=lambda x: x.lower())))
+    def finish_execution(self, results):
+        logs = list(itertools.chain.from_iterable(results))
+        ensure_exists(US_HELPERS_PATH)
+        with open(US_REFERENCE_PARSED_LOG_PATH, mode="w") as f:
+            f.write("\n".join(sorted(logs, key=lambda x: x.lower())))
 
 
 ###########

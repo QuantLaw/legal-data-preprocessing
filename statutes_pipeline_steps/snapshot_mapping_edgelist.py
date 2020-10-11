@@ -1,5 +1,4 @@
 import json
-import sys
 from collections import deque
 
 import networkx as nx
@@ -7,6 +6,7 @@ import textdistance
 from quantlaw.utils.beautiful_soup import create_soup
 from quantlaw.utils.files import ensure_exists, list_dir
 from quantlaw.utils.networkx import get_leaves, sequence_graph
+from quantlaw.utils.pipeline import PipelineStep
 from regex import regex
 
 from utils.common import (
@@ -15,7 +15,117 @@ from utils.common import (
     invert_dict_mapping_unique,
 )
 
-sys.path.append("../")
+
+class SnapshotMappingEdgelistStep(PipelineStep):
+    def __init__(
+        self,
+        source_graph,
+        source_text,
+        destination,
+        interval,
+        dataset,
+        law_names_data=None,
+        min_text_length=50,
+        radius=5,
+        distance_threshold=0.9,
+        *args,
+        **kwargs,
+    ):
+        self.source_graph = source_graph
+        self.source_text = source_text
+        self.destination = destination
+        self.interval = interval
+        self.dataset = dataset
+        self.law_names_data = law_names_data
+        self.min_text_length = min_text_length
+        self.radius = radius
+        self.distance_threshold = distance_threshold
+        super().__init__(*args, **kwargs)
+
+    def get_items(self, overwrite, snapshots) -> list:
+        ensure_exists(self.destination)
+        files = sorted(list_dir(self.source_graph, ".gpickle.gz"))
+
+        # Create mappings to draw the edges
+        mappings = [
+            (file1, file2)
+            for file1, file2 in zip(files[: -self.interval], files[self.interval :])
+        ]
+
+        if snapshots:
+            mappings = list(
+                filter(lambda f: f[0][: -len(".gpickle.gz")] in snapshots, mappings)
+            )
+
+        if not overwrite:
+            existing_files = list_dir(self.destination, ".json")
+            mappings = list(
+                filter(lambda x: mapping_filename(x) not in existing_files, mappings)
+            )
+
+        return mappings
+
+    def execute_item(self, item):
+        filename1, filename2 = item
+
+        # Load structure
+        G1 = load_crossref_graph(filename1, self.source_graph)
+        G2 = load_crossref_graph(filename2, self.source_graph)
+
+        # Load texts
+        leave_texts1 = get_leaf_texts_to_compare(
+            filename1, G1, self.source_text, self.law_names_data, self.dataset
+        )
+        leave_texts2 = get_leaf_texts_to_compare(
+            filename2, G2, self.source_text, self.law_names_data, self.dataset
+        )
+
+        # STEP 1: unique perfect matches
+        new_mappings = map_unique_texts(
+            leave_texts1, leave_texts2, min_text_length=self.min_text_length
+        )
+        remaining_keys1, remaining_keys2 = get_remaining(
+            leave_texts1, leave_texts2, new_mappings
+        )
+
+        # STEP 2: nonunique, nonmoved perfect matches
+        new_mappings_current_step = map_same_citekey_same_text(
+            leave_texts1, leave_texts2, G1, G2, remaining_keys1, remaining_keys2
+        )
+        new_mappings = {**new_mappings_current_step, **new_mappings}
+        remaining_keys1, remaining_keys2 = get_remaining(
+            leave_texts1, leave_texts2, new_mappings
+        )
+
+        # STEP 3: text appended/prepended/removed
+        new_mappings_current_step = map_text_containment(
+            leave_texts1, leave_texts2, remaining_keys1, remaining_keys2
+        )
+        new_mappings = {**new_mappings_current_step, **new_mappings}
+        remaining_keys1, remaining_keys2 = get_remaining(
+            leave_texts1, leave_texts2, new_mappings
+        )
+
+        # STEP 4: neighborhood matching
+        map_similar_text_common_neighbors(
+            new_mappings,
+            leave_texts1,
+            leave_texts2,
+            G1,
+            G2,
+            remaining_keys1,
+            remaining_keys2,
+            radius=self.radius,
+            distance_threshold=self.distance_threshold,
+        )
+
+        with open(f"{self.destination}/{mapping_filename(item)}", "w") as f:
+            json.dump(new_mappings, f)
+
+        # only called to print stats
+        get_remaining(
+            leave_texts1, leave_texts2, new_mappings, asserting=False, printing=True
+        )
 
 
 def mapping_filename(mapping):
@@ -27,103 +137,6 @@ def mapping_filename(mapping):
         f"{filename1[: -len('.gpickle.gz')]}_{filename2[: -len('.gpickle.gz')]}.json"
     )
     return result
-
-
-def snapshot_mapping_edgelist_prepare(
-    overwrite, snapshots, source_graph, source_text, destination, interval
-):
-    ensure_exists(destination)
-    files = sorted(list_dir(source_graph, ".gpickle.gz"))
-
-    # Create mappings to draw the edges
-    mappings = [
-        (file1, file2) for file1, file2 in zip(files[:-interval], files[interval:])
-    ]
-
-    if snapshots:
-        mappings = list(
-            filter(lambda f: f[0][: -len(".gpickle.gz")] in snapshots, mappings)
-        )
-
-    if not overwrite:
-        existing_files = list_dir(destination, ".json")
-        mappings = list(
-            filter(lambda x: mapping_filename(x) not in existing_files, mappings)
-        )
-
-    return mappings
-
-
-def snapshot_mapping_edgelist(
-    mapping,
-    source_graph,
-    source_text,
-    destination,
-    law_names_data,
-    min_text_length=50,
-    radius=5,
-    distance_threshold=0.9,
-):
-    filename1, filename2 = mapping
-
-    G1 = load_crossref_graph(filename1, source_graph)
-    G2 = load_crossref_graph(filename2, source_graph)
-
-    leave_texts1 = get_leaf_texts_to_compare(filename1, G1, source_text, law_names_data)
-    leave_texts2 = get_leaf_texts_to_compare(filename2, G2, source_text, law_names_data)
-
-    # STEP 1: unique perfect matches
-    new_mappings = map_unique_texts(
-        leave_texts1, leave_texts2, min_text_length=min_text_length
-    )
-    remaining_keys1, remaining_keys2 = get_remaining(
-        leave_texts1, leave_texts2, new_mappings
-    )
-
-    # STEP 2: nonunique, nonmoved perfect matches
-    new_mappings_current_step = map_same_citekey_same_text(
-        leave_texts1, leave_texts2, G1, G2, remaining_keys1, remaining_keys2
-    )
-    new_mappings = {**new_mappings_current_step, **new_mappings}
-    remaining_keys1, remaining_keys2 = get_remaining(
-        leave_texts1, leave_texts2, new_mappings
-    )
-
-    # STEP 3: text appended/prepended/removed
-    new_mappings_current_step = map_text_containment(
-        leave_texts1, leave_texts2, remaining_keys1, remaining_keys2
-    )
-    new_mappings = {**new_mappings_current_step, **new_mappings}
-    remaining_keys1, remaining_keys2 = get_remaining(
-        leave_texts1, leave_texts2, new_mappings
-    )
-
-    # For DEBUG
-    # with open('test.txt', 'w') as f:
-    #     for old, new in new_mappings_temp.items():
-    #         f.write(f'{old} - {new}\n')
-    #         f.write(t1[old]+'\n')
-    #         f.write(t2[new]+'\n\n')
-
-    # STEP x: neighborhood matching
-    map_similar_text_common_neighbors(
-        new_mappings,
-        leave_texts1,
-        leave_texts2,
-        G1,
-        G2,
-        remaining_keys1,
-        remaining_keys2,
-        radius=radius,
-        distance_threshold=distance_threshold,
-    )
-
-    with open(f"{destination}/{mapping_filename(mapping)}", "w") as f:
-        json.dump(new_mappings, f)
-
-    remaining_keys1, remaining_keys2 = get_remaining(
-        leave_texts1, leave_texts2, new_mappings, asserting=False, printing=True
-    )  # can be deleted, only called for stats
 
 
 def load_crossref_graph(filename, source):
@@ -146,7 +159,7 @@ def get_remaining(t1, t2, new_mappings, asserting=True, printing=False):
     return remaining_keys1, remaining_keys2
 
 
-def get_leaf_texts_to_compare(graph_filename, G, source_text, law_names_data):
+def get_leaf_texts_to_compare(graph_filename, G, source_text, law_names_data, dataset):
     """
     get text for leaves of a hierarchy graph. Can be seqitem or supseqitem graph.
     Leaves are only seqitems or supseqitems.
@@ -155,7 +168,7 @@ def get_leaf_texts_to_compare(graph_filename, G, source_text, law_names_data):
 
     snapshot = graph_filename[: -len(".gpickle.gz")]
 
-    if len(snapshot) == 4:  # is US
+    if dataset == "us":
         files = sorted(
             [
                 x
@@ -165,6 +178,7 @@ def get_leaf_texts_to_compare(graph_filename, G, source_text, law_names_data):
         )
     else:  # is DE
         files = get_snapshot_law_list(snapshot, law_names_data)
+
     whitespace_pattern = regex.compile(r"[\s\n]+")
     texts = {}
     for file in files:
@@ -361,9 +375,3 @@ def map_similar_text_common_neighbors(
                 if n in remaining_keys1 and n not in key_queue
             ]
             key_queue.extend(neighborghood_to_requeue)
-
-    #         print(max(similarity))
-    #         print(remaining_text1)
-    #         print('-')
-    #         print(neighborhood_text2[max_index])
-    #         print('=====\n')
