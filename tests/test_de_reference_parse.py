@@ -31,7 +31,8 @@ class TestDeReferenceParse(unittest.TestCase):
             "</reference>",
             "lxml-xml",
         ).reference
-        parse_reference_content(reference)
+        parser = StatutesParser({})
+        parse_reference_content(reference, parser)
         self.assertEqual(
             '[["6", "1", "2", "r"], ' '["6", "1", "2", "s"], ' '["6", "1", "2", "t"]]',
             reference.attrs["parsed"],
@@ -44,7 +45,8 @@ class TestDeReferenceParse(unittest.TestCase):
             "</reference>",
             "lxml-xml",
         ).reference
-        parse_reference_content(reference)
+        parser = StatutesParser({})
+        parse_reference_content(reference, parser)
         self.assertEqual(
             '[["6", "1", "2", "4"], ' '["6", "1", "2", "5"]]', reference.attrs["parsed"]
         )
