@@ -6,7 +6,6 @@ from quantlaw.de_extract.statutes_parse import StatutesParser, StringCaseExcepti
 from quantlaw.de_extract.stemming import stem_law_name
 from quantlaw.utils.beautiful_soup import create_soup, save_soup
 from quantlaw.utils.files import ensure_exists, list_dir
-from quantlaw.utils.pipeline import PipelineStep
 
 from statics import (
     DE_HELPERS_PATH,
@@ -22,19 +21,26 @@ from statutes_pipeline_steps.de_reference_parse_vso_list import (
     identify_reference_in_juris_vso_list,
 )
 from utils.common import (
+    RegulationsPipelineStep,
     copy_xml_schema_to_data_folder,
     get_stemmed_law_names_for_filename,
 )
 
 
-class DeReferenceParseStep(PipelineStep):
+class DeReferenceParseStep(RegulationsPipelineStep):
     def __init__(self, law_names, *args, **kwargs):
         self.law_names = law_names
         super().__init__(*args, **kwargs)
 
     def get_items(self, overwrite) -> list:
-        src = DE_RVO_REFERENCE_AREAS_PATH if regulations else DE_REFERENCE_AREAS_PATH
-        dest = DE_RVO_REFERENCE_PARSED_PATH if regulations else DE_REFERENCE_PARSED_PATH
+        src = (
+            DE_RVO_REFERENCE_AREAS_PATH if self.regulations else DE_REFERENCE_AREAS_PATH
+        )
+        dest = (
+            DE_RVO_REFERENCE_PARSED_PATH
+            if self.regulations
+            else DE_REFERENCE_PARSED_PATH
+        )
 
         ensure_exists(dest)
         files = list_dir(src, ".xml")
@@ -51,8 +57,14 @@ class DeReferenceParseStep(PipelineStep):
         return files
 
     def execute_item(self, item):
-        src = DE_RVO_REFERENCE_AREAS_PATH if regulations else DE_REFERENCE_AREAS_PATH
-        dest = DE_RVO_REFERENCE_PARSED_PATH if regulations else DE_REFERENCE_PARSED_PATH
+        src = (
+            DE_RVO_REFERENCE_AREAS_PATH if self.regulations else DE_REFERENCE_AREAS_PATH
+        )
+        dest = (
+            DE_RVO_REFERENCE_PARSED_PATH
+            if self.regulations
+            else DE_REFERENCE_PARSED_PATH
+        )
 
         laws_lookup = get_stemmed_law_names_for_filename(item, self.law_names)
         parser = StatutesParser(laws_lookup)
@@ -68,19 +80,19 @@ class DeReferenceParseStep(PipelineStep):
         identify_reference_law_name_in_soup(soup, parser, current_lawid)
         identify_lawreference_law_name_in_soup(soup, laws_lookup)
 
-        identify_reference_in_juris_vso_list(soup, laws_lookup, laws_lookup_keys)
+        identify_reference_in_juris_vso_list(soup, parser)
 
         save_soup(soup, f"{dest}/{item}")
         return logs
 
     def finish_execution(self, results):
         logs = list(itertools.chain.from_iterable(results))
-        ensure_exists(DE_RVO_HELPERS_PATH if regulations else DE_HELPERS_PATH)
+        ensure_exists(DE_RVO_HELPERS_PATH if self.regulations else DE_HELPERS_PATH)
         with open(
-                DE_RVO_REFERENCE_PARSED_LOG_PATH
-                if regulations
-                else DE_REFERENCE_PARSED_LOG_PATH,
-                mode="w",
+            DE_RVO_REFERENCE_PARSED_LOG_PATH
+            if self.regulations
+            else DE_REFERENCE_PARSED_LOG_PATH,
+            mode="w",
         ) as f:
             f.write("\n".join(sorted(logs, key=lambda x: x.lower())))
 

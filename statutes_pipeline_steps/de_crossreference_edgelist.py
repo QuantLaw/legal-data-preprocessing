@@ -5,7 +5,6 @@ import numpy
 import pandas as pd
 from quantlaw.utils.beautiful_soup import create_soup
 from quantlaw.utils.files import ensure_exists
-from quantlaw.utils.pipeline import PipelineStep
 
 from statics import (
     DE_CROSSREFERENCE_EDGELIST_PATH,
@@ -15,10 +14,10 @@ from statics import (
     DE_RVO_CROSSREFERENCE_LOOKUP_PATH,
     DE_RVO_REFERENCE_PARSED_PATH,
 )
-from utils.common import get_snapshot_law_list
+from utils.common import RegulationsPipelineStep, get_snapshot_law_list
 
 
-class DeCrossreferenceEdgelist(PipelineStep):
+class DeCrossreferenceEdgelist(RegulationsPipelineStep):
     def __init__(self, law_names_data, *args, **kwargs):
         self.law_names_data = law_names_data
         super().__init__(*args, **kwargs)
@@ -26,7 +25,7 @@ class DeCrossreferenceEdgelist(PipelineStep):
     def get_items(self, overwrite, snapshots) -> list:
         ensure_exists(
             DE_RVO_CROSSREFERENCE_EDGELIST_PATH
-            if regulations
+            if self.regulations
             else DE_CROSSREFERENCE_EDGELIST_PATH
         )
 
@@ -42,22 +41,20 @@ class DeCrossreferenceEdgelist(PipelineStep):
         files = get_snapshot_law_list(item, self.law_names_data)
         source_folder = (
             DE_RVO_CROSSREFERENCE_LOOKUP_PATH
-            if regulations
+            if self.regulations
             else DE_CROSSREFERENCE_LOOKUP_PATH
         )
         target_folder = (
             DE_RVO_CROSSREFERENCE_EDGELIST_PATH
-            if regulations
+            if self.regulations
             else DE_CROSSREFERENCE_EDGELIST_PATH
         )
         key_df = (
-            pd.read_csv(f"{source_folder}/{item}.csv")
-            .dropna()
-            .set_index("citekey")
+            pd.read_csv(f"{source_folder}/{item}.csv").dropna().set_index("citekey")
         )
         df = None
         for file in files:
-            edge_df = make_edge_list(file, key_df, regulations)
+            edge_df = make_edge_list(file, key_df, self.regulations)
             df = edge_df if df is None else df.append(edge_df, ignore_index=True)
         df.to_csv(f"{target_folder}/{item}.csv", index=False)
 

@@ -14,7 +14,6 @@ from statics import (
     US_REFERENCE_PARSED_LOG_PATH,
     US_REFERENCE_PARSED_PATH,
 )
-from utils.common import create_soup, ensure_exists, list_dir, save_soup
 
 
 class UsReferenceParseStep(PipelineStep):

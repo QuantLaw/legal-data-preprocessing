@@ -1,9 +1,9 @@
+import json
 import os
 import re
 
 from bs4 import BeautifulSoup
 from quantlaw.utils.files import ensure_exists, list_dir
-from quantlaw.utils.pipeline import PipelineStep
 
 from statics import (
     DE_ORIGINAL_PATH,
@@ -13,6 +13,8 @@ from statics import (
     JURIS_EXPORT_GESETZE_LIST_PATH,
     JURIS_EXPORT_RVO_LIST_PATH,
 )
+from utils.common import RegulationsPipelineStep
+
 
 def get_type_for_doknr_dict():
     with open(JURIS_EXPORT_GESETZE_LIST_PATH) as f:
@@ -23,10 +25,14 @@ def get_type_for_doknr_dict():
     return {**{k: True for k in gesetze_dirs}, **{k: False for k in rvo_dirs}}
 
 
-class DeToXmlStep(PipelineStep):
+class DeToXmlStep(RegulationsPipelineStep):
+    def __init__(self, dok_type_dict, *args, **kwargs):
+        self.dok_type_dict = dok_type_dict
+        super().__init__(*args, **kwargs)
+
     def get_items(self, overwrite) -> list:
-        src = DE_RVO_ORIGINAL_PATH if regulations else DE_ORIGINAL_PATH
-        dest = DE_RVO_XML_PATH if regulations else DE_XML_PATH
+        src = DE_RVO_ORIGINAL_PATH if self.regulations else DE_ORIGINAL_PATH
+        dest = DE_RVO_XML_PATH if self.regulations else DE_XML_PATH
 
         ensure_exists(dest)
         files = list_dir(src, ".xml")
@@ -41,19 +47,17 @@ class DeToXmlStep(PipelineStep):
             ]
             files = list(filter(lambda f: f not in converted_existing_files, files))
 
-        dok_type_dict = get_type_for_doknr_dict()
-
-        return sorted(files), dok_type_dict
+        return sorted(files)
 
     def execute_item(self, item):
-        src = DE_RVO_ORIGINAL_PATH if regulations else DE_ORIGINAL_PATH
-        dest = DE_RVO_XML_PATH if regulations else DE_XML_PATH
+        src = DE_RVO_ORIGINAL_PATH if self.regulations else DE_ORIGINAL_PATH
+        dest = DE_RVO_XML_PATH if self.regulations else DE_XML_PATH
 
         with open(f"{src}/{item}") as f:
             soup = BeautifulSoup(f.read(), "lxml-xml")
 
-        dok_is_statute = dok_type_dict[filename[:13]]
-        convert_to_xml(soup, item, dest, regulations, dok_is_statute)
+        dok_is_statute = self.dok_type_dict[item[:13]]
+        convert_to_xml(soup, item, dest, self.regulations, dok_is_statute)
 
 
 ###########
@@ -295,10 +299,10 @@ def convert_to_xml(source_soup, filename, dest, regulations, dok_is_statute):
                 continue
 
         if s_text:  # is seqitem
-            add_new_seqitem(s_enbez, s_text, t_soup, cursor)
+            t_seqitem = add_new_seqitem(s_enbez, s_text, t_soup, cursor)
 
-        s_juris = s_metadaten.juris
-        add_juris_data_to_tag(s_juris, t_seqitem)
+            s_juris = s_metadaten.juris
+            add_juris_data_to_tag(s_juris, t_seqitem)
 
     cleanup_removed_items(t_items)
 
@@ -307,9 +311,7 @@ def convert_to_xml(source_soup, filename, dest, regulations, dok_is_statute):
     doknr, start_date, end_date = os.path.splitext(filename)[0].split("_")
 
     target_filename = (
-        f"{dest}/"
-        + "_".join([doknr, citekey_prefix, start_date, end_date])
-        + ".xml"
+        f"{dest}/" + "_".join([doknr, citekey_prefix, start_date, end_date]) + ".xml"
     )
 
     # Add attrs key and citekey
@@ -388,6 +390,8 @@ def add_new_seqitem(s_enbez, s_text, t_soup, cursor):
     if texts:
         cursor[-1].append(t_seqitem)
 
+    return t_seqitem
+
 
 def cleanup_removed_items(t_items):
     # iterate over soup in reverse item order to ensure empty item removal works
@@ -440,13 +444,13 @@ def add_item_keys(t_soup, doknr, citekey_prefix, end_date):
                 match = citekey_enbez_pattern.match(heading)
                 if match:
                     t.attrs["citekey"] = f"{citekey_prefix}_{match[2]}"
-                elif heading not in ["Präambel", "Eingangsformel"] and is_preamble:
-                    print(
-                        f"Cannot create citekey of {heading} in",
-                        doknr,
-                        citekey_prefix,
-                        end_date,
-                    )
+                # elif heading not in ["Präambel", "Eingangsformel"] and is_preamble:
+                #     print(
+                #         f"Cannot create citekey of {heading} in",
+                #         doknr,
+                #         citekey_prefix,
+                #         end_date,
+                #     )
 
 
 def correct_errors_gliederungskennzahl(filename, s_norm):

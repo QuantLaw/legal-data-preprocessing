@@ -6,6 +6,7 @@ from collections import Counter
 
 import pandas as pd
 from quantlaw.utils.files import ensure_exists
+from quantlaw.utils.pipeline import PipelineStep
 from regex import regex
 
 from statics import (
@@ -19,6 +20,12 @@ from statics import (
 ##########
 # Pipeline
 ##########
+
+
+class RegulationsPipelineStep(PipelineStep):
+    def __init__(self, regulations, *args, **kwargs):
+        self.regulations = regulations
+        super().__init__(*args, **kwargs)
 
 
 def str_to_bool(v):

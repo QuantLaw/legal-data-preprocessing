@@ -14,7 +14,6 @@ from statics import (
     US_REFERENCE_AREAS_PATH,
     US_XML_PATH,
 )
-from utils.common import create_soup, ensure_exists, list_dir, save_soup
 
 
 class UsReferenceAreasStep(PipelineStep):

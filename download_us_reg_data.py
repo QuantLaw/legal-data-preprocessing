@@ -1,11 +1,8 @@
-import re
 import shutil
 from multiprocessing.pool import Pool
 from zipfile import ZipFile
 
-import lxml.etree
 import requests
-from bs4 import BeautifulSoup
 
 from statics import US_REG_INPUT_PATH
 from utils.common import ensure_exists

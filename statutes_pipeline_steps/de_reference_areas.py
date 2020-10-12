@@ -6,7 +6,6 @@ from quantlaw.de_extract.statutes_abstract import StatutesMatchWithMainArea
 from quantlaw.de_extract.statutes_areas import StatutesExtractor
 from quantlaw.utils.beautiful_soup import create_soup
 from quantlaw.utils.files import ensure_exists, list_dir
-from quantlaw.utils.pipeline import PipelineStep
 
 from statics import (
     DE_HELPERS_PATH,
@@ -18,17 +17,19 @@ from statics import (
     DE_RVO_XML_PATH,
     DE_XML_PATH,
 )
-from utils.common import get_stemmed_law_names_for_filename
+from utils.common import RegulationsPipelineStep, get_stemmed_law_names_for_filename
 
 
-class DeReferenceAreasStep(PipelineStep):
+class DeReferenceAreasStep(RegulationsPipelineStep):
     def __init__(self, law_names, *args, **kwargs):
         self.law_names = law_names
         super().__init__(*args, **kwargs)
 
     def get_items(self, overwrite) -> list:
-        src = DE_RVO_XML_PATH if regulations else DE_XML_PATH
-        dest = DE_RVO_REFERENCE_AREAS_PATH if regulations else DE_REFERENCE_AREAS_PATH
+        src = DE_RVO_XML_PATH if self.regulations else DE_XML_PATH
+        dest = (
+            DE_RVO_REFERENCE_AREAS_PATH if self.regulations else DE_REFERENCE_AREAS_PATH
+        )
 
         ensure_exists(dest)
         files = list_dir(src, ".xml")
@@ -39,8 +40,10 @@ class DeReferenceAreasStep(PipelineStep):
         return files
 
     def execute_item(self, item):
-        src = DE_RVO_XML_PATH if regulations else DE_XML_PATH
-        dest = DE_RVO_REFERENCE_AREAS_PATH if regulations else DE_REFERENCE_AREAS_PATH
+        src = DE_RVO_XML_PATH if self.regulations else DE_XML_PATH
+        dest = (
+            DE_RVO_REFERENCE_AREAS_PATH if self.regulations else DE_REFERENCE_AREAS_PATH
+        )
 
         laws_lookup = get_stemmed_law_names_for_filename(item, self.law_names)
         extractor = StatutesExtractor(laws_lookup)
@@ -61,16 +64,18 @@ class DeReferenceAreasStep(PipelineStep):
         #         section, soup, short_law_regex_pattern, clean_name
         #     )
 
-        save_soup_with_style(soup, f"{dest}/{filename}")
+        save_soup_with_style(soup, f"{dest}/{item}")
 
         return result
 
     def finish_execution(self, results):
         logs = list(itertools.chain.from_iterable(results))
-        ensure_exists(DE_RVO_HELPERS_PATH if regulations else DE_HELPERS_PATH)
+        ensure_exists(DE_RVO_HELPERS_PATH if self.regulations else DE_HELPERS_PATH)
         with open(
-                DE_RVO_REFERENCE_AREAS_LOG_PATH if regulations else DE_REFERENCE_AREAS_LOG_PATH,
-                mode="w",
+            DE_RVO_REFERENCE_AREAS_LOG_PATH
+            if self.regulations
+            else DE_REFERENCE_AREAS_LOG_PATH,
+            mode="w",
         ) as f:
             f.write("\n".join(sorted(logs, key=lambda x: x.lower())))
 

@@ -1,7 +1,6 @@
 import pandas as pd
 from quantlaw.utils.beautiful_soup import create_soup
 from quantlaw.utils.files import ensure_exists
-from quantlaw.utils.pipeline import PipelineStep
 
 from statics import (
     DE_CROSSREFERENCE_LOOKUP_PATH,
@@ -9,21 +8,18 @@ from statics import (
     DE_RVO_CROSSREFERENCE_LOOKUP_PATH,
     DE_RVO_REFERENCE_PARSED_PATH,
 )
-from utils.common import (
-    get_snapshot_law_list,
-    load_law_names,
-)
+from utils.common import RegulationsPipelineStep, get_snapshot_law_list, load_law_names
 
 
-class DeCrossreferenceLookup(PipelineStep):
+class DeCrossreferenceLookup(RegulationsPipelineStep):
     def get_items(self, snapshots) -> list:
         ensure_exists(
             DE_RVO_CROSSREFERENCE_LOOKUP_PATH
-            if regulations
+            if self.regulations
             else DE_CROSSREFERENCE_LOOKUP_PATH
         )
         files = []
-        law_names_data = load_law_names(regulations)
+        law_names_data = load_law_names(self.regulations)
         for snapshot in snapshots:
             files.append((snapshot, get_snapshot_law_list(snapshot, law_names_data)))
         return files
@@ -32,11 +28,13 @@ class DeCrossreferenceLookup(PipelineStep):
         date, files = item
         data = []
         source_folder = (
-            DE_RVO_REFERENCE_PARSED_PATH if regulations else DE_REFERENCE_PARSED_PATH
+            DE_RVO_REFERENCE_PARSED_PATH
+            if self.regulations
+            else DE_REFERENCE_PARSED_PATH
         )
         target_folder = (
             DE_RVO_CROSSREFERENCE_LOOKUP_PATH
-            if regulations
+            if self.regulations
             else DE_CROSSREFERENCE_LOOKUP_PATH
         )
         for file in files:

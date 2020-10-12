@@ -21,13 +21,14 @@ from statics import (
     US_SNAPSHOT_MAPPING_EDGELIST_PATH,
 )
 from statutes_pipeline_steps.crossreference_graph import CrossreferenceGraphStep
+from statutes_pipeline_steps.de_authority_edgelist import DeAuthorityEdgelist
 from statutes_pipeline_steps.de_crossreference_edgelist import DeCrossreferenceEdgelist
 from statutes_pipeline_steps.de_crossreference_lookup import DeCrossreferenceLookup
 from statutes_pipeline_steps.de_law_names import DeLawNamesStep
 from statutes_pipeline_steps.de_prepare_input import de_prepare_input
 from statutes_pipeline_steps.de_reference_areas import DeReferenceAreasStep
 from statutes_pipeline_steps.de_reference_parse import DeReferenceParseStep
-from statutes_pipeline_steps.de_to_xml import DeToXmlStep
+from statutes_pipeline_steps.de_to_xml import DeToXmlStep, get_type_for_doknr_dict
 from statutes_pipeline_steps.hierarchy_graph import HierarchyGraphStep
 from statutes_pipeline_steps.snapshot_mapping_edgelist import (
     SnapshotMappingEdgelistStep,
@@ -37,6 +38,7 @@ from statutes_pipeline_steps.us_crossreference_lookup import UsCrossreferenceLoo
 from statutes_pipeline_steps.us_prepare_input import us_prepare_input
 from statutes_pipeline_steps.us_reference_areas import UsReferenceAreasStep
 from statutes_pipeline_steps.us_reference_parse import UsReferenceParseStep
+from statutes_pipeline_steps.us_reg_prepare_input import us_reg_prepare_input
 from statutes_pipeline_steps.us_to_xml import UsToXmlStep
 from utils.common import load_law_names, load_law_names_compiled, str_to_bool
 
@@ -179,14 +181,19 @@ if __name__ == "__main__":
             items = step.get_items(overwrite)
             step.execute_filtered_items(items, selected_items)
         elif dataset == "de":
-            step = DeToXmlStep(regulations, processes)
+            dok_type_dict = get_type_for_doknr_dict()
+            step = DeToXmlStep(
+                regulations=regulations,
+                processes=processes,
+                dok_type_dict=dok_type_dict,
+            )
             items = step.get_items(overwrite)
             step.execute_filtered_items(items, selected_items)
         print("Convert to xml: done")
 
     if "law_names" in steps:
         if dataset == "de":
-            step = DeLawNamesStep(regulations, processes)
+            step = DeLawNamesStep(regulations=regulations, processes=processes)
             items = step.get_items()
             step.execute_items(items)
             print("Law names: done")
@@ -199,7 +206,9 @@ if __name__ == "__main__":
 
         elif dataset == "de":
             law_names = load_law_names_compiled(regulations)
-            step = DeReferenceAreasStep(law_names, regulations, processes)
+            step = DeReferenceAreasStep(
+                law_names=law_names, regulations=regulations, processes=processes
+            )
             items = step.get_items(overwrite)
             step.execute_filtered_items(items)
 
@@ -212,7 +221,9 @@ if __name__ == "__main__":
             step.execute_filtered_items(items)
         if dataset == "de":
             law_names = load_law_names_compiled(regulations)
-            step = DeReferenceParseStep(regulations, law_names, processes)
+            step = DeReferenceParseStep(
+                law_names=law_names, regulations=regulations, processes=processes
+            )
             items = step.get_items(overwrite)
             step.execute_filtered_items(items)
 
@@ -259,7 +270,7 @@ if __name__ == "__main__":
             step.execute_items(items)
 
         elif dataset == "de":
-            step = DeCrossreferenceLookup(regulations, processes)
+            step = DeCrossreferenceLookup(regulations=regulations, processes=processes)
             items = step.get_items(snapshots)
             step.execute_items(items)
 
@@ -273,7 +284,11 @@ if __name__ == "__main__":
 
         elif dataset == "de":
             law_names_data = load_law_names(regulations)
-            step = DeCrossreferenceEdgelist(regulations, aw_names_data, processes)
+            step = DeCrossreferenceEdgelist(
+                regulations=regulations,
+                law_names_data=law_names_data,
+                processes=processes,
+            )
             items = step.get_items(overwrite, snapshots)
             step.execute_items(items)
 
@@ -282,14 +297,11 @@ if __name__ == "__main__":
     if "authority_edgelist" in steps:
         if dataset == "de" and regulations:
             law_names_data = load_law_names(regulations)
-            items = de_authority_edgelist_prepare(overwrite, snapshots, regulations)
-            process_items(
-                items,
-                [],
-                action_method=de_authority_edgelist,
-                use_multiprocessing=use_multiprocessing,
-                args=(law_names_data, regulations),
+            step = DeAuthorityEdgelist(
+                law_names_data=law_names_data, processes=processes
             )
+            items = step.get_items(overwrite, snapshots)
+            step.execute_items(items)
         print("Create authority edgelist: done")
 
     if "crossreference_graph" in steps:
@@ -343,13 +355,23 @@ if __name__ == "__main__":
             destination = f"{US_SNAPSHOT_MAPPING_EDGELIST_PATH}/subseqitems"
             law_names_data = None
         elif dataset == "de":
-            source_graph = f"{DE_RVO_CROSSREFERENCE_GRAPH_PATH if regulations else DE_CROSSREFERENCE_GRAPH_PATH}/subseqitems"
+            source_graph = os.path.join(
+                DE_RVO_CROSSREFERENCE_GRAPH_PATH
+                if regulations
+                else DE_CROSSREFERENCE_GRAPH_PATH,
+                "subseqitems",
+            )
             source_text = (
                 DE_RVO_REFERENCE_PARSED_PATH
                 if regulations
                 else DE_REFERENCE_PARSED_PATH
             )
-            destination = f"{DE_RVO_SNAPSHOT_MAPPING_EDGELIST_PATH if regulations else DE_SNAPSHOT_MAPPING_EDGELIST_PATH}/subseqitems"
+            destination = os.path.join(
+                DE_RVO_SNAPSHOT_MAPPING_EDGELIST_PATH
+                if regulations
+                else DE_SNAPSHOT_MAPPING_EDGELIST_PATH,
+                "subseqitems",
+            )
             law_names_data = load_law_names(regulations)
 
         step = SnapshotMappingEdgelistStep(

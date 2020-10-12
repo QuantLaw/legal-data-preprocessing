@@ -3,13 +3,12 @@ import os
 import networkx as nx
 import pandas as pd
 from quantlaw.utils.files import ensure_exists, list_dir
-from quantlaw.utils.pipeline import PipelineStep
 
 from statics import DE_RVO_AUTHORITY_EDGELIST_PATH
-from utils.common import get_snapshot_law_list, load_law_names
+from utils.common import RegulationsPipelineStep, get_snapshot_law_list, load_law_names
 
 
-class CrossreferenceGraphStep(PipelineStep):
+class CrossreferenceGraphStep(RegulationsPipelineStep):
     def __init__(self, source, destination, edgelist_folder, dataset, *args, **kwargs):
         self.source = source
         self.destination = destination
@@ -55,7 +54,7 @@ class CrossreferenceGraphStep(PipelineStep):
                 )
         else:  # is DE
             files = []
-            law_names_data = load_law_names(regulations)
+            law_names_data = load_law_names(self.regulations)
             for snapshot in snapshots:
                 graph_files = get_snapshot_law_list(snapshot, law_names_data)
                 files.append(
@@ -106,7 +105,7 @@ class CrossreferenceGraphStep(PipelineStep):
         G.add_edges_from(edges, edge_type="reference")
 
         # add authority edges
-        if regulations and len(year) != 4:  # is DE
+        if self.regulations and self.dataset == "de":
             edge_list = pd.read_csv(f"{DE_RVO_AUTHORITY_EDGELIST_PATH}/{year}.csv")
             edges = [tuple(edge[1].values) for edge in edge_list.iterrows()]
             for node_from, node_to in edges:
