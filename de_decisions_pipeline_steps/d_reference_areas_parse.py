@@ -12,17 +12,16 @@ from statics import (
 )
 from statutes_pipeline_steps.de_reference_areas import find_references_in_soup
 from statutes_pipeline_steps.de_reference_parse import (
-    parse_reference_content_in_soup,
-    identify_reference_law_name_in_soup,
     identify_lawreference_law_name_in_soup,
+    identify_reference_law_name_in_soup,
+    parse_reference_content_in_soup,
 )
 from utils.common import (
-    list_dir,
     ensure_exists,
-    save_soup,
-    stem_law_name,
-    load_law_names_compiled,
     get_stemmed_law_names,
+    list_dir,
+    load_law_names_compiled,
+    save_soup,
 )
 
 
@@ -51,7 +50,8 @@ def find_references(decision):
             with open(f"{DE_DECISIONS_HIERARCHY}/{decision}", encoding="utf8") as f:
                 file_content = f.read()
             file_content = file_content.replace(
-                '<!DOCTYPE dokument SYSTEM "http://www.rechtsprechung-im-internet.de/dtd/v1/rii-dok.dtd">',
+                "<!DOCTYPE dokument SYSTEM "
+                '"http://www.rechtsprechung-im-internet.de/dtd/v1/rii-dok.dtd">',
                 "",
             )
             soup = BeautifulSoup(file_content, "lxml-xml")
@@ -89,7 +89,7 @@ def find_references(decision):
             identify_lawreference_law_name_in_soup(soup, laws_lookup)
 
             save_soup(soup, f"{DE_DECISIONS_REFERENCE_PARSED_XML}/{decision}")
-    except:
+    except Exception:
         print("-----", decision, "-----")
         the_type, the_value, the_traceback = sys.exc_info()
         traceback.print_exception(the_type, the_value, the_traceback)

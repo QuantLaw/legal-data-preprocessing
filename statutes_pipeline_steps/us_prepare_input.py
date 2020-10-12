@@ -3,8 +3,8 @@ import os
 import re
 import shutil
 
-from utils.common import ensure_exists
 from statics import US_INPUT_PATH, US_ORIGINAL_PATH
+from utils.common import ensure_exists
 
 
 def us_prepare_input():

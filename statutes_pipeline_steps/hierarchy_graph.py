@@ -89,7 +89,7 @@ def count_characters(text, whites=False):
     if whites:
         return len(text)
     else:
-        return len(re.sub("\s", "", text))
+        return len(re.sub(r"\s", "", text))
 
 
 def count_tokens(text, unique=False):

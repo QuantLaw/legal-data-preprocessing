@@ -4,18 +4,14 @@ import os
 import numpy
 import pandas as pd
 
-from utils.common import (
-    ensure_exists,
-    create_soup,
-    get_snapshot_law_list,
-)
 from statics import (
     DE_CROSSREFERENCE_EDGELIST_PATH,
     DE_REFERENCE_PARSED_PATH,
+    DE_RVO_AUTHORITY_EDGELIST_PATH,
     DE_RVO_CROSSREFERENCE_LOOKUP_PATH,
     DE_RVO_REFERENCE_PARSED_PATH,
-    DE_RVO_AUTHORITY_EDGELIST_PATH,
 )
+from utils.common import create_soup, ensure_exists, get_snapshot_law_list
 
 
 def get_filename(date):
@@ -56,7 +52,10 @@ def de_authority_edgelist(snapshot, law_names_data, regulations):
 
 def make_edge_list(file, key_df, law_citekeys_dict, regulations):
     soup = create_soup(
-        f"{DE_RVO_REFERENCE_PARSED_PATH if regulations else DE_REFERENCE_PARSED_PATH}/{file}"
+        os.path.join(
+            DE_RVO_REFERENCE_PARSED_PATH if regulations else DE_REFERENCE_PARSED_PATH,
+            file,
+        )
     )
     edges = []
 

@@ -4,18 +4,13 @@ import os
 import bs4
 from regex import regex
 
-from utils.common import (
-    ensure_exists,
-    list_dir,
-    create_soup,
-    save_soup,
-)
 from statics import (
+    US_HELPERS_PATH,
+    US_REFERENCE_AREAS_LOG_PATH,
     US_REFERENCE_AREAS_PATH,
     US_XML_PATH,
-    US_REFERENCE_AREAS_LOG_PATH,
-    US_HELPERS_PATH,
 )
+from utils.common import create_soup, ensure_exists, list_dir, save_soup
 
 
 def us_reference_areas_prepare(overwrite):
@@ -69,8 +64,7 @@ regex_definitions = (
     r')'
 )
 
-usc_pattern_string = (
-    regex_definitions +
+usc_pattern_string = regex_definitions + (
     r'('
         r'(\d+)\s*'
         r'U\.?S\.?C\.?\s*'
@@ -81,8 +75,7 @@ usc_pattern_string = (
     r'(?!\w*(\sApp\.)?\s(U\.?S\.?C\.?|C\.?F\.?R\.?|Stat\.))'
 )
 
-inline_pattern_string = (
-    regex_definitions +
+inline_pattern_string = regex_definitions + (
     r'(Sec(?:tion|\.)?|§)\s*'
     r'(?&sec)'
     r'('

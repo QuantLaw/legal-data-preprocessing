@@ -1,17 +1,18 @@
-import lxml.etree
-import re
 import os
-import zipfile
+import re
 
-from statics import US_REG_ORIGINAL_PATH, US_REG_XML_PATH
+import lxml.etree
 
-# regex source: https://gist.github.com/mlissner/dda7f6677b98b98f54522e271d486781#file-filters-js-L77
+from statics import US_REG_ORIGINAL_PATH
+
+# regex source:
+# https://gist.github.com/mlissner/dda7f6677b98b98f54522e271d486781#file-filters-js-L77
 
 re_cfr_section = re.compile(
-    b"([0-9]+[a-z]*) C\.?F\.?R\.? ([0-9]+[a-z]*)", re.IGNORECASE
+    r"([0-9]+[a-z]*) C\.?F\.?R\.? ([0-9]+[a-z]*)", re.IGNORECASE
 )
 re_cfr_container = re.compile(
-    b"([0-9]+[a-z]*) C\.?F\.?R\.? ([a-z]+ [0-9a-z\-]+)", re.IGNORECASE
+    r"([0-9]+[a-z]*) C\.?F\.?R\.? ([a-z]+ [0-9a-z\-]+)", re.IGNORECASE
 )
 
 
@@ -37,19 +38,19 @@ def get_section_hierarchy(section_element):
         if h_element.tag == "SECTION":
             try:
                 section_number = extract_text(h_element.xpath("./SECTNO")[0])
-            except Exception as e:
+            except Exception:
                 section_number = None
 
             try:
                 section_subject = extract_text(h_element.xpath("./SUBJECT")[0])
-            except Exception as e:
+            except Exception:
                 section_subject = None
 
             hierarchy_data.append((section_number, section_subject))
         else:
             try:
                 group_heading = extract_text(h_element.xpath("./HD")[0])
-            except Exception as e:
+            except Exception:
                 group_heading = None
             hierarchy_data.append((group_heading,))
 
@@ -69,7 +70,8 @@ def parse_cfr_xml_file(xml_file, file_name):
     for title_element in xml_doc.xpath(".//TITLE"):
         assert len(title_element.xpath("../CHAPTER")) <= 1, file_name
         for section_element in title_element.xpath("./CHAPTER//SECTION"):
-            section_text = bytes()
+            pass
+            # section_text = bytes()
             # for p_element in section_element.xpath(".//P"):
             #     section_text += extract_text(p_element) + b"\n"
             # print(get_section_hierarchy(section_element))

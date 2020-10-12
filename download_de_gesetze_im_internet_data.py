@@ -1,9 +1,8 @@
 import argparse
 import os
-import shutil
 from multiprocessing.pool import Pool
 
-from git import Repo, Git
+from git import Git, Repo
 
 from statics import DE_ORIGINAL_PATH
 from utils.simplify_gii_xml import simplify_gii_xml

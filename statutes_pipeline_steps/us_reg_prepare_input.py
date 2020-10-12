@@ -1,10 +1,8 @@
-# Roughly validate the input files
 import os
-import re
 import shutil
 
+from statics import US_REG_INPUT_PATH, US_REG_ORIGINAL_PATH
 from utils.common import ensure_exists
-from statics import US_REG_ORIGINAL_PATH, US_REG_INPUT_PATH
 
 
 def us_reg_prepare_input():

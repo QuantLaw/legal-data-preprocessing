@@ -5,28 +5,28 @@ from collections import Counter
 
 from regex import regex
 
+from statics import (
+    DE_HELPERS_PATH,
+    DE_REFERENCE_AREAS_PATH,
+    DE_REFERENCE_PARSED_LOG_PATH,
+    DE_REFERENCE_PARSED_PATH,
+    DE_RVO_HELPERS_PATH,
+    DE_RVO_REFERENCE_AREAS_PATH,
+    DE_RVO_REFERENCE_PARSED_LOG_PATH,
+    DE_RVO_REFERENCE_PARSED_PATH,
+)
 from statutes_pipeline_steps.de_reference_parse_vso_list import (
     identify_reference_in_juris_vso_list,
 )
 from utils.common import (
-    ensure_exists,
-    list_dir,
+    copy_xml_schema_to_data_folder,
     create_soup,
+    ensure_exists,
+    get_stemmed_law_names_for_filename,
+    list_dir,
+    match_law_name,
     save_soup,
     stem_law_name,
-    get_stemmed_law_names_for_filename,
-    copy_xml_schema_to_data_folder,
-    match_law_name,
-)
-from statics import (
-    DE_REFERENCE_AREAS_PATH,
-    DE_HELPERS_PATH,
-    DE_REFERENCE_PARSED_LOG_PATH,
-    DE_REFERENCE_PARSED_PATH,
-    DE_RVO_REFERENCE_PARSED_PATH,
-    DE_RVO_REFERENCE_AREAS_PATH,
-    DE_RVO_REFERENCE_PARSED_LOG_PATH,
-    DE_RVO_HELPERS_PATH,
 )
 
 
@@ -139,7 +139,7 @@ def is_pre_numb(token):
 def is_numb(token):
     # fmt: off
     return regex.fullmatch(
-        r"(" 
+        r"("
             r"\d+(?>\.\d+)*[a-z]?|"
             r"[ivx]+|"
             r"[a-z]\)?"
@@ -195,9 +195,9 @@ class StringCaseException(Exception):
 def split_citation_part(string, debug_context=None):
     # fmt: off
     string = regex.sub(
-        r"(" 
+        r"("
             r"\d+(?>\.\d+)?[a-z]?|"
-            r"\b[ivx]+|" 
+            r"\b[ivx]+|"
             r"\b[a-z]\)?"
         r")"
         r"(\sff?\.|\sff\b)",
@@ -279,7 +279,7 @@ def infer_units(reference_path, prev_reference_path):
     try:
         prev_unit_index = prev_path_units.index(reference_path[0][0])
         reference_path[0:0] = prev_reference_path[:prev_unit_index]
-    except:
+    except Exception:
         reference_path[0:0] = prev_reference_path
 
 
@@ -416,7 +416,7 @@ def identify_reference_law_name_in_soup(
         elif reference.lawname["type"] == "internal":
             if current_lawid is None:
                 raise Exception(
-                    f"Current law id must be set for internal reference: {str(reference)}"
+                    "Current law id must be set for internal reference:", str(reference)
                 )
             lawid = current_lawid
         else:
@@ -424,7 +424,7 @@ def identify_reference_law_name_in_soup(
 
         try:
             ref_parts = json.loads(reference["parsed_verbose"])
-        except:
+        except Exception:
             print(current_lawid, "xx", reference["parsed_verbose"])
             raise
         for ref_part in ref_parts:

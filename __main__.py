@@ -2,94 +2,92 @@ import argparse
 import multiprocessing
 import re
 
+from statics import (
+    ALL_YEARS,
+    DE_CROSSREFERENCE_EDGELIST_PATH,
+    DE_CROSSREFERENCE_GRAPH_PATH,
+    DE_HIERARCHY_GRAPH_PATH,
+    DE_REFERENCE_PARSED_PATH,
+    DE_RVO_CROSSREFERENCE_EDGELIST_PATH,
+    DE_RVO_CROSSREFERENCE_GRAPH_PATH,
+    DE_RVO_HIERARCHY_GRAPH_PATH,
+    DE_RVO_REFERENCE_PARSED_PATH,
+    DE_RVO_SNAPSHOT_MAPPING_EDGELIST_PATH,
+    DE_SNAPSHOT_MAPPING_EDGELIST_PATH,
+    US_CROSSREFERENCE_EDGELIST_PATH,
+    US_CROSSREFERENCE_GRAPH_PATH,
+    US_HIERARCHY_GRAPH_PATH,
+    US_REFERENCE_PARSED_PATH,
+    US_SNAPSHOT_MAPPING_EDGELIST_PATH,
+)
+from statutes_pipeline_steps.crossreference_graph import (
+    crossreference_graph,
+    crossreference_graph_prepare,
+)
 from statutes_pipeline_steps.de_authority_edgelist import (
-    de_authority_edgelist_prepare,
     de_authority_edgelist,
+    de_authority_edgelist_prepare,
 )
 from statutes_pipeline_steps.de_crossreference_edgelist import (
-    de_crossreference_edgelist_prepare,
     de_crossreference_edgelist,
+    de_crossreference_edgelist_prepare,
 )
 from statutes_pipeline_steps.de_crossreference_lookup import (
-    de_crossreference_lookup_prepare,
     de_crossreference_lookup,
-)
-from statutes_pipeline_steps.de_prepare_input import de_prepare_input
-from statutes_pipeline_steps.us_reg_prepare_input import us_reg_prepare_input
-
-from utils.common import (
-    str_to_bool,
-    process_items,
-    load_law_names_compiled,
-    load_law_names,
+    de_crossreference_lookup_prepare,
 )
 from statutes_pipeline_steps.de_law_names import (
-    de_law_names_finish,
     de_law_names,
+    de_law_names_finish,
     de_law_names_prepare,
 )
+from statutes_pipeline_steps.de_prepare_input import de_prepare_input
 from statutes_pipeline_steps.de_reference_areas import (
-    de_reference_areas_prepare,
-    de_reference_areas_finish,
     de_reference_areas,
+    de_reference_areas_finish,
+    de_reference_areas_prepare,
 )
 from statutes_pipeline_steps.de_reference_parse import (
-    de_reference_parse_prepare,
     de_reference_parse,
     de_reference_parse_finish,
+    de_reference_parse_prepare,
 )
-from statutes_pipeline_steps.de_to_xml import de_to_xml_prepare, de_to_xml
-
+from statutes_pipeline_steps.de_to_xml import de_to_xml, de_to_xml_prepare
 from statutes_pipeline_steps.hierarchy_graph import (
     hierarchy_graph,
     hierarchy_graph_prepare,
 )
 from statutes_pipeline_steps.snapshot_mapping_edgelist import (
-    snapshot_mapping_edgelist_prepare,
     snapshot_mapping_edgelist,
-)
-from statics import (
-    US_REFERENCE_PARSED_PATH,
-    US_HIERARCHY_GRAPH_PATH,
-    US_CROSSREFERENCE_EDGELIST_PATH,
-    US_CROSSREFERENCE_GRAPH_PATH,
-    DE_HIERARCHY_GRAPH_PATH,
-    DE_REFERENCE_PARSED_PATH,
-    DE_CROSSREFERENCE_EDGELIST_PATH,
-    DE_CROSSREFERENCE_GRAPH_PATH,
-    US_SNAPSHOT_MAPPING_EDGELIST_PATH,
-    DE_SNAPSHOT_MAPPING_EDGELIST_PATH,
-    ALL_YEARS,
-    DE_RVO_REFERENCE_PARSED_PATH,
-    DE_RVO_HIERARCHY_GRAPH_PATH,
-    DE_RVO_CROSSREFERENCE_EDGELIST_PATH,
-    DE_RVO_CROSSREFERENCE_GRAPH_PATH,
-    DE_RVO_SNAPSHOT_MAPPING_EDGELIST_PATH,
+    snapshot_mapping_edgelist_prepare,
 )
 from statutes_pipeline_steps.us_crossreference_edgelist import (
-    us_crossreference_edgelist_prepare,
     us_crossreference_edgelist,
-)
-from statutes_pipeline_steps.crossreference_graph import (
-    crossreference_graph_prepare,
-    crossreference_graph,
+    us_crossreference_edgelist_prepare,
 )
 from statutes_pipeline_steps.us_crossreference_lookup import (
-    us_crossreference_lookup_prepare,
     us_crossreference_lookup,
+    us_crossreference_lookup_prepare,
 )
+from statutes_pipeline_steps.us_prepare_input import us_prepare_input
 from statutes_pipeline_steps.us_reference_areas import (
-    us_reference_areas_prepare,
     us_reference_areas,
     us_reference_areas_finish,
+    us_reference_areas_prepare,
 )
 from statutes_pipeline_steps.us_reference_parse import (
-    us_reference_parse_prepare,
     us_reference_parse,
     us_reference_parse_finish,
+    us_reference_parse_prepare,
 )
+from statutes_pipeline_steps.us_reg_prepare_input import us_reg_prepare_input
 from statutes_pipeline_steps.us_to_xml import us_to_xml, us_to_xml_prepare
-from statutes_pipeline_steps.us_prepare_input import us_prepare_input
+from utils.common import (
+    load_law_names,
+    load_law_names_compiled,
+    process_items,
+    str_to_bool,
+)
 
 
 def get_subseqitem_conf(subseqitems):

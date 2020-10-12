@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup, Tag
 
 from de_decisions_pipeline_steps.common import get_docparts_with_p
 from statics import DE_DECISIONS_DOWNLOAD_XML, DE_DECISIONS_XML
-from utils.common import list_dir, save_soup, ensure_exists
+from utils.common import ensure_exists, list_dir, save_soup
 
 
 def clean_abs(section_tag):
@@ -17,7 +17,13 @@ def clean_abs(section_tag):
         text = dl.dd.get_text(" ").strip()
         indented = bool(dl.dd.p and "margin-left" in dl.dd.p.attrs.get("style", ""))
         if len(text):
-            contents.append(dict(number=number, content=text, indented=indented,))
+            contents.append(
+                dict(
+                    number=number,
+                    content=text,
+                    indented=indented,
+                )
+            )
 
     return contents
 

@@ -3,12 +3,12 @@ import os
 
 import pandas as pd
 
-from utils.common import ensure_exists, list_dir, create_soup
 from statics import (
-    US_REFERENCE_PARSED_PATH,
-    US_CROSSREFERENCE_LOOKUP_PATH,
     US_CROSSREFERENCE_EDGELIST_PATH,
+    US_CROSSREFERENCE_LOOKUP_PATH,
+    US_REFERENCE_PARSED_PATH,
 )
+from utils.common import create_soup, ensure_exists, list_dir
 
 
 def get_filename(date):

@@ -2,8 +2,8 @@ import re
 import shutil
 from multiprocessing.pool import Pool
 from zipfile import ZipFile
-import lxml.etree
 
+import lxml.etree
 import requests
 from bs4 import BeautifulSoup
 

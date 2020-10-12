@@ -4,18 +4,13 @@ import os
 
 import regex
 
-from utils.common import (
-    list_dir,
-    ensure_exists,
-    create_soup,
-    save_soup,
-)
 from statics import (
-    US_REFERENCE_PARSED_PATH,
-    US_REFERENCE_AREAS_PATH,
     US_HELPERS_PATH,
+    US_REFERENCE_AREAS_PATH,
     US_REFERENCE_PARSED_LOG_PATH,
+    US_REFERENCE_PARSED_PATH,
 )
+from utils.common import create_soup, ensure_exists, list_dir, save_soup
 
 
 def us_reference_parse_prepare(overwrite):

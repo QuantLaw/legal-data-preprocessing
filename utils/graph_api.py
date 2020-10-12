@@ -1,6 +1,5 @@
 import networkx as nx
 
-
 ###################
 # Basic Graph Types
 ###################

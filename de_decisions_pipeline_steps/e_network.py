@@ -5,8 +5,8 @@ import re
 
 import networkx as nx
 
-from statics import DE_DECISIONS_REFERENCE_PARSED_XML, DE_DECISIONS_NETWORK
-from utils.common import list_dir, create_soup
+from statics import DE_DECISIONS_NETWORK, DE_DECISIONS_REFERENCE_PARSED_XML
+from utils.common import create_soup, list_dir
 from utils.graph_api import multi_to_weighted
 
 
@@ -14,7 +14,7 @@ def count_characters(text, whites=False):
     if whites:
         return len(text)
     else:
-        return len(re.sub("\s", "", text))
+        return len(re.sub(r"\s", "", text))
 
 
 def count_tokens(text, unique=False):
@@ -62,13 +62,17 @@ def get_graph_data_from_decision(decision):
                 if (
                     node.lawname
                     and "parsed" in node.attrs
-                    and node.lawname.get("type") in ["dict", "sgb",]
+                    and node.lawname.get("type")
+                    in [
+                        "dict",
+                        "sgb",
+                    ]
                 ):
                     refs = json.loads(node.attrs["parsed"])
                     for ref in refs:
                         ref_key = "_".join(ref[:2])
                         reference_edges.append((item.attrs["key"], ref_key))
-    except:
+    except Exception:
         print(decision)
         raise
 

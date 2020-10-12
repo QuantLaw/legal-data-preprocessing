@@ -2,7 +2,7 @@ import json
 
 import regex
 
-from utils.common import stem_law_name, match_law_name
+from utils.common import match_law_name, stem_law_name
 
 # fmt: off
 reference_trigger_pattern = regex.compile(
@@ -17,8 +17,8 @@ reference_trigger_pattern = regex.compile(
 
 def identify_reference_in_juris_vso_list(soup, laws_lookup, laws_lookup_keys):
     from statutes_pipeline_steps.de_reference_parse import (
-        parse_reference_string,
         StringCaseException,
+        parse_reference_string,
     )
 
     vso_tags = soup.find_all(["document", "seqitem"], attrs={"verweise": True})
@@ -36,8 +36,8 @@ def identify_reference_in_juris_vso_list(soup, laws_lookup, laws_lookup_keys):
                 "Rechtsgrundlage",
                 "Durchführungsvorschrift",
             ]:
-                # 'Vertragsgesetz', 'Sonderregelung', 'GLIEDERUNG', 'SAMMELVERWEISUNG', 'Einführungsvorschrift',
-                # 'InnerstaatlDurchfVorschr' will be ignored
+                # 'Vertragsgesetz', 'Sonderregelung', 'GLIEDERUNG', 'SAMMELVERWEISUNG',
+                # 'Einführungsvorschrift', 'InnerstaatlDurchfVorschr' will be ignored
                 continue
             if not verweis["normabk"]:
                 continue

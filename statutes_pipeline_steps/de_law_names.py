@@ -2,20 +2,15 @@ import pickle
 
 import pandas as pd
 
-from utils.common import (
-    list_dir,
-    stem_law_name,
-    create_soup,
-    load_law_names,
-)
 from statics import (
-    DE_LAW_NAMES_PATH,
-    DE_XML_PATH,
     DE_LAW_NAMES_COMPILED_PATH,
-    DE_RVO_XML_PATH,
+    DE_LAW_NAMES_PATH,
     DE_RVO_LAW_NAMES_COMPILED_PATH,
     DE_RVO_LAW_NAMES_PATH,
+    DE_RVO_XML_PATH,
+    DE_XML_PATH,
 )
+from utils.common import create_soup, list_dir, load_law_names, stem_law_name
 
 
 def de_law_names_prepare(overwrite, regulations):

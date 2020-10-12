@@ -4,15 +4,15 @@ import re
 
 from bs4 import BeautifulSoup
 
-from utils.common import ensure_exists, list_dir
 from statics import (
-    DE_XML_PATH,
     DE_ORIGINAL_PATH,
-    DE_RVO_XML_PATH,
     DE_RVO_ORIGINAL_PATH,
+    DE_RVO_XML_PATH,
+    DE_XML_PATH,
     JURIS_EXPORT_GESETZE_LIST_PATH,
     JURIS_EXPORT_RVO_LIST_PATH,
 )
+from utils.common import ensure_exists, list_dir
 
 
 def get_type_for_doknr_dict():
@@ -144,7 +144,8 @@ def analyse_is_preamble(s_metadaten, s_enbez):
 
 
 analyse_is_appendix_pattern = re.compile(
-    r"(Anlagen?|Anhang|Schlu.s?formel|Tabelle \w+ zu)\b", flags=re.IGNORECASE,
+    r"(Anlagen?|Anhang|Schlu.s?formel|Tabelle \w+ zu)\b",
+    flags=re.IGNORECASE,
 )
 
 remove_removed_items_pattern = re.compile(
@@ -226,7 +227,10 @@ def convert_to_xml(source_soup, filename, dest, regulations, dok_is_statute):
             if level_3 not in cursor_gliederungskennzahl_lengths:
                 if not cursor_gliederungskennzahl_lengths[-1] < level_3:
                     print(
-                        filename, cursor_gliederungskennzahl_lengths, level_3, s_norm,
+                        filename,
+                        cursor_gliederungskennzahl_lengths,
+                        level_3,
+                        s_norm,
                     )
                     cursor_gliederungskennzahl_lengths.append(level_3)
                     cursor_gliederungskennzahl_lengths.sort()

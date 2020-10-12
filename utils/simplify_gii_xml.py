@@ -1,6 +1,6 @@
 import re
 
-from bs4 import BeautifulSoup, Tag, NavigableString
+from bs4 import BeautifulSoup, NavigableString
 
 
 def simplify_gii_xml(source, destination):

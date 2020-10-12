@@ -1,5 +1,4 @@
 import argparse
-import json
 import multiprocessing
 import os
 import pickle
@@ -13,13 +12,12 @@ import pandas as pd
 from regex import regex
 
 from statics import (
-    DE_LAW_NAMES_PATH,
-    DE_LAW_NAMES_COMPILED_PATH,
-    DE_RVO_LAW_NAMES_PATH,
-    DE_RVO_LAW_NAMES_COMPILED_PATH,
     DATA_PATH,
+    DE_LAW_NAMES_COMPILED_PATH,
+    DE_LAW_NAMES_PATH,
+    DE_RVO_LAW_NAMES_COMPILED_PATH,
+    DE_RVO_LAW_NAMES_PATH,
 )
-
 
 ##########
 # Pipeline
@@ -51,7 +49,8 @@ def process_items(
             ctx = multiprocessing.get_context("spawn")
         else:
             ctx = multiprocessing.get_context()
-            # A bit slower, but it reimports everything which is necessary to make matplotlib working.
+            # A bit slower, but it reimports everything which is necessary to make
+            # matplotlib working.
             # Chunksize should be higher or none
         with ctx.Pool(processes=processes) as p:
             logs = p.starmap(action_method, [(i, *args) for i in items], chunksize)
@@ -116,8 +115,11 @@ def save_soup(soup, path):
 
 def invert_dict_mapping_all(mapping_dictionary):
     """
-    :param mapping_dictionary: mapping from keys to values which is not necessarily injective, e.g., node_id to community_id mapping
-    :return: inverted mapping with unique values as keys and lists of former keys as values, e.g., community_id to node_id mapping
+    Args:
+        mapping_dictionary: mapping from keys to values which is not necessarily
+            injective, e.g., node_id to community_id mapping
+    Returns: inverted mapping with unique values as keys and lists of former keys as
+        values, e.g., community_id to node_id mapping
     """
     inverted = {v: [] for v in mapping_dictionary.values()}
     for k, v in mapping_dictionary.items():

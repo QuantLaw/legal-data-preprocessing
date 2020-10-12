@@ -1,7 +1,7 @@
 import argparse
 import unittest
 
-from utils.common import str_to_bool, stem_law_name
+from utils.common import stem_law_name, str_to_bool
 
 
 class TestCommon(unittest.TestCase):

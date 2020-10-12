@@ -4,23 +4,23 @@ import os
 import bs4
 from regex import regex
 
-from utils.common import (
-    ensure_exists,
-    list_dir,
-    create_soup,
-    stem_law_name,
-    get_stemmed_law_names_for_filename,
-    match_law_name,
-)
 from statics import (
-    DE_REFERENCE_AREAS_PATH,
     DE_HELPERS_PATH,
     DE_REFERENCE_AREAS_LOG_PATH,
-    DE_XML_PATH,
-    DE_RVO_XML_PATH,
-    DE_RVO_REFERENCE_AREAS_PATH,
+    DE_REFERENCE_AREAS_PATH,
     DE_RVO_HELPERS_PATH,
     DE_RVO_REFERENCE_AREAS_LOG_PATH,
+    DE_RVO_REFERENCE_AREAS_PATH,
+    DE_RVO_XML_PATH,
+    DE_XML_PATH,
+)
+from utils.common import (
+    create_soup,
+    ensure_exists,
+    get_stemmed_law_names_for_filename,
+    list_dir,
+    match_law_name,
+    stem_law_name,
 )
 
 
@@ -382,7 +382,8 @@ def handle_reference_match(
         section.contents[-1][match.end() :], laws_lookup, laws_lookup_keys
     )
 
-    # Set internal references to ignore if seqitem unit (Art|§) does not match between reference and target law
+    # Set internal references to ignore if seqitem unit (Art|§) does not match between
+    # reference and target law
     if law_match_type == "internal":
         if (section.contents[-1][match.start() :].startswith("§") and para == 0) or (
             section.contents[-1][match.start() :].lower().startswith("art") and art == 0
@@ -430,39 +431,40 @@ def find_references_in_soup(
 #######################################################
 # Functions: references without preceding 'article' or §
 #######################################################
-
-
-def pos_in_orig_string(i, stemmed, orig):
-    prefix = stemmed[:i]
-    stemmed_tokens = regex.findall(r"[\w']+|[\W']+", prefix)
-    orig_tokens = regex.findall(r"[\w']+|[\W']+", orig)
-    #     return len(''.join(orig_tokens[:len(stemmed_tokens)-1])) + len(stemmed_tokens[-1]) # Precise position
-    return len("".join(orig_tokens[: len(stemmed_tokens)]))  # Round to next boundary
-
-
-def law_keys_to_regex(keys, min_length, max_length=-1):
-    pattern = ""
-    for key in keys:
-        if len(key) >= min_length and (len(key) <= max_length or max_length == -1):
-            pattern += regex.escape(key) + r"|"
-    pattern = pattern[:-1]
-    full_pattern = r"\b(?>" + pattern + r")\b"
-    return regex.compile(full_pattern, flags=regex.IGNORECASE)
-
-
-def find_law_references_in_section(section, soup, law_regex_pattern, sanitizer):
-    for item in list(section.contents):
-        i_in_section = section.contents.index(item)
-        if type(item) is not bs4.element.NavigableString:
-            continue
-        test_string = sanitizer(item.string)
-        matches = law_regex_pattern.finditer(test_string)
-        for match in reversed(list(matches)):
-            orig_start = pos_in_orig_string(match.start(), test_string, item.string)
-            orig_end = pos_in_orig_string(match.end(), test_string, item.string)
-
-            ref_tag = soup.new_tag("reference", pattern="generic")
-
-            section.contents[i_in_section : i_in_section + 1] = add_tag(
-                section.contents[i_in_section], orig_start, orig_end, ref_tag
-            )
+#
+#
+# def pos_in_orig_string(i, stemmed, orig):
+#     prefix = stemmed[:i]
+#     stemmed_tokens = regex.findall(r"[\w']+|[\W']+", prefix)
+#     orig_tokens = regex.findall(r"[\w']+|[\W']+", orig)
+#     # return len(''.join(orig_tokens[:len(stemmed_tokens)-1])) + \
+#     #        len(stemmed_tokens[-1]) # Precise position
+#     return len("".join(orig_tokens[: len(stemmed_tokens)]))  # Round to next boundary
+#
+#
+# def law_keys_to_regex(keys, min_length, max_length=-1):
+#     pattern = ""
+#     for key in keys:
+#         if len(key) >= min_length and (len(key) <= max_length or max_length == -1):
+#             pattern += regex.escape(key) + r"|"
+#     pattern = pattern[:-1]
+#     full_pattern = r"\b(?>" + pattern + r")\b"
+#     return regex.compile(full_pattern, flags=regex.IGNORECASE)
+#
+#
+# def find_law_references_in_section(section, soup, law_regex_pattern, sanitizer):
+#     for item in list(section.contents):
+#         i_in_section = section.contents.index(item)
+#         if type(item) is not bs4.element.NavigableString:
+#             continue
+#         test_string = sanitizer(item.string)
+#         matches = law_regex_pattern.finditer(test_string)
+#         for match in reversed(list(matches)):
+#             orig_start = pos_in_orig_string(match.start(), test_string, item.string)
+#             orig_end = pos_in_orig_string(match.end(), test_string, item.string)
+#
+#             ref_tag = soup.new_tag("reference", pattern="generic")
+#
+#             section.contents[i_in_section : i_in_section + 1] = add_tag(
+#                 section.contents[i_in_section], orig_start, orig_end, ref_tag
+#             )

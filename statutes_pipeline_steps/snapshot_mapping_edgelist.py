@@ -1,24 +1,19 @@
 import json
-import os
 from collections import deque
 
 import networkx as nx
 import textdistance
 from regex import regex
 
-
 from utils.common import (
-    ensure_exists,
-    list_dir,
     create_soup,
+    ensure_exists,
+    get_snapshot_law_list,
     invert_dict_mapping_all,
     invert_dict_mapping_unique,
-    get_snapshot_law_list,
+    list_dir,
 )
 
-import sys
-
-sys.path.append("../")
 from utils import graph_api
 
 
@@ -184,7 +179,8 @@ def get_leaf_texts_to_compare(graph_filename, G, source_text, law_names_data):
 
 def map_unique_texts(leave_texts1, leave_texts2, min_text_length=50):
     """
-    Maps nodes from snapshot t1 to t2 if texts are in each snapshot unique and appear in the both snapshots
+    Maps nodes from snapshot t1 to t2 if texts are in each snapshot unique and appear
+    in the both snapshots
     """
     # Create dicts with text as keys
     inverted_unique_leave_texts1 = invert_dict_mapping_unique(leave_texts1)
@@ -210,7 +206,8 @@ def map_unique_texts(leave_texts1, leave_texts2, min_text_length=50):
 def map_same_citekey_same_text(
     leave_texts1, leave_texts2, G1, G2, remaining_keys1, remaining_keys2
 ):
-    # inverted_leave_texts1 = invert_dict_mapping_all(leave_texts1) # currently not needed
+    # inverted_leave_texts1 = invert_dict_mapping_all(leave_texts1)
+    # # currently not needed
     inverted_leave_texts2 = invert_dict_mapping_all(leave_texts2)
 
     new_mappings = {}
@@ -221,7 +218,8 @@ def map_same_citekey_same_text(
         if not ids2 or not len(ids2):
             continue
         cite_key1 = G1.nodes[remaining_key1].get("citekey")
-        # does not work for subseqitems. in this case to up to seqitem and use their citekey. Same for cite_key2.
+        # does not work for subseqitems. in this case to up to seqitem and use their
+        # citekey. Same for cite_key2.
         if not cite_key1:
             continue
         for id2 in ids2:
@@ -315,7 +313,8 @@ def map_similar_text_common_neighbors(
         remaining_key1 = key_queue.popleft()
         i += 1  # only to print the process
         print(
-            f"\r{i} \tof {len(key_queue) + i}", end="",
+            f"\r{i} \tof {len(key_queue) + i}",
+            end="",
         )
 
         remaining_text1 = leave_texts1[remaining_key1]
