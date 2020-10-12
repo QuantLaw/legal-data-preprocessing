@@ -5,9 +5,9 @@ from zipfile import ZipFile
 
 import requests
 from bs4 import BeautifulSoup
+from quantlaw.utils.files import ensure_exists
 
 from statics import US_INPUT_PATH
-from utils.common import ensure_exists
 
 INDEX_URL = (
     "https://uscode.house.gov/download/annualhistoricalarchives/downloadxhtml.shtml"

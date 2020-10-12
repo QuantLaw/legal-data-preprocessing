@@ -3,10 +3,10 @@ import os
 import re
 
 from bs4 import BeautifulSoup
+from quantlaw.utils.files import ensure_exists, list_dir
 
 from de_decisions_pipeline_steps.common import get_docparts_with_p
 from statics import DE_DECISIONS_HIERARCHY, DE_DECISIONS_XML
-from utils.common import ensure_exists, list_dir
 
 
 def extract_number(text, token_position=0):
@@ -106,30 +106,30 @@ def extract_hierarchy(decision):
                     else:
                         break
 
-        # hierarchy_num_types = list()
-        # for p in doc_parts.find_all(
-        #     "p", attrs={"hierarchy_num_type": True}
-        # ):
-        #     for hierarchy_num_type in p.attrs["hierarchy_num_type"].split(
-        #         ","
-        #     ):
-        #         if hierarchy_num_type not in hierarchy_num_types:
-        #             hierarchy_num_types.append(hierarchy_num_type)
-        #
-        # if hierarchy_num_types:
-        #     unknown_order = len(
-        #         set(hierarchy_num_types) - set(master_order)
-        #     )
-        #     if not unknown_order:
-        #         hierarchy_num_types_ordered = sorted(
-        #             hierarchy_num_types, key=lambda x: master_order.index(
-        #               x
-        #             )
-        #         )
-        #     if unknown_order or tuple(hierarchy_num_types) != tuple(
-        #         hierarchy_num_types_ordered
-        #     ):
-        #         print(decision, doc_parts.name, hierarchy_num_types)
+                    # hierarchy_num_types = list()
+                    # for p in doc_parts.find_all(
+                    #     "p", attrs={"hierarchy_num_type": True}
+                    # ):
+                    #     for hierarchy_num_type in p.attrs["hierarchy_num_type"].split(
+                    #         ","
+                    #     ):
+                    #         if hierarchy_num_type not in hierarchy_num_types:
+                    #             hierarchy_num_types.append(hierarchy_num_type)
+                    #
+                    # if hierarchy_num_types:
+                    #     unknown_order = len(
+                    #         set(hierarchy_num_types) - set(master_order)
+                    #     )
+                    #     if not unknown_order:
+                    #         hierarchy_num_types_ordered = sorted(
+                    #             hierarchy_num_types, key=lambda x: master_order.index(
+                    #               x
+                    #             )
+                    #         )
+                    #     if unknown_order or tuple(hierarchy_num_types) != tuple(
+                    #         hierarchy_num_types_ordered
+                    #     ):
+                    #         print(decision, doc_parts.name, hierarchy_num_types)
 
         nested_soup = BeautifulSoup("", "lxml-xml")
         assert len(soup.gertyp.get_text()), decision

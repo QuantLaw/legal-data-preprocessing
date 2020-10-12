@@ -1,23 +1,13 @@
 import re
 
 from bs4 import BeautifulSoup, NavigableString
+from quantlaw.utils.beautiful_soup import create_soup, save_soup
 
 
 def simplify_gii_xml(source, destination):
-    soup = load_soup(source)
+    soup = create_soup(source)
     simplify(soup)
     save_soup(soup, destination)
-
-
-def load_soup(source):
-    with open(source) as f:
-        return BeautifulSoup(f.read(), "lxml-xml")
-
-
-def save_soup(soup, destination):
-    with open(destination, "w") as f:
-        f.write(str(soup))
-        # f.write(soup.prettify())
 
 
 def remove_new_lines(tag, soup):

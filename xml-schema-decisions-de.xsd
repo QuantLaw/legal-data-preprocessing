@@ -12,7 +12,6 @@
       <xs:element
         type="textType"
         name="norm"
-        maxOccurs="1"
         minOccurs="0"
       />
       <xs:choice
@@ -32,7 +31,6 @@
     <xs:attribute
       type="xs:string"
       name="heading"
-      use="optional"
     />
     <xs:attribute
       type="xs:string"
@@ -47,37 +45,30 @@
     <xs:attribute
       type="xs:string"
       name="abbr_1"
-      use="optional"
     />
     <xs:attribute
       type="xs:string"
       name="abbr_2"
-      use="optional"
     />
     <xs:attribute
       type="xs:string"
       name="doktyp"
-      use="optional"
     />
     <xs:attribute
       type="xs:string"
       name="az"
-      use="optional"
     />
     <xs:attribute
       type="xs:string"
       name="datum"
-      use="optional"
     />
     <xs:attribute
       type="xs:string"
       name="gericht"
-      use="optional"
     />
     <xs:attribute
       type="xs:string"
       name="spruchkoerper"
-      use="optional"
     />
   </xs:complexType>
   <xs:complexType name="itemType">
@@ -128,12 +119,10 @@
     <xs:attribute
       type="xs:string"
       name="citekey"
-      use="optional"
     />
     <xs:attribute
       type="xs:string"
       name="heading"
-      use="optional"
     />
     <xs:attribute
       type="xs:string"
@@ -194,7 +183,6 @@
               <xs:attribute
                 type="xs:string"
                 name="type"
-                use="optional"
               />
             </xs:extension>
           </xs:simpleContent>
@@ -204,17 +192,14 @@
     <xs:attribute
       type="xs:string"
       name="parsed"
-      use="optional"
     />
     <xs:attribute
       type="xs:string"
       name="parsed_verbose"
-      use="optional"
     />
     <xs:attribute
       type="xs:string"
       name="pattern"
-      use="optional"
     />
   </xs:complexType>
   <xs:complexType name="lawnameType">

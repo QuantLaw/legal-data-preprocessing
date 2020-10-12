@@ -1,5 +1,5 @@
 import argparse
-import multiprocessing
+import os
 import re
 
 from statics import (
@@ -20,74 +20,25 @@ from statics import (
     US_REFERENCE_PARSED_PATH,
     US_SNAPSHOT_MAPPING_EDGELIST_PATH,
 )
-from statutes_pipeline_steps.crossreference_graph import (
-    crossreference_graph,
-    crossreference_graph_prepare,
-)
-from statutes_pipeline_steps.de_authority_edgelist import (
-    de_authority_edgelist,
-    de_authority_edgelist_prepare,
-)
-from statutes_pipeline_steps.de_crossreference_edgelist import (
-    de_crossreference_edgelist,
-    de_crossreference_edgelist_prepare,
-)
-from statutes_pipeline_steps.de_crossreference_lookup import (
-    de_crossreference_lookup,
-    de_crossreference_lookup_prepare,
-)
-from statutes_pipeline_steps.de_law_names import (
-    de_law_names,
-    de_law_names_finish,
-    de_law_names_prepare,
-)
+from statutes_pipeline_steps.crossreference_graph import CrossreferenceGraphStep
+from statutes_pipeline_steps.de_crossreference_edgelist import DeCrossreferenceEdgelist
+from statutes_pipeline_steps.de_crossreference_lookup import DeCrossreferenceLookup
+from statutes_pipeline_steps.de_law_names import DeLawNamesStep
 from statutes_pipeline_steps.de_prepare_input import de_prepare_input
-from statutes_pipeline_steps.de_reference_areas import (
-    de_reference_areas,
-    de_reference_areas_finish,
-    de_reference_areas_prepare,
-)
-from statutes_pipeline_steps.de_reference_parse import (
-    de_reference_parse,
-    de_reference_parse_finish,
-    de_reference_parse_prepare,
-)
-from statutes_pipeline_steps.de_to_xml import de_to_xml, de_to_xml_prepare
-from statutes_pipeline_steps.hierarchy_graph import (
-    hierarchy_graph,
-    hierarchy_graph_prepare,
-)
+from statutes_pipeline_steps.de_reference_areas import DeReferenceAreasStep
+from statutes_pipeline_steps.de_reference_parse import DeReferenceParseStep
+from statutes_pipeline_steps.de_to_xml import DeToXmlStep
+from statutes_pipeline_steps.hierarchy_graph import HierarchyGraphStep
 from statutes_pipeline_steps.snapshot_mapping_edgelist import (
-    snapshot_mapping_edgelist,
-    snapshot_mapping_edgelist_prepare,
+    SnapshotMappingEdgelistStep,
 )
-from statutes_pipeline_steps.us_crossreference_edgelist import (
-    us_crossreference_edgelist,
-    us_crossreference_edgelist_prepare,
-)
-from statutes_pipeline_steps.us_crossreference_lookup import (
-    us_crossreference_lookup,
-    us_crossreference_lookup_prepare,
-)
+from statutes_pipeline_steps.us_crossreference_edgelist import UsCrossreferenceEdgelist
+from statutes_pipeline_steps.us_crossreference_lookup import UsCrossreferenceLookup
 from statutes_pipeline_steps.us_prepare_input import us_prepare_input
-from statutes_pipeline_steps.us_reference_areas import (
-    us_reference_areas,
-    us_reference_areas_finish,
-    us_reference_areas_prepare,
-)
-from statutes_pipeline_steps.us_reference_parse import (
-    us_reference_parse,
-    us_reference_parse_finish,
-    us_reference_parse_prepare,
-)
-from statutes_pipeline_steps.us_reg_prepare_input import us_reg_prepare_input
-from statutes_pipeline_steps.us_to_xml import us_to_xml, us_to_xml_prepare
-from utils.common import (
-    load_law_names,
-    load_law_names_compiled,
-    process_items,
-    str_to_bool,
-)
+from statutes_pipeline_steps.us_reference_areas import UsReferenceAreasStep
+from statutes_pipeline_steps.us_reference_parse import UsReferenceParseStep
+from statutes_pipeline_steps.us_to_xml import UsToXmlStep
+from utils.common import load_law_names, load_law_names_compiled, str_to_bool
 
 
 def get_subseqitem_conf(subseqitems):
@@ -136,8 +87,8 @@ if __name__ == "__main__":
         type=str,
         default=["all"],
         help=(
-            "snapshots for crossreferences. Eg. 2010-01-01 for de dataset or 2010 for us dataset. "
-            "To run on whole research window: all"
+            "snapshots for crossreferences. Eg. 2010-01-01 for de dataset or 2010 for "
+            "us dataset. To run on whole research window: all"
         ),
     )
     parser.add_argument(
@@ -147,7 +98,8 @@ if __name__ == "__main__":
         type=int,
         default=1,
         help=(
-            "Only for snapshot_mapping_edgelist. Interval for mapped snapshots. Default 1 (snapshot)"
+            "Only for snapshot_mapping_edgelist. Interval for mapped snapshots. "
+            "Default 1 (snapshot)"
         ),
     )
 
@@ -165,6 +117,7 @@ if __name__ == "__main__":
     steps = [step.lower() for step in args.steps]
     dataset = args.dataset.lower()
     use_multiprocessing = args.use_multiprocessing
+    processes = None if args.use_multiprocessing else 1
     overwrite = args.overwrite
     snapshots = args.snapshots
     interval = args.interval
@@ -192,7 +145,8 @@ if __name__ == "__main__":
             "crossreference_edgelist",
             "authority_edgelist",  # DE only
             "crossreference_graph",
-            "snapshot_mapping_edgelist",  # creates edgelist to map nodes between snapshots for DYNAMIC graph
+            # creates edgelist to map nodes between snapshots for DYNAMIC graph
+            "snapshot_mapping_edgelist",
         ]
 
     if (
@@ -205,7 +159,8 @@ if __name__ == "__main__":
                 if not re.fullmatch(r"\d{4}(-\d{2}-\d{2})?", snapshot):
                     raise Exception(
                         "Add --snapshots as argument. "
-                        "E.g. for de --snapshots 2012-01-31 2013-01-31 or for us --snapshot 2001"
+                        "E.g. for de --snapshots 2012-01-31 2013-01-31 or for us "
+                        "--snapshot 2001"
                     )
 
     if "prepare_input" in steps:
@@ -220,85 +175,46 @@ if __name__ == "__main__":
 
     if "xml" in steps:
         if dataset == "us":
-            items = us_to_xml_prepare(overwrite)
-            process_items(
-                items,
-                selected_items,
-                action_method=us_to_xml,
-                use_multiprocessing=use_multiprocessing,
-                chunksize=10,
-            )
+            step = UsToXmlStep(processes)
+            items = step.get_items(overwrite)
+            step.execute_filtered_items(items, selected_items)
         elif dataset == "de":
-            items, dok_type_dict = de_to_xml_prepare(overwrite, regulations)
-            process_items(
-                items,
-                selected_items,
-                action_method=de_to_xml,
-                use_multiprocessing=use_multiprocessing,
-                args=[regulations, dok_type_dict],
-            )
+            step = DeToXmlStep(regulations, processes)
+            items = step.get_items(overwrite)
+            step.execute_filtered_items(items, selected_items)
         print("Convert to xml: done")
 
     if "law_names" in steps:
         if dataset == "de":
-            items = de_law_names_prepare(overwrite, regulations)
-            names = process_items(
-                items,
-                [],  # Ignore filter
-                action_method=de_law_names,
-                use_multiprocessing=use_multiprocessing,
-                args=[regulations],
-            )
-            de_law_names_finish(names, regulations)
-
+            step = DeLawNamesStep(regulations, processes)
+            items = step.get_items()
+            step.execute_items(items)
             print("Law names: done")
 
     if "reference_areas" in steps:
         if dataset == "us":
-            items = us_reference_areas_prepare(overwrite)
-            logs = process_items(
-                items,
-                selected_items,
-                action_method=us_reference_areas,
-                use_multiprocessing=use_multiprocessing,
-                processes=int(multiprocessing.cpu_count() / 2),
-            )
-            us_reference_areas_finish(logs)
+            step = UsReferenceAreasStep(processes)
+            items = step.get_items(overwrite)
+            step.execute_filtered_items(items)
 
         elif dataset == "de":
             law_names = load_law_names_compiled(regulations)
-            items = de_reference_areas_prepare(overwrite, regulations)
-            logs = process_items(
-                items,
-                selected_items,
-                action_method=de_reference_areas,
-                use_multiprocessing=use_multiprocessing,
-                args=(law_names, regulations),
-            )
-            de_reference_areas_finish(logs, regulations)
+            step = DeReferenceAreasStep(law_names, regulations, processes)
+            items = step.get_items(overwrite)
+            step.execute_filtered_items(items)
+
         print("Extract reference areas: done")
 
     if "reference_parse" in steps:
         if dataset == "us":
-            items = us_reference_parse_prepare(overwrite)
-            logs = process_items(
-                items,
-                selected_items,
-                action_method=us_reference_parse,
-                use_multiprocessing=use_multiprocessing,
-            )
-            us_reference_parse_finish(logs)
+            step = UsReferenceParseStep(processes)
+            items = step.get_items(overwrite)
+            step.execute_filtered_items(items)
         if dataset == "de":
             law_names = load_law_names_compiled(regulations)
-            items = de_reference_parse_prepare(overwrite, regulations)
-            logs = process_items(
-                items,
-                selected_items,
-                action_method=de_reference_parse,
-                use_multiprocessing=use_multiprocessing,
-                args=(law_names, regulations),
-            )
-            de_reference_parse_finish(logs, regulations)
+            step = DeReferenceParseStep(regulations, law_names, processes)
+            items = step.get_items(overwrite)
+            step.execute_filtered_items(items)
 
             print("Parse references: done")
 
@@ -306,7 +222,10 @@ if __name__ == "__main__":
         for subseqitems_conf in get_subseqitem_conf(args.subseqitems):
             if dataset == "us":
                 source = US_REFERENCE_PARSED_PATH
-                destination = f'{US_HIERARCHY_GRAPH_PATH}/{"subseqitems" if subseqitems_conf else "seqitems"}'
+                destination = os.path.join(
+                    US_HIERARCHY_GRAPH_PATH,
+                    "subseqitems" if subseqitems_conf else "seqitems",
+                )
             elif dataset == "de":
                 source = (
                     DE_RVO_REFERENCE_PARSED_PATH
@@ -323,59 +242,41 @@ if __name__ == "__main__":
                     + ("subseqitems" if subseqitems_conf else "seqitems")
                 )
 
-            items = hierarchy_graph_prepare(overwrite, source, destination)
-            process_items(
-                items,
-                selected_items,
-                action_method=hierarchy_graph,
-                use_multiprocessing=use_multiprocessing,
-                args=(source, destination, subseqitems_conf),
+            step = HierarchyGraphStep(
+                source=source,
+                destination=destination,
+                add_subseqitems=subseqitems_conf,
+                processes=processes,
             )
+            items = step.get_items(overwrite)
+            step.execute_filtered_items(items)
         print("Make hierarchy graphs: done")
 
     if "crossreference_lookup" in steps:
         if dataset == "us":
-            items = us_crossreference_lookup_prepare(overwrite, snapshots)
-            process_items(
-                items,
-                [],
-                action_method=us_crossreference_lookup,
-                use_multiprocessing=use_multiprocessing,
-            )
+            step = UsCrossreferenceLookup(processes)
+            items = step.get_items(overwrite, snapshots)
+            step.execute_items(items)
 
         elif dataset == "de":
-            items = de_crossreference_lookup_prepare(overwrite, snapshots, regulations)
-            process_items(
-                items,
-                [],
-                action_method=de_crossreference_lookup,
-                use_multiprocessing=use_multiprocessing,
-                args=[regulations],
-            )
+            step = DeCrossreferenceLookup(regulations, processes)
+            items = step.get_items(snapshots)
+            step.execute_items(items)
+
         print("Create crossreference lookup: done")
 
     if "crossreference_edgelist" in steps:
         if dataset == "us":
-            items = us_crossreference_edgelist_prepare(overwrite, snapshots)
-            process_items(
-                items,
-                [],
-                action_method=us_crossreference_edgelist,
-                use_multiprocessing=use_multiprocessing,
-            )
+            step = UsCrossreferenceEdgelist(processes)
+            items = step.get_items(overwrite, snapshots)
+            step.execute_items(items)
 
         elif dataset == "de":
             law_names_data = load_law_names(regulations)
-            items = de_crossreference_edgelist_prepare(
-                overwrite, snapshots, regulations
-            )
-            process_items(
-                items,
-                [],
-                action_method=de_crossreference_edgelist,
-                use_multiprocessing=use_multiprocessing,
-                args=(law_names_data, regulations),
-            )
+            step = DeCrossreferenceEdgelist(regulations, aw_names_data, processes)
+            items = step.get_items(overwrite, snapshots)
+            step.execute_items(items)
+
         print("Create crossreference edgelist: done")
 
     if "authority_edgelist" in steps:
@@ -394,8 +295,14 @@ if __name__ == "__main__":
     if "crossreference_graph" in steps:
         for subseqitems_conf in get_subseqitem_conf(args.subseqitems):
             if dataset == "us":
-                source = f'{US_HIERARCHY_GRAPH_PATH}/{"subseqitems" if subseqitems_conf else "seqitems"}'
-                destination = f'{US_CROSSREFERENCE_GRAPH_PATH}/{"subseqitems" if subseqitems_conf else "seqitems"}'
+                source = os.path.join(
+                    US_HIERARCHY_GRAPH_PATH,
+                    "subseqitems" if subseqitems_conf else "seqitems",
+                )
+                destination = os.path.join(
+                    US_CROSSREFERENCE_GRAPH_PATH,
+                    "subseqitems" if subseqitems_conf else "seqitems",
+                )
                 edgelist_folder = US_CROSSREFERENCE_EDGELIST_PATH
             elif dataset == "de":
                 source = (
@@ -416,22 +323,17 @@ if __name__ == "__main__":
                     else DE_CROSSREFERENCE_EDGELIST_PATH
                 )
 
-            items = crossreference_graph_prepare(
-                overwrite, snapshots, source, edgelist_folder, destination, regulations
+            step = CrossreferenceGraphStep(
+                regulations=regulations,
+                source=source,
+                destination=destination,
+                edgelist_folder=edgelist_folder,
+                dataset=dataset,
+                processes=processes,
             )
-            process_items(
-                items,
-                [],
-                action_method=crossreference_graph,
-                use_multiprocessing=use_multiprocessing,
-                args=(
-                    source,
-                    edgelist_folder,
-                    destination,
-                    subseqitems_conf,
-                    regulations,
-                ),
-            )
+            items = step.get_items(overwrite, snapshots)
+            step.execute_items(items)
+
         print("Make crossreference graph: done")
 
     if "snapshot_mapping_edgelist" in steps:
@@ -450,16 +352,10 @@ if __name__ == "__main__":
             destination = f"{DE_RVO_SNAPSHOT_MAPPING_EDGELIST_PATH if regulations else DE_SNAPSHOT_MAPPING_EDGELIST_PATH}/subseqitems"
             law_names_data = load_law_names(regulations)
 
-        items = snapshot_mapping_edgelist_prepare(
-            overwrite, snapshots, source_graph, source_text, destination, interval
+        step = SnapshotMappingEdgelistStep(
+            source_graph, source_text, destination, interval, dataset, law_names_data
         )
+        items = step.get_items(overwrite, snapshots)
+        step.execute_items(items)
 
-        process_items(
-            items,
-            [],
-            action_method=snapshot_mapping_edgelist,
-            use_multiprocessing=use_multiprocessing,
-            processes=2,
-            args=(source_graph, source_text, destination, law_names_data),
-        )
         print("Make snapshot mapping: done")

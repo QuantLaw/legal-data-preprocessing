@@ -4,6 +4,9 @@ import sys
 import traceback
 
 from bs4 import BeautifulSoup
+from quantlaw.de_extract.statutes import StatutesExtractor, StatutesParser
+from quantlaw.utils.beautiful_soup import save_soup
+from quantlaw.utils.files import ensure_exists, list_dir
 
 from statics import (
     DE_DECISIONS_HIERARCHY,
@@ -16,13 +19,7 @@ from statutes_pipeline_steps.de_reference_parse import (
     identify_reference_law_name_in_soup,
     parse_reference_content_in_soup,
 )
-from utils.common import (
-    ensure_exists,
-    get_stemmed_law_names,
-    list_dir,
-    load_law_names_compiled,
-    save_soup,
-)
+from utils.common import get_stemmed_law_names, load_law_names_compiled
 
 
 def get_lawnames_date(requested_date):
@@ -61,14 +58,14 @@ def find_references(decision):
 
             # Get laws in effect at time of decision
             laws_lookup = get_stemmed_law_names(date, law_names)
-            laws_lookup_keys = sorted(laws_lookup.keys(), reverse=True)
+            parser = StatutesParser(laws_lookup)
+            extractor = StatutesExtractor(laws_lookup)
 
         if not areas_exists:
             logs.append(
                 find_references_in_soup(
                     soup,
-                    laws_lookup,
-                    laws_lookup_keys,
+                    extractor,
                     para=0,
                     art=0,
                     text_tag_name=["text", "norm"],
@@ -82,10 +79,8 @@ def find_references(decision):
                 f"{DE_DECISIONS_REFERENCE_AREAS}/{decision}", encoding="utf8"
             ) as f:
                 soup = BeautifulSoup(f.read(), "lxml-xml")
-            parse_reference_content_in_soup(soup, decision)
-            identify_reference_law_name_in_soup(
-                soup, laws_lookup, laws_lookup_keys, current_lawid=None
-            )
+            parse_reference_content_in_soup(soup, parser, decision)
+            identify_reference_law_name_in_soup(soup, parser, current_lawid=None)
             identify_lawreference_law_name_in_soup(soup, laws_lookup)
 
             save_soup(soup, f"{DE_DECISIONS_REFERENCE_PARSED_XML}/{decision}")

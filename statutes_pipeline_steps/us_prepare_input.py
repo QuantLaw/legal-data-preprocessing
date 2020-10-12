@@ -1,14 +1,16 @@
-# Roughly validate the input files
 import os
 import re
 import shutil
 
+from quantlaw.utils.files import ensure_exists
+
 from statics import US_INPUT_PATH, US_ORIGINAL_PATH
-from utils.common import ensure_exists
 
 
 def us_prepare_input():
-    """moves files into main dir and validate files roughly"""
+    """
+    moves source files into main dir and validate files roughly
+    """
 
     ensure_exists(US_ORIGINAL_PATH)
 

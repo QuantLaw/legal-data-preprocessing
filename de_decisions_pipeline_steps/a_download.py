@@ -4,6 +4,7 @@ from multiprocessing.pool import Pool
 
 import requests
 from bs4 import BeautifulSoup
+from quantlaw.utils.files import ensure_exists
 
 from statics import (
     DE_DECISIONS_DOWNLOAD_TOC,
@@ -11,7 +12,6 @@ from statics import (
     DE_DECISIONS_DOWNLOAD_ZIP,
     DE_DECISIONS_TEMP_DATA_PATH,
 )
-from utils.common import ensure_exists
 
 
 def download_item(link_text):

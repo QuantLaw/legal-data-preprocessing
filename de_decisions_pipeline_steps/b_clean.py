@@ -2,10 +2,11 @@ import multiprocessing
 import os
 
 from bs4 import BeautifulSoup, Tag
+from quantlaw.utils.beautiful_soup import save_soup
+from quantlaw.utils.files import ensure_exists, list_dir
 
 from de_decisions_pipeline_steps.common import get_docparts_with_p
 from statics import DE_DECISIONS_DOWNLOAD_XML, DE_DECISIONS_XML
-from utils.common import ensure_exists, list_dir, save_soup
 
 
 def clean_abs(section_tag):

@@ -1,7 +1,13 @@
 import pickle
 
 import pandas as pd
+from quantlaw.de_extract.stemming import stem_law_name
+from quantlaw.utils.beautiful_soup import create_soup
+from quantlaw.utils.files import list_dir
+from quantlaw.utils.pipeline import PipelineStep
 
+from statics import DE_LAW_NAMES_COMPILED_PATH, DE_LAW_NAMES_PATH, DE_XML_PATH
+from utils.common import load_law_names
 from statics import (
     DE_LAW_NAMES_COMPILED_PATH,
     DE_LAW_NAMES_PATH,
@@ -10,58 +16,55 @@ from statics import (
     DE_RVO_XML_PATH,
     DE_XML_PATH,
 )
-from utils.common import create_soup, list_dir, load_law_names, stem_law_name
+from utils.common import load_law_names
 
 
-def de_law_names_prepare(overwrite, regulations):
-    src = DE_RVO_XML_PATH if regulations else DE_XML_PATH
+class DeLawNamesStep(PipelineStep):
+    def get_items(self) -> list:
+        src = DE_RVO_XML_PATH if regulations else DE_XML_PATH
+        files = list_dir(src, ".xml")
+        return files
 
-    files = list_dir(src, ".xml")
-    return files
+    def execute_item(self, item):
+        src = DE_RVO_XML_PATH if regulations else DE_XML_PATH
+        soup = create_soup(f"{src}/{item}")
+        document = soup.find("document", recursive=False)
+        result = set()
+        citekey = document.attrs["key"].split("_")[1]
 
+        if "heading" in document.attrs:
+            law_name = stem_law_name(document.attrs["heading"])
+            result.add((law_name, citekey, item))
 
-def de_law_names(filename, regulations):
-    src = DE_RVO_XML_PATH if regulations else DE_XML_PATH
+        if "heading_short" in document.attrs:
+            law_name = stem_law_name(document.attrs["heading_short"])
+            result.add((law_name, citekey, item))
 
-    soup = create_soup(f"{src}/{filename}")
-    document = soup.find("document", recursive=False)
-    result = set()
-    citekey = document.attrs["key"].split("_")[1]
+        if "abbr_1" in document.attrs:
+            law_name = stem_law_name(document.attrs["abbr_1"])
+            result.add((law_name, citekey, item))
 
-    if "heading" in document.attrs:
-        law_name = stem_law_name(document.attrs["heading"])
-        result.add((law_name, citekey, filename))
+        if "abbr_2" in document.attrs:
+            law_name = stem_law_name(document.attrs["abbr_2"])
+            result.add((law_name, citekey, item))
+        return result
 
-    if "heading_short" in document.attrs:
-        law_name = stem_law_name(document.attrs["heading_short"])
-        result.add((law_name, citekey, filename))
+    def finish_execution(self, names_per_file, regulations):
+        dest_compiled = (
+            DE_RVO_LAW_NAMES_COMPILED_PATH if regulations else DE_LAW_NAMES_COMPILED_PATH
+        )
+        dest_csv = DE_RVO_LAW_NAMES_PATH if regulations else DE_LAW_NAMES_PATH
 
-    if "abbr_1" in document.attrs:
-        law_name = stem_law_name(document.attrs["abbr_1"])
-        result.add((law_name, citekey, filename))
+        result = []
+        for names_of_file in names_per_file:
+            result.extend(names_of_file)
 
-    if "abbr_2" in document.attrs:
-        law_name = stem_law_name(document.attrs["abbr_2"])
-        result.add((law_name, citekey, filename))
-    return result
+        df = pd.DataFrame(result, columns=["citename", "citekey", "filename"])
+        df.to_csv(dest_csv, index=False)
 
-
-def de_law_names_finish(names_per_file, regulations):
-    dest_compiled = (
-        DE_RVO_LAW_NAMES_COMPILED_PATH if regulations else DE_LAW_NAMES_COMPILED_PATH
-    )
-    dest_csv = DE_RVO_LAW_NAMES_PATH if regulations else DE_LAW_NAMES_PATH
-
-    result = []
-    for names_of_file in names_per_file:
-        result.extend(names_of_file)
-
-    df = pd.DataFrame(result, columns=["citename", "citekey", "filename"])
-    df.to_csv(dest_csv, index=False)
-
-    dated_law_names = compile_law_names(regulations)
-    with open(dest_compiled, "wb") as f:
-        pickle.dump(dated_law_names, f)
+        dated_law_names = compile_law_names(regulations)
+        with open(dest_compiled, "wb") as f:
+            pickle.dump(dated_law_names, f)
 
 
 def compile_law_names(regulations):

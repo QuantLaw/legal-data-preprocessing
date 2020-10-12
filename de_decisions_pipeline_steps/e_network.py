@@ -4,10 +4,11 @@ import multiprocessing
 import re
 
 import networkx as nx
+from quantlaw.utils.beautiful_soup import create_soup
+from quantlaw.utils.files import list_dir
+from quantlaw.utils.networkx import multi_to_weighted
 
 from statics import DE_DECISIONS_NETWORK, DE_DECISIONS_REFERENCE_PARSED_XML
-from utils.common import create_soup, list_dir
-from utils.graph_api import multi_to_weighted
 
 
 def count_characters(text, whites=False):

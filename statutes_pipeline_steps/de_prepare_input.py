@@ -2,6 +2,8 @@
 import os
 import shutil
 
+from quantlaw.utils.files import ensure_exists
+
 from statics import (
     DE_ORIGINAL_PATH,
     DE_RVO_ORIGINAL_PATH,
@@ -9,7 +11,6 @@ from statics import (
     JURIS_EXPORT_PATH,
     JURIS_EXPORT_RVO_LIST_PATH,
 )
-from utils.common import ensure_exists
 
 
 def copy_selected_doknrs(selection_list, target_dir):

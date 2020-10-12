@@ -1,8 +1,9 @@
-import json
 import os
 import re
 
 from bs4 import BeautifulSoup
+from quantlaw.utils.files import ensure_exists, list_dir
+from quantlaw.utils.pipeline import PipelineStep
 
 from statics import (
     DE_ORIGINAL_PATH,
@@ -12,8 +13,6 @@ from statics import (
     JURIS_EXPORT_GESETZE_LIST_PATH,
     JURIS_EXPORT_RVO_LIST_PATH,
 )
-from utils.common import ensure_exists, list_dir
-
 
 def get_type_for_doknr_dict():
     with open(JURIS_EXPORT_GESETZE_LIST_PATH) as f:
@@ -24,43 +23,47 @@ def get_type_for_doknr_dict():
     return {**{k: True for k in gesetze_dirs}, **{k: False for k in rvo_dirs}}
 
 
-def de_to_xml_prepare(overwrite, regulations):
-    src = DE_RVO_ORIGINAL_PATH if regulations else DE_ORIGINAL_PATH
-    dest = DE_RVO_XML_PATH if regulations else DE_XML_PATH
+class DeToXmlStep(PipelineStep):
+    def get_items(self, overwrite) -> list:
+        src = DE_RVO_ORIGINAL_PATH if regulations else DE_ORIGINAL_PATH
+        dest = DE_RVO_XML_PATH if regulations else DE_XML_PATH
 
-    ensure_exists(dest)
-    files = list_dir(src, ".xml")
+        ensure_exists(dest)
+        files = list_dir(src, ".xml")
 
-    if not overwrite:
-        existing_files = list_dir(dest, ".xml")
+        if not overwrite:
+            existing_files = list_dir(dest, ".xml")
 
-        # Remove cite_key
-        converted_existing_files = [
-            f.split("_")[0] + "_" + "_".join(f.split("_")[2:]) for f in existing_files
-        ]
-        files = list(filter(lambda f: f not in converted_existing_files, files))
+            # Remove cite_key
+            converted_existing_files = [
+                f.split("_")[0] + "_" + "_".join(f.split("_")[2:])
+                for f in existing_files
+            ]
+            files = list(filter(lambda f: f not in converted_existing_files, files))
 
-    dok_type_dict = get_type_for_doknr_dict()
+        dok_type_dict = get_type_for_doknr_dict()
 
-    return sorted(files), dok_type_dict
+        return sorted(files), dok_type_dict
+
+    def execute_item(self, item):
+        src = DE_RVO_ORIGINAL_PATH if regulations else DE_ORIGINAL_PATH
+        dest = DE_RVO_XML_PATH if regulations else DE_XML_PATH
+
+        with open(f"{src}/{item}") as f:
+            soup = BeautifulSoup(f.read(), "lxml-xml")
+
+        dok_is_statute = dok_type_dict[filename[:13]]
+        convert_to_xml(soup, item, dest, regulations, dok_is_statute)
 
 
-def de_to_xml(filename, regulations, dok_type_dict):
-    src = DE_RVO_ORIGINAL_PATH if regulations else DE_ORIGINAL_PATH
-    dest = DE_RVO_XML_PATH if regulations else DE_XML_PATH
-
-    with open(f"{src}/{filename}") as f:
-        soup = BeautifulSoup(f.read(), "lxml-xml")
-    dok_is_statute = dok_type_dict[filename[:13]]
-    convert_to_xml(soup, filename, dest, regulations, dok_is_statute)
-
-
-#######################################
+###########
 # Functions
-#######################################
+###########
 
 
 def create_root_elment(s_rahmen, t_soup, dok_is_statute):
+
+    # Create the root tag for the xml file the represents a law
     t_document = t_soup.new_tag(
         "document",
         attrs={
@@ -69,6 +72,9 @@ def create_root_elment(s_rahmen, t_soup, dok_is_statute):
             "xsi:noNamespaceSchemaLocation": "../../xml-schema.xsd",
         },
     )
+
+    # Add attributes
+
     if dok_is_statute is not None:
         t_document.attrs["document_type"] = (
             "statute" if dok_is_statute else "regulation"
@@ -94,6 +100,8 @@ def create_root_elment(s_rahmen, t_soup, dok_is_statute):
     s_amtabk = s_amtabk and s_amtabk.string.strip()
     if s_amtabk:
         t_document.attrs["abbr_2"] = s_amtabk
+
+    # add the root tag to the target soup
     t_soup.append(t_document)
 
     s_juris = s_rahmen.juris
@@ -134,6 +142,9 @@ analyse_is_preamble_pattern = re.compile(
 
 
 def analyse_is_preamble(s_metadaten, s_enbez):
+    """
+    Returns: True if the metadata and enbez tag may belong to a preamble of a law
+    """
     if s_metadaten.find("gliederungseinheit", recursive=False):
         return False
 
@@ -163,14 +174,18 @@ citekey_enbez_pattern = re.compile(r"(§§?|Art[a-z\.]*)\s?(\d+[a-z]*)\b")
 
 
 def convert_to_xml(source_soup, filename, dest, regulations, dok_is_statute):
+    # Create the target soup
     t_soup = BeautifulSoup("", "lxml-xml")
 
+    # Get all source tags that need to be converted
     s_norms = source_soup.dokumente.find_all("norm", recursive=False)
 
+    # Check that this is no empty file
     if not len(s_norms):
         print("EMPTY FILE", filename)
         return
 
+    # Separate tag representing the whole law from the tags that represent its content
     s_rahmen = s_norms[0]
     if (
         not s_norms[0].textdaten.contents
@@ -178,20 +193,31 @@ def convert_to_xml(source_soup, filename, dest, regulations, dok_is_statute):
     ):
         s_norms = s_norms[1:]
 
+    # Create a root element
     t_document, jurabk = create_root_elment(
         s_rahmen, t_soup, dok_is_statute if regulations else None
     )
 
+    # Generate a citekey prefix and replacing in it uncommon characters with a dash
     citekey_prefix = re.sub(r"[^\wäöüÄÖÜß]", "-", jurabk)
 
+    # Creating a cursor that contains the element that was created last with all it
+    # descendants, in other words it path in the tree.
     cursor = [t_document]
+
+    # The length of gliederungskennzahl of the elements in the curos. These value will
+    # be used to determine how the elements are nested
     cursor_gliederungskennzahl_lengths = [0]
 
+    last_gliederungskennzahl = None
+
+    # list containing all target items
     t_items = []
 
+    # booleans that manage if currently an element is analyzed that belongs to the
+    # preamble or appendix and should be skipped
     is_preamble = True
     is_appendix = False
-    last_gliederungskennzahl = None
 
     for s_norm in s_norms:
         correct_errors_gliederungskennzahl(filename, s_norm)
@@ -219,7 +245,7 @@ def convert_to_xml(source_soup, filename, dest, regulations, dok_is_statute):
         if s_gliederungseinheit:
             # is Item
             s_gliederungskennzahl = s_gliederungseinheit.find(
-                "gliederungskennzahl", recurs8ive=False
+                "gliederungskennzahl", recursive=False
             ).string
             level_3 = len(s_gliederungskennzahl)
             assert level_3 % 3 == 0
@@ -241,35 +267,17 @@ def convert_to_xml(source_soup, filename, dest, regulations, dok_is_statute):
             if last_gliederungskennzahl != s_gliederungskennzahl:
                 last_gliederungskennzahl = s_gliederungskennzahl
 
-                s_gliederungsbez = s_gliederungseinheit.find(
-                    "gliederungsbez", recursive=False
-                ).string
-
-                s_gliederungstitel = s_gliederungseinheit.find(
-                    "gliederungstitel", recursive=False
-                )
-                s_gliederungstitel = s_gliederungstitel and s_gliederungstitel.string
-
-                heading = (
-                    f"{s_gliederungsbez} {s_gliederungstitel}"
-                    if s_gliederungstitel
-                    else s_gliederungsbez
-                )
-                heading = heading.strip()
-
-                corrected_level = min(level, len(cursor))
-                parent = cursor[corrected_level - 1]
-
-                t_item = t_soup.new_tag(
-                    "item", attrs={"level": corrected_level, "heading": heading}
+                # Add a new item to the tree
+                t_item, corrected_level = create_new_item(
+                    s_gliederungseinheit, t_soup, level, cursor
                 )
 
-                parent.append(t_item)
                 t_items.append(t_item)
                 cursor = cursor[:corrected_level] + [t_item]
                 cursor_gliederungskennzahl_lengths = cursor_gliederungskennzahl_lengths[
                     : corrected_level + 1
                 ]
+
         if regulations:
             if s_enbez and s_enbez.lower() in [
                 "inhaltsverzeichnis",
@@ -287,42 +295,101 @@ def convert_to_xml(source_soup, filename, dest, regulations, dok_is_statute):
                 continue
 
         if s_text:  # is seqitem
-            t_seqitem = t_soup.new_tag("seqitem", attrs={"level": len(cursor)})
-            if s_enbez:
-                t_seqitem.attrs["heading"] = s_enbez
-            s_content = s_text.find("Content", recursive=False)
+            add_new_seqitem(s_enbez, s_text, t_soup, cursor)
 
-            texts = []
-            if s_content:
-                for s_p in s_content.find_all("P", recursive=False):
-                    text = s_p.string
-                    if text and (
-                        len(text) > 14
-                        or not remove_removed_items_pattern.fullmatch(text)
-                    ):
-                        texts.append(text)
+        s_juris = s_metadaten.juris
+        add_juris_data_to_tag(s_juris, t_seqitem)
 
-            if len(texts) == 1:
+    cleanup_removed_items(t_items)
 
-                t_text = t_soup.new_tag("text")
-                t_text.append(t_soup.new_string(texts[0]))
-                t_seqitem.append(t_text)
-            elif len(texts) > 1:
-                for text in texts:
-                    t_subseqitem = t_soup.new_tag(
-                        "subseqitem", attrs={"level": len(cursor) + 1}
-                    )
-                    t_text = t_soup.new_tag("text")
-                    t_subseqitem.append(t_text)
-                    t_text.append(t_soup.new_string(text))
-                    t_seqitem.append(t_subseqitem)
+    adapt_seqitem_level_for_article_laws(t_items)
 
-            if texts:
-                cursor[-1].append(t_seqitem)
+    doknr, start_date, end_date = os.path.splitext(filename)[0].split("_")
 
-            s_juris = s_metadaten.juris
-            add_juris_data_to_tag(s_juris, t_seqitem)
+    target_filename = (
+        f"{dest}/"
+        + "_".join([doknr, citekey_prefix, start_date, end_date])
+        + ".xml"
+    )
 
+    # Add attrs key and citekey
+    add_item_keys(t_soup, doknr, citekey_prefix, end_date)
+
+    with open(target_filename, "w", encoding="utf8") as f:
+        f.write(str(t_soup))
+
+
+def create_new_item(s_gliederungseinheit, t_soup, level, cursor):
+    # Preprate attributes
+    s_gliederungsbez = s_gliederungseinheit.find(
+        "gliederungsbez", recursive=False
+    ).string
+
+    s_gliederungstitel = s_gliederungseinheit.find("gliederungstitel", recursive=False)
+    s_gliederungstitel = s_gliederungstitel and s_gliederungstitel.string
+
+    heading = (
+        f"{s_gliederungsbez} {s_gliederungstitel}"
+        if s_gliederungstitel
+        else s_gliederungsbez
+    )
+    heading = heading.strip()
+
+    corrected_level = min(level, len(cursor))
+
+    # Create the new tag
+    t_item = t_soup.new_tag(
+        "item", attrs={"level": corrected_level, "heading": heading}
+    )
+
+    # Add new tag to soup
+    parent = cursor[corrected_level - 1]
+    parent.append(t_item)
+
+    return t_item, corrected_level
+
+
+def add_new_seqitem(s_enbez, s_text, t_soup, cursor):
+    # Create new tag
+    t_seqitem = t_soup.new_tag("seqitem", attrs={"level": len(cursor)})
+
+    # Add attributes
+    if s_enbez:
+        t_seqitem.attrs["heading"] = s_enbez
+
+    s_content = s_text.find("Content", recursive=False)
+
+    # Get text content
+    texts = []
+    if s_content:
+        for s_p in s_content.find_all("P", recursive=False):
+            text = s_p.string
+            if text and (
+                len(text) > 14 or not remove_removed_items_pattern.fullmatch(text)
+            ):
+                texts.append(text)
+
+    if len(texts) == 1:
+        t_text = t_soup.new_tag("text")
+        t_text.append(t_soup.new_string(texts[0]))
+        t_seqitem.append(t_text)
+
+    elif len(texts) > 1:
+        for text in texts:
+            t_subseqitem = t_soup.new_tag(
+                "subseqitem", attrs={"level": len(cursor) + 1}
+            )
+            t_text = t_soup.new_tag("text")
+            t_subseqitem.append(t_text)
+            t_text.append(t_soup.new_string(text))
+            t_seqitem.append(t_subseqitem)
+
+    # Add seqitem to soup
+    if texts:
+        cursor[-1].append(t_seqitem)
+
+
+def cleanup_removed_items(t_items):
     # iterate over soup in reverse item order to ensure empty item removal works
     for t in reversed(t_items):
         if t.name == "item":
@@ -332,7 +399,11 @@ def convert_to_xml(source_soup, filename, dest, regulations, dok_is_statute):
             elif len(t.contents) == 0:
                 t.decompose()
 
-    # Optimize Art. Gesetze e.g. BGBEG
+
+def adapt_seqitem_level_for_article_laws(t_items):
+    """
+    Optimize Art. Gesetze e.g. BGBEG
+    """
     modified_items = []
     for t_item in t_items:
         if (
@@ -356,11 +427,8 @@ def convert_to_xml(source_soup, filename, dest, regulations, dok_is_statute):
                             subsubitem.attrs["level"] -= 1
                         subitem.unwrap()
 
-    doknr, start_date, end_date = os.path.splitext(filename)[0].split("_")
-    target_filename = (
-        f"{dest}/" + "_".join([doknr, citekey_prefix, start_date, end_date]) + ".xml"
-    )
 
+def add_item_keys(t_soup, doknr, citekey_prefix, end_date):
     nodeid_counter.counter = 0
     file_id = "_".join([doknr, citekey_prefix, end_date])
     for t in t_soup.find_all(["document", "item", "seqitem", "subseqitem"]):
@@ -373,10 +441,12 @@ def convert_to_xml(source_soup, filename, dest, regulations, dok_is_statute):
                 if match:
                     t.attrs["citekey"] = f"{citekey_prefix}_{match[2]}"
                 elif heading not in ["Präambel", "Eingangsformel"] and is_preamble:
-                    print(f"Cannot create citekey of {heading} in {target_filename}")
-
-    with open(target_filename, "w", encoding="utf8") as f:
-        f.write(str(t_soup))
+                    print(
+                        f"Cannot create citekey of {heading} in",
+                        doknr,
+                        citekey_prefix,
+                        end_date,
+                    )
 
 
 def correct_errors_gliederungskennzahl(filename, s_norm):
@@ -471,6 +541,7 @@ def correct_errors_gliederungskennzahl(filename, s_norm):
             s_norm.gliederungskennzahl.string.replace_with(
                 s_norm.gliederungskennzahl.string * 2
             )
+
     elif filename.startswith("BJNR059500997_"):
         if (
             s_norm.gliederungskennzahl

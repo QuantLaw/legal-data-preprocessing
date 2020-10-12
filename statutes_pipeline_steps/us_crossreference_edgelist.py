@@ -2,6 +2,9 @@ import json
 import os
 
 import pandas as pd
+from quantlaw.utils.beautiful_soup import create_soup
+from quantlaw.utils.files import ensure_exists, list_dir
+from quantlaw.utils.pipeline import PipelineStep
 
 from statics import (
     US_CROSSREFERENCE_EDGELIST_PATH,
@@ -11,54 +14,59 @@ from statics import (
 from utils.common import create_soup, ensure_exists, list_dir
 
 
+class UsCrossreferenceEdgelist(PipelineStep):
+    def get_items(self, overwrite, snapshots) -> list:
+        ensure_exists(US_CROSSREFERENCE_EDGELIST_PATH)
+        if not snapshots:
+            snapshots = sorted(
+                set(
+                    [
+                        os.path.splitext(x)[0]
+                        for x in list_dir(US_CROSSREFERENCE_LOOKUP_PATH, ".csv")
+                    ]
+                )
+            )
+
+        if not overwrite:
+            existing_files = os.listdir(US_CROSSREFERENCE_EDGELIST_PATH)
+            snapshots = list(
+                filter(lambda f: get_filename(f) not in existing_files, snapshots)
+            )
+
+        return snapshots
+
+    def execute_item(self, item):
+        yearfiles = [
+            x for x in list_dir(US_REFERENCE_PARSED_PATH, ".xml") if str(item) in x
+        ]
+        key_df = (
+            pd.read_csv(f"{US_CROSSREFERENCE_LOOKUP_PATH}/{item}.csv")
+            .dropna()
+            .set_index("citekey")
+        )
+        df = None
+        for yearfile_path in yearfiles:
+            edge_df = make_edge_list(yearfile_path, key_df)
+            df = edge_df if df is None else df.append(edge_df, ignore_index=True)
+        df.to_csv(f"{US_CROSSREFERENCE_EDGELIST_PATH}/{item}.csv", index=False)
+
+
+###########
+# Functions
+###########
+
+
 def get_filename(date):
     return f"{date}.csv"
-
-
-def us_crossreference_edgelist_prepare(overwrite, snapshots):
-    ensure_exists(US_CROSSREFERENCE_EDGELIST_PATH)
-    if not snapshots:
-        snapshots = sorted(
-            set(
-                [
-                    os.path.splitext(x)[0]
-                    for x in list_dir(US_CROSSREFERENCE_LOOKUP_PATH, ".csv")
-                ]
-            )
-        )
-
-    if not overwrite:
-        existing_files = os.listdir(US_CROSSREFERENCE_EDGELIST_PATH)
-        snapshots = list(
-            filter(lambda f: get_filename(f) not in existing_files, snapshots)
-        )
-
-    return snapshots
-
-
-def us_crossreference_edgelist(year):
-    yearfiles = [
-        x for x in list_dir(US_REFERENCE_PARSED_PATH, ".xml") if str(year) in x
-    ]
-    key_df = (
-        pd.read_csv(f"{US_CROSSREFERENCE_LOOKUP_PATH}/{year}.csv")
-        .dropna()
-        .set_index("citekey")
-    )
-    df = None
-    for yearfile_path in yearfiles:
-        edge_df = make_edge_list(yearfile_path, key_df)
-        df = edge_df if df is None else df.append(edge_df, ignore_index=True)
-    df.to_csv(f"{US_CROSSREFERENCE_EDGELIST_PATH}/{year}.csv", index=False)
 
 
 def make_edge_list(yearfile_path, key_df):
     soup = create_soup(f"{US_REFERENCE_PARSED_PATH}/{yearfile_path}")
     edge_df = pd.DataFrame(columns=["out_node", "in_node"])
 
-    # FOR DEBUG
-    problem_matches = set()
-    problem_keys = set()
+    # for debug
+    # problem_matches = set()
+    # problem_keys = set()
 
     for item in soup.find_all(["seqitem"]):
         if item.find_all(["reference"]):
@@ -66,20 +74,27 @@ def make_edge_list(yearfile_path, key_df):
             for node in item.find_all(["reference"]):
                 refs = json.loads(node.attrs["parsed"])
                 for ref in refs:
-                    try:
+                    try:  # for debug
                         key = "_".join(ref[:2])
                         matches = key_df.at[key, "key"]
-                        if type(matches) != str:
-                            problem_matches.add(tuple(matches))
+
+                        # # for debug
+                        # if type(matches) != str:
+                        #     problem_matches.add(tuple(matches))
+
                         node_in = matches if type(matches) == str else matches[0]
                         edge_df = edge_df.append(
                             pd.DataFrame(dict(in_node=[node_in], out_node=[node_out])),
                             ignore_index=True,
                         )
                         assert len(ref) > 1
-                    except KeyError:
-                        problem_keys.add(key)
 
+                    except KeyError:
+                        # # for debug
+                        # problem_keys.add(key)
+                        pass
+
+    # # for debug
     # if len(problem_matches) > 0:
     #     print(f"{yearfile_path} Problem Matches:\n", sorted(list(problem_matches)))
     # if len(problem_keys) > 0:
