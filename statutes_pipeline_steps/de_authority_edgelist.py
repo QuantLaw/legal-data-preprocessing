@@ -8,7 +8,6 @@ from quantlaw.utils.files import ensure_exists
 from quantlaw.utils.pipeline import PipelineStep
 
 from statics import (
-    DE_CROSSREFERENCE_EDGELIST_PATH,
     DE_REFERENCE_PARSED_PATH,
     DE_RVO_AUTHORITY_EDGELIST_PATH,
     DE_RVO_CROSSREFERENCE_LOOKUP_PATH,
@@ -30,7 +29,7 @@ class DeAuthorityEdgelist(PipelineStep):
         ensure_exists(DE_RVO_AUTHORITY_EDGELIST_PATH)
 
         if not overwrite:
-            existing_files = os.listdir(DE_CROSSREFERENCE_EDGELIST_PATH)
+            existing_files = os.listdir(DE_RVO_AUTHORITY_EDGELIST_PATH)
             snapshots = list(
                 filter(lambda f: get_filename(f) not in existing_files, snapshots)
             )
