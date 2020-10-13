@@ -23,14 +23,20 @@ class DeCrossreferenceEdgelist(RegulationsPipelineStep):
         super().__init__(*args, **kwargs)
 
     def get_items(self, overwrite, snapshots) -> list:
-        ensure_exists(
+        source_folder = (
+            DE_RVO_CROSSREFERENCE_LOOKUP_PATH
+            if self.regulations
+            else DE_CROSSREFERENCE_LOOKUP_PATH
+        )
+        target_folder = (
             DE_RVO_CROSSREFERENCE_EDGELIST_PATH
             if self.regulations
             else DE_CROSSREFERENCE_EDGELIST_PATH
         )
+        ensure_exists(source_folder)
 
         if not overwrite:
-            existing_files = os.listdir(DE_CROSSREFERENCE_EDGELIST_PATH)
+            existing_files = os.listdir(target_folder)
             snapshots = list(
                 filter(lambda f: get_filename(f) not in existing_files, snapshots)
             )

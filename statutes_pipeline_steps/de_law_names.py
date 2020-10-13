@@ -46,13 +46,13 @@ class DeLawNamesStep(RegulationsPipelineStep):
             result.add((law_name, citekey, item))
         return result
 
-    def finish_execution(self, names_per_file, regulations):
+    def finish_execution(self, names_per_file):
         dest_compiled = (
             DE_RVO_LAW_NAMES_COMPILED_PATH
-            if regulations
+            if self.regulations
             else DE_LAW_NAMES_COMPILED_PATH
         )
-        dest_csv = DE_RVO_LAW_NAMES_PATH if regulations else DE_LAW_NAMES_PATH
+        dest_csv = DE_RVO_LAW_NAMES_PATH if self.regulations else DE_LAW_NAMES_PATH
 
         result = []
         for names_of_file in names_per_file:
@@ -61,7 +61,7 @@ class DeLawNamesStep(RegulationsPipelineStep):
         df = pd.DataFrame(result, columns=["citename", "citekey", "filename"])
         df.to_csv(dest_csv, index=False)
 
-        dated_law_names = compile_law_names(regulations)
+        dated_law_names = compile_law_names(self.regulations)
         with open(dest_compiled, "wb") as f:
             pickle.dump(dated_law_names, f)
 
