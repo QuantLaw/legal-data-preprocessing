@@ -5,41 +5,57 @@ import os
 import bs4
 from quantlaw.utils.beautiful_soup import create_soup, save_soup
 from quantlaw.utils.files import ensure_exists, list_dir
-from quantlaw.utils.pipeline import PipelineStep
 from regex import regex
 
 from statics import (
     US_HELPERS_PATH,
     US_REFERENCE_AREAS_LOG_PATH,
     US_REFERENCE_AREAS_PATH,
+    US_REG_REFERENCE_AREAS_LOG_PATH,
+    US_REG_REFERENCE_AREAS_PATH,
+    US_REG_XML_PATH,
     US_XML_PATH,
 )
+from utils.common import RegulationsPipelineStep
 
 
-class UsReferenceAreasStep(PipelineStep):
+class UsReferenceAreasStep(RegulationsPipelineStep):
     max_number_of_processes = max(int(multiprocessing.cpu_count() / 2), 1)
 
     def get_items(self, overwrite) -> list:
-        ensure_exists(US_REFERENCE_AREAS_PATH)
-        files = list_dir(US_XML_PATH, ".xml")
+        src = US_REG_XML_PATH if self.regulations else US_XML_PATH
+        dest = (
+            US_REG_REFERENCE_AREAS_PATH if self.regulations else US_REFERENCE_AREAS_PATH
+        )
+        ensure_exists(dest)
+        files = list_dir(src, ".xml")
 
         if not overwrite:
-            existing_files = os.listdir(US_REFERENCE_AREAS_PATH)
+            existing_files = os.listdir(dest)
             files = list(filter(lambda f: f not in existing_files, files))
 
         return files
 
     def execute_item(self, item):
-        soup = create_soup(f"{US_XML_PATH}/{item}")
+        src = US_REG_XML_PATH if self.regulations else US_XML_PATH
+        dest = (
+            US_REG_REFERENCE_AREAS_PATH if self.regulations else US_REFERENCE_AREAS_PATH
+        )
+        soup = create_soup(f"{src}/{item}")
         logs = find_references(soup, usc_pattern, {"pattern": "block"})
         logs += find_references(soup, inline_pattern, {"pattern": "inline"})
-        save_soup(soup, f"{US_REFERENCE_AREAS_PATH}/{item}")
+        save_soup(soup, f"{dest}/{item}")
         return logs
 
     def finish_execution(self, results):
         logs = list(itertools.chain.from_iterable(results))
         ensure_exists(US_HELPERS_PATH)
-        with open(US_REFERENCE_AREAS_LOG_PATH, mode="w") as f:
+        log_path = (
+            US_REG_REFERENCE_AREAS_LOG_PATH
+            if self.regulations
+            else US_REFERENCE_AREAS_LOG_PATH
+        )
+        with open(log_path, mode="w") as f:
             f.write("\n".join(sorted(logs, key=lambda x: x.lower())))
 
 

@@ -25,7 +25,14 @@ US_REG_TEMP_DATA_PATH = "temp/us_reg"
 
 US_REG_INPUT_PATH = f"{US_REG_DATA_PATH}/1_input"
 US_REG_ORIGINAL_PATH = f"{US_REG_TEMP_DATA_PATH}/11_htm"
-US_REG_XML_PATH = f"{US_REG_TEMP_DATA_PATH}/12_xml"
+US_REG_XML_PATH = f"{US_REG_DATA_PATH}/12_xml"  # TODO move to temp
+# TODO move to temp
+US_REG_REFERENCE_AREAS_PATH = f"{US_REG_DATA_PATH}/13_reference_areas"
+
+US_REG_HELPERS_PATH = f"{US_REG_TEMP_DATA_PATH}/helpers"
+US_REG_REFERENCE_AREAS_LOG_PATH = (
+    f"{US_REG_HELPERS_PATH}/us_extract_reference_areas.log"
+)
 
 DE_DATA_PATH = "../legal-networks-data/de"
 DE_TEMP_DATA_PATH = "temp/de"

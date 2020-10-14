@@ -200,7 +200,7 @@ if __name__ == "__main__":
 
     if "reference_areas" in steps:
         if dataset == "us":
-            step = UsReferenceAreasStep(processes)
+            step = UsReferenceAreasStep(regulations=regulations, processes=processes)
             items = step.get_items(overwrite)
             step.execute_filtered_items(items)
 

@@ -1,0 +1,106 @@
+document {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif,
+ "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    padding: 20px;
+    line-height: 140%;
+}
+
+seqitem {
+    margin-top: 20px;
+    display: block;
+}
+
+subseqitem {
+    display: block;
+}
+
+item {
+    border-left: solid #999 2px;
+    padding-left: 20px;
+    margin-left: 2px;
+    display: block;
+}
+
+item::before, seqitem::before, subseqitem::before {
+    content: attr(heading);
+    font-weight: 600;
+    display: block;
+}
+
+
+main {
+    color: #00a;
+}
+
+suffix {
+    color: #aa0;
+}
+
+lawname {
+    background-color: #f00;
+}
+
+lawname[type="dict"] {
+    background-color:  rgb(164, 211, 255)
+}
+
+lawname[type="eu"] {
+    background: repeating-linear-gradient(
+    135deg,
+    rgb(207, 229, 250),
+    rgb(207, 229, 250) 15px,
+    rgb(122, 187, 252) 15px,
+    rgb(122, 187, 252)  30px
+    );
+}
+
+lawname[type="sgb"] {
+    background: repeating-linear-gradient(
+    135deg,
+    rgb(207, 229, 250),
+    rgb(207, 229, 250) 15px,
+    rgb(243, 231, 128) 15px,
+    rgb(243, 231, 128)  30px
+    );
+}
+
+lawname[type="ignore"] {
+    background: repeating-linear-gradient(
+    135deg,
+    rgb(207, 229, 250),
+    rgb(207, 229, 250) 15px,
+    rgb(255, 162, 134) 15px,
+    rgb(255, 162, 134)  30px
+    );
+}
+
+
+reference[nomatch=""] {
+    background-color: #f00;
+}
+
+lawreference {
+    background-color: #fca0f9;
+}
+
+reference:before {
+    content:"\a";
+    white-space: pre;
+}
+
+reference:after, lawreference:after {
+    font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, Courier, monospace;
+    color: rgb(143, 38, 22);
+    background-color: rgb(251, 229, 225);
+    content: attr(parsed) ' ' attr(lawid) ' (' attr(target) ')';
+}
+
+reference[target="match"]:after {
+    color: rgb(36, 143, 22);
+    background-color: rgb(229, 255, 226);
+}
+
+reference[target="skipped"]:after {
+    color: rgb(117, 119, 19);
+    background-color: rgb(255, 255, 230);
+}

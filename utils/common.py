@@ -136,3 +136,4 @@ def get_snapshot_law_list(date, law_names_data):
 def copy_xml_schema_to_data_folder():
     ensure_exists(DATA_PATH)
     shutil.copyfile("xml-schema.xsd", os.path.join(DATA_PATH, "xml-schema.xsd"))
+    shutil.copyfile("xml-styles.css", os.path.join(DATA_PATH, "xml-styles.css"))

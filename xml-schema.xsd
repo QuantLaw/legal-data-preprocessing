@@ -24,7 +24,6 @@
     <xs:attribute
       type="xs:string"
       name="heading"
-      use="required"
     />
     <xs:attribute
       type="xs:string"
@@ -39,12 +38,10 @@
     <xs:attribute
       type="xs:string"
       name="abbr_1"
-      use="optional"
     />
     <xs:attribute
       type="xs:string"
       name="abbr_2"
-      use="optional"
     />
   </xs:complexType>
   <xs:complexType name="itemType">
@@ -64,7 +61,6 @@
     <xs:attribute
       type="xs:string"
       name="heading"
-      use="required"
     />
     <xs:attribute
       type="xs:string"
@@ -95,12 +91,10 @@
     <xs:attribute
       type="xs:string"
       name="citekey"
-      use="optional"
     />
     <xs:attribute
       type="xs:string"
       name="heading"
-      use="optional"
     />
     <xs:attribute
       type="xs:string"
@@ -118,6 +112,14 @@
       <xs:element
         type="textType"
         name="text"
+        maxOccurs="unbounded"
+        minOccurs="0"
+      />
+      <xs:element
+        type="subseqitemType"
+        name="subseqitem"
+        maxOccurs="unbounded"
+        minOccurs="0"
       />
     </xs:sequence>
     <xs:attribute
@@ -171,17 +173,14 @@
     <xs:attribute
       type="xs:string"
       name="parsed"
-      use="optional"
     />
     <xs:attribute
       type="xs:string"
       name="parsed_verbose"
-      use="optional"
     />
     <xs:attribute
       type="xs:string"
       name="pattern"
-      use="optional"
     />
   </xs:complexType>
   <xs:complexType name="lawnameType">
