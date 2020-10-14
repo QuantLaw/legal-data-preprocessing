@@ -78,7 +78,7 @@ regex_definitions = (
             r'(\s+et\.?\s+seq\.?)?'
         r')'
         r'(?<conn>'
-            r',?\s+(and|or|to|through)\s+|'
+            r',?\s+(and|or|to|through)(\sin)?\s+|'
             r'(,|;)\s+'
         r')'
     r')'
@@ -87,30 +87,37 @@ regex_definitions = (
 usc_pattern_string = regex_definitions + (
     r'('
         r'(\d+)\s*'
-        r'U\.?S\.?C\.?\s*'
-        r'(Sec(?:tion|\.)?|§)?\s*'
+        r'('
+            r'U\.?S\.?C\.?'
+        r'|'
+            r'C\.?F\.?R\.?'
+        r')\s*'
+        r'(Sec(?:tions?|\.)?|§§?|\b(sub)?Parts?)?\s*'
         r'(?&sec)'
-        r'((?&conn)(Sec(?:tion|\.)?|§)?\s*(?&sec)|(?&conn)(?&numb))*'
+        r'((?&conn)(Sec(?:tions|\.)?|§§?|\b(sub)?Parts?)?\s*(?&sec)|(?&conn)(?&numb))*'
     r')'
     r'(?!\w*(\sApp\.)?\s(U\.?S\.?C\.?|C\.?F\.?R\.?|Stat\.))'
 )
 usc_pattern = regex.compile(usc_pattern_string, flags=regex.IGNORECASE)
 
 inline_pattern_string = regex_definitions + (
-    r'(Sec(?:tion|\.)?|§)\s*'
+    r'(Sec(?:tion|\.)?|§§?|\b(sub)?parts?)\s*'
     r'(?&sec)'
     r'('
         r'(?&conn)'
-        r'(Sec(?:tion|\.)?|§)?'
+        r'(Sec(?:tions?|\.)?|§§?)?'
         r'\s*'
-        r'(?&sec)|(?&conn)(?&numb)'
+        r'(?&sec)'
+    r'|'
+        r'(?&conn)(?&numb)'
     r')*'
     r'\s*'
     r'('
-        r'(of\sthis\stitle)'
+        r'(of\sthis\s(title|chapter|(sub)?part))'
     r'|'
         r'(of\stitle\s\d+)'
-    r')'
+    r')?'
+    r'(\s+of\s+the\s+Code\s+of\s+Federal\s+Regulations)?'
 )
 inline_pattern = regex.compile(inline_pattern_string, flags=regex.IGNORECASE)
 
@@ -148,6 +155,8 @@ def find_references(soup, pattern, attrs):
             last_match_end = 0
             matches = pattern.finditer(text_tag_string)
             for match in list(matches):
+                if regex.match(r"\s?,?of\b", text_tag_string[match.end() :]):
+                    continue
                 ref_tag = soup.new_tag("reference", **attrs)
                 pre_text, ref_tag, post_text = add_tag(
                     text_tag_string, match.start(), match.end(), ref_tag
