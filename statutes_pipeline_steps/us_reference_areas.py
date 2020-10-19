@@ -11,6 +11,7 @@ from statics import (
     US_HELPERS_PATH,
     US_REFERENCE_AREAS_LOG_PATH,
     US_REFERENCE_AREAS_PATH,
+    US_REG_HELPERS_PATH,
     US_REG_REFERENCE_AREAS_LOG_PATH,
     US_REG_REFERENCE_AREAS_PATH,
     US_REG_XML_PATH,
@@ -49,7 +50,7 @@ class UsReferenceAreasStep(RegulationsPipelineStep):
 
     def finish_execution(self, results):
         logs = list(itertools.chain.from_iterable(results))
-        ensure_exists(US_HELPERS_PATH)
+        ensure_exists(US_REG_HELPERS_PATH if self.regulations else US_HELPERS_PATH)
         log_path = (
             US_REG_REFERENCE_AREAS_LOG_PATH
             if self.regulations

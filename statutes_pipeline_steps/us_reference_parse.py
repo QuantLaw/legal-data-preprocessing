@@ -6,55 +6,86 @@ import os
 import regex
 from quantlaw.utils.beautiful_soup import create_soup, save_soup
 from quantlaw.utils.files import ensure_exists, list_dir
-from quantlaw.utils.pipeline import PipelineStep
 
 from statics import (
     US_HELPERS_PATH,
     US_REFERENCE_AREAS_PATH,
     US_REFERENCE_PARSED_LOG_PATH,
     US_REFERENCE_PARSED_PATH,
+    US_REG_HELPERS_PATH,
+    US_REG_REFERENCE_AREAS_PATH,
+    US_REG_REFERENCE_PARSED_LOG_PATH,
+    US_REG_REFERENCE_PARSED_PATH,
 )
+from utils.common import RegulationsPipelineStep
 
 
-class UsReferenceParseStep(PipelineStep):
+class UsReferenceParseStep(RegulationsPipelineStep):
     max_number_of_processes = max(int(multiprocessing.cpu_count() / 2), 1)
 
     def get_items(self, overwrite) -> list:
-        ensure_exists(US_REFERENCE_PARSED_PATH)
-        files = list_dir(US_REFERENCE_AREAS_PATH, ".xml")
+        src = (
+            US_REG_REFERENCE_AREAS_PATH if self.regulations else US_REFERENCE_AREAS_PATH
+        )
+        dest = (
+            US_REG_REFERENCE_PARSED_PATH
+            if self.regulations
+            else US_REFERENCE_PARSED_PATH
+        )
+
+        ensure_exists(dest)
+        files = list_dir(src, ".xml")
 
         if not overwrite:
-            existing_files = os.listdir(US_REFERENCE_PARSED_PATH)
+            existing_files = os.listdir(dest)
             files = list(filter(lambda f: f not in existing_files, files))
-
         return files
 
     def execute_item(self, item):
-        soup = create_soup(f"{US_REFERENCE_AREAS_PATH}/{item}")
+        src = (
+            US_REG_REFERENCE_AREAS_PATH if self.regulations else US_REFERENCE_AREAS_PATH
+        )
+        dest = (
+            US_REG_REFERENCE_PARSED_PATH
+            if self.regulations
+            else US_REFERENCE_PARSED_PATH
+        )
 
-        this_title = get_title_from_filename(item)
-        logs = parse_references(soup, this_title)
-        save_soup(soup, f"{US_REFERENCE_PARSED_PATH}/{item}")
+        soup = create_soup(f"{src}/{item}")
+
+        this_title = self.get_title_from_filename(item)
+        logs = parse_references(soup, this_title, this_usc=not self.regulations)
+        save_soup(soup, f"{dest}/{item}")
         return logs
 
     def finish_execution(self, results):
         logs = list(itertools.chain.from_iterable(results))
-        ensure_exists(US_HELPERS_PATH)
-        with open(US_REFERENCE_PARSED_LOG_PATH, mode="w") as f:
+        ensure_exists(US_REG_HELPERS_PATH if self.regulations else US_HELPERS_PATH)
+        with open(
+            US_REG_REFERENCE_PARSED_LOG_PATH
+            if self.regulations
+            else US_REFERENCE_PARSED_LOG_PATH,
+            mode="w",
+        ) as f:
             f.write("\n".join(sorted(logs, key=lambda x: x.lower())))
+
+    def get_title_from_filename(self, filename):
+        if self.regulations:
+            base = os.path.splitext(filename)[0]
+            assert base.startswith("cfr")
+            title_key = base.split("_")[0][len("cfr") :]
+            return int(title_key)
+        else:
+            base = os.path.splitext(filename)[0]
+            title_key = base.split("_")[0]
+            assert title_key[-1] == "0"
+            assert len(title_key) == 3
+            return int(title_key[:-1])
 
 
 ###########
 # Functions
 ###########
-
-
-def get_title_from_filename(filename):
-    base = os.path.splitext(filename)[0]
-    title_key = base.split("_")[0]
-    assert title_key[-1] == "0"
-    assert len(title_key) == 3
-    return int(title_key[:-1])
 
 
 def sortable_paragraph_number(string):
@@ -65,12 +96,22 @@ def sortable_paragraph_number(string):
     return "0 " * (MIN_DIGITS - digits) + string
 
 
-split_pattern_short = regex.compile(r"\s*U\.?S\.?C\.?\s*", flags=regex.IGNORECASE)
+split_pattern_short = regex.compile(
+    r"\s*\b(U\.?S\.?C\.?|C\.?F\.?R\.?)\b\s*", flags=regex.IGNORECASE
+)
 split_pattern_inline = regex.compile(
-    r"\s*of\s+(?=(?:this\s+)?title\s*)", flags=regex.IGNORECASE
+    # fmt: off
+    r"\s*of\s+(?=(?:"
+        r'(?:this\s+(?:title|chapter|(?:sub)?part))'
+    r'|'
+        r'(?:title)'
+    r"))"
+    # fmt: on
+    ,
+    flags=regex.IGNORECASE,
 )
 sub_split_pattern = regex.compile(
-    r"\s*,?\s*(?:and|or|,|;|throu?g?h?|to)\s+", flags=regex.IGNORECASE
+    r"\s*,?\s*(?:and|or|,|;|throu?g?h?|to|)\s+|\b(?=\()", flags=regex.IGNORECASE
 )
 
 
@@ -95,8 +136,12 @@ def enum_types_match(x, y):
 # fmt: off
 
 inline_title_pattern = regex.compile(
-    r'(this)\stitle|'
-    r'title\s(\d+)',
+    r'(?:'
+    r'(this)\s(?:title|chapter|(?:sub)?part)'
+    r'|'
+    r'title\s(\d+)'
+    r')'
+    r'(\s+of\s+the\s+Code\s+of\s+Federal\s+Regulations)?',
     flags=regex.IGNORECASE
 )
 
@@ -106,36 +151,46 @@ inline_title_pattern = regex.compile(
 def extract_title_inline(text, this_title):
     match = inline_title_pattern.fullmatch(text)
     assert match
+    force_usc = bool(match[3])
     if match[1]:
-        return this_title
+        return this_title, force_usc
     elif match[2]:
-        return int(match[2])
+        return int(match[2]), force_usc
     else:
         raise Exception(text)
 
 
-def parse_references(soup, this_title):
+def parse_references(soup, this_title, this_usc):
     test_list = []  # For debug
     for ref_tag in soup.find_all("reference"):
         # Split into title and subtitle
         if ref_tag["pattern"] == "block":
             text_parts = split_pattern_short.split(ref_tag.string)
-            if not len(text_parts) == 2:
+            if not len(text_parts) == 3:
                 raise Exception(str(ref_tag))
             title = int(text_parts[0].strip())
-            sub_text = text_parts[1]
+            usc = "u" in text_parts[1].lower()
+            sub_text = text_parts[2]
         elif ref_tag["pattern"] == "inline":
             text_parts = split_pattern_inline.split(ref_tag.string)
-            if not len(text_parts) == 2:
+            if len(text_parts) == 2:
+                title, force_usc = extract_title_inline(
+                    text_parts[1].strip(), this_title
+                )
+                usc = force_usc or this_usc
+                sub_text = text_parts[0]
+            elif len(text_parts) == 1:
+                title = this_title
+                sub_text = text_parts[0].strip()
+                usc = this_usc
+            else:
                 raise Exception(str(ref_tag))
-            title = extract_title_inline(text_parts[1].strip(), this_title)
-            sub_text = text_parts[0]
         else:
             raise Exception(f"{str(ref_tag)} has not matching pattern")
 
         # Preformat ranges
         for match in regex.finditer(
-            r"(\d+[a-z]{0,3})[\-\–\—\.](\d+[a-z]{0,3})",
+            r"(\d+[a-z]{0,3})[\-\–\—](\d+[a-z]{0,3})",
             sub_text,
             flags=regex.IGNORECASE,
         ):
@@ -154,7 +209,7 @@ def parse_references(soup, this_title):
         for test_text in text_sub_splitted:
             match = regex.fullmatch(
                 r"(?:§|sec\.|section\b)?\s*"
-                r"(\d+[a-z]{0,3}(?:[\-\–\—\.]\d+[a-z]{0,3})?)?"
+                r"(\d+[a-z]{0,3}(?:[\-\–\—\.]\d+[a-z]{0,3})?)"
                 r"\s?"
                 r"((?:\((?:\d*[a-z]{0,3})\))*)"
                 r"("
@@ -188,7 +243,11 @@ def parse_references(soup, this_title):
 
         # Add title to index 0 of reference
         for reference in references:
-            reference.insert(0, str(title))
+            if usc:
+                title_str = str(title)
+            else:
+                title_str = "cfr" + str(title)
+            reference.insert(0, title_str)
 
         ref_tag["parsed"] = json.dumps(references, ensure_ascii=False)
         test_list.append(f"{sub_text} -- {json.dumps(references, ensure_ascii=False)}")

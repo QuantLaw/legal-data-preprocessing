@@ -18,6 +18,8 @@ from statics import (
     US_CROSSREFERENCE_GRAPH_PATH,
     US_HIERARCHY_GRAPH_PATH,
     US_REFERENCE_PARSED_PATH,
+    US_REG_HIERARCHY_GRAPH_PATH,
+    US_REG_REFERENCE_PARSED_PATH,
     US_SNAPSHOT_MAPPING_EDGELIST_PATH,
 )
 from statutes_pipeline_steps.crossreference_graph import CrossreferenceGraphStep
@@ -216,7 +218,7 @@ if __name__ == "__main__":
 
     if "reference_parse" in steps:
         if dataset == "us":
-            step = UsReferenceParseStep(processes)
+            step = UsReferenceParseStep(regulations=regulations, processes=processes)
             items = step.get_items(overwrite)
             step.execute_filtered_items(items)
         if dataset == "de":
@@ -232,9 +234,15 @@ if __name__ == "__main__":
     if "hierarchy_graph" in steps:
         for subseqitems_conf in get_subseqitem_conf(args.subseqitems):
             if dataset == "us":
-                source = US_REFERENCE_PARSED_PATH
+                source = (
+                    US_REG_REFERENCE_PARSED_PATH
+                    if regulations
+                    else US_REFERENCE_PARSED_PATH
+                )
                 destination = os.path.join(
-                    US_HIERARCHY_GRAPH_PATH,
+                    US_REG_HIERARCHY_GRAPH_PATH
+                    if regulations
+                    else US_HIERARCHY_GRAPH_PATH,
                     "subseqitems" if subseqitems_conf else "seqitems",
                 )
             elif dataset == "de":
