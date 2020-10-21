@@ -4,30 +4,39 @@ import os
 import pandas as pd
 from quantlaw.utils.beautiful_soup import create_soup
 from quantlaw.utils.files import ensure_exists, list_dir
-from quantlaw.utils.pipeline import PipelineStep
 
 from statics import (
     US_CROSSREFERENCE_EDGELIST_PATH,
     US_CROSSREFERENCE_LOOKUP_PATH,
     US_REFERENCE_PARSED_PATH,
+    US_REG_CROSSREFERENCE_EDGELIST_PATH,
+    US_REG_CROSSREFERENCE_LOOKUP_PATH,
+    US_REG_REFERENCE_PARSED_PATH,
 )
+from utils.common import RegulationsPipelineStep
 
 
-class UsCrossreferenceEdgelist(PipelineStep):
+class UsCrossreferenceEdgelist(RegulationsPipelineStep):
     def get_items(self, overwrite, snapshots) -> list:
-        ensure_exists(US_CROSSREFERENCE_EDGELIST_PATH)
+        dest = (
+            US_REG_CROSSREFERENCE_EDGELIST_PATH
+            if self.regulations
+            else US_CROSSREFERENCE_EDGELIST_PATH
+        )
+        lookup = (
+            US_REG_CROSSREFERENCE_LOOKUP_PATH
+            if self.regulations
+            else US_CROSSREFERENCE_LOOKUP_PATH
+        )
+
+        ensure_exists(dest)
         if not snapshots:
             snapshots = sorted(
-                set(
-                    [
-                        os.path.splitext(x)[0]
-                        for x in list_dir(US_CROSSREFERENCE_LOOKUP_PATH, ".csv")
-                    ]
-                )
+                set([os.path.splitext(x)[0] for x in list_dir(lookup, ".csv")])
             )
 
         if not overwrite:
-            existing_files = os.listdir(US_CROSSREFERENCE_EDGELIST_PATH)
+            existing_files = os.listdir(dest)
             snapshots = list(
                 filter(lambda f: get_filename(f) not in existing_files, snapshots)
             )
@@ -35,19 +44,29 @@ class UsCrossreferenceEdgelist(PipelineStep):
         return snapshots
 
     def execute_item(self, item):
-        yearfiles = [
-            x for x in list_dir(US_REFERENCE_PARSED_PATH, ".xml") if str(item) in x
-        ]
-        key_df = (
-            pd.read_csv(f"{US_CROSSREFERENCE_LOOKUP_PATH}/{item}.csv")
-            .dropna()
-            .set_index("citekey")
+        dest = (
+            US_REG_CROSSREFERENCE_EDGELIST_PATH
+            if self.regulations
+            else US_CROSSREFERENCE_EDGELIST_PATH
         )
+        lookup = (
+            US_REG_CROSSREFERENCE_LOOKUP_PATH
+            if self.regulations
+            else US_CROSSREFERENCE_LOOKUP_PATH
+        )
+        src = (
+            US_REG_REFERENCE_PARSED_PATH
+            if self.regulations
+            else US_REFERENCE_PARSED_PATH
+        )
+
+        yearfiles = [x for x in list_dir(src, ".xml") if str(item) in x]
+        key_df = pd.read_csv(f"{lookup}/{item}.csv").dropna().set_index("citekey")
         df = None
         for yearfile_path in yearfiles:
             edge_df = make_edge_list(yearfile_path, key_df)
             df = edge_df if df is None else df.append(edge_df, ignore_index=True)
-        df.to_csv(f"{US_CROSSREFERENCE_EDGELIST_PATH}/{item}.csv", index=False)
+        df.to_csv(f"{dest}/{item}.csv", index=False)
 
 
 ###########

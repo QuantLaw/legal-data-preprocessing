@@ -73,6 +73,8 @@ def nest_items(G, items, document_type):
             G.add_edge(item.parent.attrs["key"], item.attrs["key"])
 
         else:  # handle root node
+            if item.name == "document":
+                item.attrs["level"] = 0
             node_attrs = dict(
                 key=item.attrs["key"],
                 citekey=item.attrs.get("citekey", ""),
@@ -128,7 +130,9 @@ def build_graph(filename, add_subseqitems=False):
     with open(filename, encoding="utf8") as f:
         soup = BeautifulSoup(f.read(), "lxml-xml")
 
-    document_type = soup.document.attrs.get("document_type", None)
+    document_type = (
+        soup.document.attrs.get("document_type", None) if soup.document else None
+    )
 
     # Create target graph
     G = nx.DiGraph()

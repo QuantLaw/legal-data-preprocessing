@@ -18,6 +18,8 @@ from statics import (
     US_CROSSREFERENCE_GRAPH_PATH,
     US_HIERARCHY_GRAPH_PATH,
     US_REFERENCE_PARSED_PATH,
+    US_REG_CROSSREFERENCE_EDGELIST_PATH,
+    US_REG_CROSSREFERENCE_GRAPH_PATH,
     US_REG_HIERARCHY_GRAPH_PATH,
     US_REG_REFERENCE_PARSED_PATH,
     US_SNAPSHOT_MAPPING_EDGELIST_PATH,
@@ -273,7 +275,7 @@ if __name__ == "__main__":
 
     if "crossreference_lookup" in steps:
         if dataset == "us":
-            step = UsCrossreferenceLookup(processes)
+            step = UsCrossreferenceLookup(regulations=regulations, processes=processes)
             items = step.get_items(overwrite, snapshots)
             step.execute_items(items)
 
@@ -316,14 +318,22 @@ if __name__ == "__main__":
         for subseqitems_conf in get_subseqitem_conf(args.subseqitems):
             if dataset == "us":
                 source = os.path.join(
-                    US_HIERARCHY_GRAPH_PATH,
+                    US_REG_HIERARCHY_GRAPH_PATH
+                    if regulations
+                    else US_HIERARCHY_GRAPH_PATH,
                     "subseqitems" if subseqitems_conf else "seqitems",
                 )
                 destination = os.path.join(
-                    US_CROSSREFERENCE_GRAPH_PATH,
+                    US_REG_CROSSREFERENCE_GRAPH_PATH
+                    if regulations
+                    else US_CROSSREFERENCE_GRAPH_PATH,
                     "subseqitems" if subseqitems_conf else "seqitems",
                 )
-                edgelist_folder = US_CROSSREFERENCE_EDGELIST_PATH
+                edgelist_folder = (
+                    US_REG_CROSSREFERENCE_EDGELIST_PATH
+                    if regulations
+                    else US_CROSSREFERENCE_EDGELIST_PATH
+                )
             elif dataset == "de":
                 source = (
                     DE_RVO_HIERARCHY_GRAPH_PATH

@@ -69,7 +69,7 @@ class UsReferenceAreasStep(RegulationsPipelineStep):
 regex_definitions = (
     r'(?(DEFINE)'
         r'(?<sec>'
-            r'(\d+[\da-zA-Z\-\–\—\.]*)(?<!\.)'
+            r'(\d+([\da-zA-Z\-\–\—\.]*[\da-zA-Z\-\–\—])?)'
             r'(\(\d*[a-z]{0,3}i*\))*'
             r'(\s+et\.?\s+seq\.?)?'
             r'(\s+and\sfollowing)?'

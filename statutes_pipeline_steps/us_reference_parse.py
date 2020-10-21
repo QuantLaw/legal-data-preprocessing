@@ -2,6 +2,7 @@ import itertools
 import json
 import multiprocessing
 import os
+from builtins import Exception
 
 import regex
 from quantlaw.utils.beautiful_soup import create_soup, save_soup
@@ -54,7 +55,11 @@ class UsReferenceParseStep(RegulationsPipelineStep):
         soup = create_soup(f"{src}/{item}")
 
         this_title = self.get_title_from_filename(item)
-        logs = parse_references(soup, this_title, this_usc=not self.regulations)
+        try:
+            logs = parse_references(soup, this_title, this_usc=not self.regulations)
+        except Exception:
+            print(item)
+            raise
         save_soup(soup, f"{dest}/{item}")
         return logs
 
@@ -97,7 +102,8 @@ def sortable_paragraph_number(string):
 
 
 split_pattern_short = regex.compile(
-    r"\s*\b(U\.?S\.?C\.?|C\.?F\.?R\.?)\b\s*", flags=regex.IGNORECASE
+    r"\s*(?:\b|(?<=\d))(U\.?S\.?C\.?|C\.?F\.?R\.?)(?:\b|(?=\d))\s*",
+    flags=regex.IGNORECASE,
 )
 split_pattern_inline = regex.compile(
     # fmt: off
@@ -167,7 +173,7 @@ def parse_references(soup, this_title, this_usc):
         if ref_tag["pattern"] == "block":
             text_parts = split_pattern_short.split(ref_tag.string)
             if not len(text_parts) == 3:
-                raise Exception(str(ref_tag))
+                print("ERROR", text_parts, str(ref_tag))
             title = int(text_parts[0].strip())
             usc = "u" in text_parts[1].lower()
             sub_text = text_parts[2]
