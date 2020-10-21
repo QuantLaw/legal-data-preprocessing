@@ -288,7 +288,9 @@ if __name__ == "__main__":
 
     if "crossreference_edgelist" in steps:
         if dataset == "us":
-            step = UsCrossreferenceEdgelist(processes)
+            step = UsCrossreferenceEdgelist(
+                regulations=regulations, processes=processes
+            )
             items = step.get_items(overwrite, snapshots)
             step.execute_items(items)
 
