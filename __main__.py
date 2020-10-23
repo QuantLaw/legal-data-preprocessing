@@ -39,6 +39,7 @@ from statutes_pipeline_steps.hierarchy_graph import HierarchyGraphStep
 from statutes_pipeline_steps.snapshot_mapping_edgelist import (
     SnapshotMappingEdgelistStep,
 )
+from statutes_pipeline_steps.us_authority_edgelist import UsAuthorityEdgelist
 from statutes_pipeline_steps.us_crossreference_edgelist import UsCrossreferenceEdgelist
 from statutes_pipeline_steps.us_crossreference_lookup import UsCrossreferenceLookup
 from statutes_pipeline_steps.us_prepare_input import us_prepare_input
@@ -312,6 +313,10 @@ if __name__ == "__main__":
             step = DeAuthorityEdgelist(
                 law_names_data=law_names_data, processes=processes
             )
+            items = step.get_items(overwrite, snapshots)
+            step.execute_items(items)
+        elif dataset == "us" and regulations:
+            step = UsAuthorityEdgelist(processes=processes)
             items = step.get_items(overwrite, snapshots)
             step.execute_items(items)
         print("Create authority edgelist: done")
