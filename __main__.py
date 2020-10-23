@@ -8,6 +8,7 @@ from statics import (
     DE_CROSSREFERENCE_GRAPH_PATH,
     DE_HIERARCHY_GRAPH_PATH,
     DE_REFERENCE_PARSED_PATH,
+    DE_RVO_AUTHORITY_EDGELIST_PATH,
     DE_RVO_CROSSREFERENCE_EDGELIST_PATH,
     DE_RVO_CROSSREFERENCE_GRAPH_PATH,
     DE_RVO_HIERARCHY_GRAPH_PATH,
@@ -18,6 +19,7 @@ from statics import (
     US_CROSSREFERENCE_GRAPH_PATH,
     US_HIERARCHY_GRAPH_PATH,
     US_REFERENCE_PARSED_PATH,
+    US_REG_AUTHORITY_EDGELIST_PATH,
     US_REG_CROSSREFERENCE_EDGELIST_PATH,
     US_REG_CROSSREFERENCE_GRAPH_PATH,
     US_REG_HIERARCHY_GRAPH_PATH,
@@ -288,9 +290,7 @@ if __name__ == "__main__":
 
     if "crossreference_edgelist" in steps:
         if dataset == "us":
-            step = UsCrossreferenceEdgelist(
-                regulations=regulations, processes=processes
-            )
+            step = UsCrossreferenceEdgelist(regulations=regulations, processes=2)
             items = step.get_items(overwrite, snapshots)
             step.execute_items(items)
 
@@ -336,6 +336,7 @@ if __name__ == "__main__":
                     if regulations
                     else US_CROSSREFERENCE_EDGELIST_PATH
                 )
+                authority_edgelist_folder = US_REG_AUTHORITY_EDGELIST_PATH
             elif dataset == "de":
                 source = (
                     DE_RVO_HIERARCHY_GRAPH_PATH
@@ -354,6 +355,7 @@ if __name__ == "__main__":
                     if regulations
                     else DE_CROSSREFERENCE_EDGELIST_PATH
                 )
+                authority_edgelist_folder = DE_RVO_AUTHORITY_EDGELIST_PATH
 
             step = CrossreferenceGraphStep(
                 regulations=regulations,
@@ -361,6 +363,7 @@ if __name__ == "__main__":
                 destination=destination,
                 edgelist_folder=edgelist_folder,
                 dataset=dataset,
+                authority_edgelist_folder=authority_edgelist_folder,
                 processes=processes,
             )
             items = step.get_items(overwrite, snapshots)

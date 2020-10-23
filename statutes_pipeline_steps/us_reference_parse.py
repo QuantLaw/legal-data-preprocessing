@@ -43,6 +43,8 @@ class UsReferenceParseStep(RegulationsPipelineStep):
         return files
 
     def execute_item(self, item):
+        from statutes_pipeline_steps.us_reference_reg import parse_authority_references
+
         src = (
             US_REG_REFERENCE_AREAS_PATH if self.regulations else US_REFERENCE_AREAS_PATH
         )
@@ -57,6 +59,7 @@ class UsReferenceParseStep(RegulationsPipelineStep):
         this_title = self.get_title_from_filename(item)
         try:
             logs = parse_references(soup, this_title, this_usc=not self.regulations)
+            logs += parse_authority_references(soup)
         except Exception:
             print(item)
             raise
@@ -166,17 +169,24 @@ def extract_title_inline(text, this_title):
         raise Exception(text)
 
 
+def split_block_reference(reference_str, debug_context=None):
+    text_parts = split_pattern_short.split(reference_str)
+    if not len(text_parts) == 3:
+        print("ERROR", text_parts, str(debug_context))
+    title = int(text_parts[0].strip())
+    usc = "u" in text_parts[1].lower()
+    sub_text = text_parts[2]
+    return usc, title, sub_text
+
+
 def parse_references(soup, this_title, this_usc):
     test_list = []  # For debug
     for ref_tag in soup.find_all("reference"):
         # Split into title and subtitle
         if ref_tag["pattern"] == "block":
-            text_parts = split_pattern_short.split(ref_tag.string)
-            if not len(text_parts) == 3:
-                print("ERROR", text_parts, str(ref_tag))
-            title = int(text_parts[0].strip())
-            usc = "u" in text_parts[1].lower()
-            sub_text = text_parts[2]
+            usc, title, sub_text = split_block_reference(
+                ref_tag.string, debug_context=ref_tag
+            )
         elif ref_tag["pattern"] == "inline":
             text_parts = split_pattern_inline.split(ref_tag.string)
             if len(text_parts) == 2:
@@ -194,67 +204,73 @@ def parse_references(soup, this_title, this_usc):
         else:
             raise Exception(f"{str(ref_tag)} has not matching pattern")
 
-        # Preformat ranges
-        for match in regex.finditer(
-            r"(\d+[a-z]{0,3})[\-\–\—](\d+[a-z]{0,3})",
-            sub_text,
-            flags=regex.IGNORECASE,
-        ):
-            if sortable_paragraph_number(match[1]) <= sortable_paragraph_number(
-                match[2]
-            ):
-                sub_text = (
-                    f"{sub_text[:match.start()]}{match[1]} through "
-                    f"{match[2]}{sub_text[match.end():]}"
-                )
-
-        sub_text = sub_text.replace(" and following", " et. seq.")
-
-        references = []
-        text_sub_splitted = sub_split_pattern.split(sub_text)
-        for test_text in text_sub_splitted:
-            match = regex.fullmatch(
-                r"(?:§|sec\.|section\b)?\s*"
-                r"(\d+[a-z]{0,3}(?:[\-\–\—\.]\d+[a-z]{0,3})?)"
-                r"\s?"
-                r"((?:\((?:\d*[a-z]{0,3})\))*)"
-                r"("
-                r" et\.? seq\.?|"
-                r" and following"
-                r")?",
-                test_text,
-                flags=regex.IGNORECASE,
-            )
-            if not match:
-                # test_list.append(f'{test_text} -- {sub_text} -- {file}')
-                continue
-            sections = [match[1]]
-            sub_sections = regex.split(r"[\(\)]+", match[2])
-            sub_sections = [o for o in sub_sections if len(o)]
-            sections.extend(sub_sections)
-
-            if sections[0]:
-                references.append(sections)
-            else:
-                new_reference = None
-                current_part_types = get_enum_types(sections[1])
-                for old_part in reversed(references[-1][1:]):
-                    if enum_types_match(current_part_types, get_enum_types(old_part)):
-                        new_reference = references[-1][: references[-1].index(old_part)]
-                        break
-                if not new_reference:
-                    new_reference = references[-1][:]
-                new_reference.extend(sections[1:])
-                references.append(new_reference)
-
-        # Add title to index 0 of reference
-        for reference in references:
-            if usc:
-                title_str = str(title)
-            else:
-                title_str = "cfr" + str(title)
-            reference.insert(0, title_str)
+        references = parse_reference_text(sub_text)
+        add_title_to_reference(references, title, usc)
 
         ref_tag["parsed"] = json.dumps(references, ensure_ascii=False)
         test_list.append(f"{sub_text} -- {json.dumps(references, ensure_ascii=False)}")
     return test_list
+
+
+def add_title_to_reference(references, title, usc):
+    # Add title to index 0 of reference
+    for reference in references:
+        if usc:
+            title_str = str(title)
+        else:
+            title_str = "cfr" + str(title)
+        reference.insert(0, title_str)
+
+
+def parse_reference_text(sub_text):
+    # Preformat ranges
+    for match in regex.finditer(
+        r"(\d+[a-z]{0,3})[\-\–\—](\d+[a-z]{0,3})",
+        sub_text,
+        flags=regex.IGNORECASE,
+    ):
+        if sortable_paragraph_number(match[1]) <= sortable_paragraph_number(match[2]):
+            sub_text = (
+                f"{sub_text[:match.start()]}{match[1]} through "
+                f"{match[2]}{sub_text[match.end():]}"
+            )
+
+    sub_text = sub_text.replace(" and following", " et. seq.")
+
+    references = []
+    text_sub_splitted = sub_split_pattern.split(sub_text)
+    for test_text in text_sub_splitted:
+        match = regex.fullmatch(
+            r"(?:§|sec\.|section\b)?\s*"
+            r"(\d+[a-z]{0,3}(?:[\-\–\—\.]\d+[a-z]{0,3})?)"
+            r"\s?"
+            r"((?:\((?:\d*[a-z]{0,3})\))*)"
+            r"("
+            r" et\.? seq\.?|"
+            r" and following"
+            r")?",
+            test_text,
+            flags=regex.IGNORECASE,
+        )
+        if not match:
+            # test_list.append(f'{test_text} -- {sub_text} -- {file}')
+            continue
+        sections = [match[1]]
+        sub_sections = regex.split(r"[\(\)]+", match[2])
+        sub_sections = [o for o in sub_sections if len(o)]
+        sections.extend(sub_sections)
+
+        if sections[0]:
+            references.append(sections)
+        else:
+            new_reference = None
+            current_part_types = get_enum_types(sections[1])
+            for old_part in reversed(references[-1][1:]):
+                if enum_types_match(current_part_types, get_enum_types(old_part)):
+                    new_reference = references[-1][: references[-1].index(old_part)]
+                    break
+            if not new_reference:
+                new_reference = references[-1][:]
+            new_reference.extend(sections[1:])
+            references.append(new_reference)
+    return references

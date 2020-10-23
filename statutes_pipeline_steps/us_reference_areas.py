@@ -17,6 +17,7 @@ from statics import (
     US_REG_XML_PATH,
     US_XML_PATH,
 )
+from statutes_pipeline_steps.us_reference_reg import find_authority_references
 from utils.common import RegulationsPipelineStep
 
 
@@ -45,6 +46,10 @@ class UsReferenceAreasStep(RegulationsPipelineStep):
         soup = create_soup(f"{src}/{item}")
         logs = find_references(soup, usc_pattern, {"pattern": "block"})
         logs += find_references(soup, inline_pattern, {"pattern": "inline"})
+
+        if self.regulations:
+            logs += find_authority_references(soup, usc_pattern)
+
         save_soup(soup, f"{dest}/{item}")
         return logs
 
