@@ -1,3 +1,4 @@
+import itertools
 import json
 
 from quantlaw.utils.beautiful_soup import create_soup
@@ -22,7 +23,9 @@ class UsAuthorityEdgelist(UsCrossreferenceEdgelist):
 
         for item in soup.find_all(auth_text_parsed=True):
             node_out = item.get("key")
-            refs = json.loads(item.attrs["auth_text_parsed"])
+            refs = itertools.chain.from_iterable(
+                json.loads(item.attrs["auth_text_parsed"])
+            )
             for ref in refs:
                 try:  # for debug
                     key = "_".join(ref[:2])

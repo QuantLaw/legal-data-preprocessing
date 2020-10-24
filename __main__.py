@@ -4,6 +4,7 @@ import re
 
 from statics import (
     ALL_YEARS,
+    ALL_YEARS_REG,
     DE_CROSSREFERENCE_EDGELIST_PATH,
     DE_CROSSREFERENCE_GRAPH_PATH,
     DE_HIERARCHY_GRAPH_PATH,
@@ -137,10 +138,11 @@ if __name__ == "__main__":
         raise Exception(f"{dataset} unsupported dataset. Options: us, de")
 
     if "all" in snapshots:
+        years = ALL_YEARS_REG if regulations else ALL_YEARS
         if dataset == "us":
-            snapshots = [f"{year}" for year in ALL_YEARS]
+            snapshots = [f"{year}" for year in years]
         elif dataset == "de":
-            snapshots = [f"{year}-01-01" for year in ALL_YEARS]
+            snapshots = [f"{year}-01-01" for year in years]
 
     if "all" in steps:
         steps = [
@@ -316,7 +318,7 @@ if __name__ == "__main__":
             items = step.get_items(overwrite, snapshots)
             step.execute_items(items)
         elif dataset == "us" and regulations:
-            step = UsAuthorityEdgelist(processes=processes)
+            step = UsAuthorityEdgelist(processes=processes, regulations=regulations)
             items = step.get_items(overwrite, snapshots)
             step.execute_items(items)
         print("Create authority edgelist: done")

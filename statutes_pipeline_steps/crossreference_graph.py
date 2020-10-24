@@ -82,10 +82,8 @@ class CrossreferenceGraphStep(RegulationsPipelineStep):
         year, files = item
 
         # make forest from trees
-        edge_list = pd.read_csv(f"{self.edgelist_folder}/{year}.csv")
         G = nx.MultiDiGraph()
         for file in files:
-            print(file)
             nG = nx.read_graphml(file)
 
             # enable filtering by law name
@@ -95,6 +93,7 @@ class CrossreferenceGraphStep(RegulationsPipelineStep):
         G = nx.MultiDiGraph(G)
 
         # root means "U.S.C." for US and "Bundesgesetze" for DE (umbrella node)
+        # if regulations flag is set it includes regulations as well
         G.add_node("root", level=-1, key="root", law_name="root")
 
         # Add edges from root to the roots to titles (US) or laws (DE)
@@ -103,6 +102,7 @@ class CrossreferenceGraphStep(RegulationsPipelineStep):
         nx.set_edge_attributes(G, "containment", name="edge_type")
 
         # Get reference edges
+        edge_list = pd.read_csv(f"{self.edgelist_folder}/{year}.csv")
         edges = [tuple(edge[1].values) for edge in edge_list.iterrows()]
 
         # Assert that no new nodes will be added by the edges
