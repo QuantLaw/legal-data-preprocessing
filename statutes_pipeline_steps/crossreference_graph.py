@@ -11,6 +11,7 @@ class CrossreferenceGraphStep(RegulationsPipelineStep):
     def __init__(
         self,
         source,
+        source_regulation,
         destination,
         edgelist_folder,
         dataset,
@@ -19,6 +20,7 @@ class CrossreferenceGraphStep(RegulationsPipelineStep):
         **kwargs,
     ):
         self.source = source
+        self.source_regulation = source_regulation
         self.destination = destination
         self.edgelist_folder = edgelist_folder
         self.dataset = dataset
@@ -51,14 +53,25 @@ class CrossreferenceGraphStep(RegulationsPipelineStep):
         if self.dataset == "us":
             files = []
             for snapshot in snapshots:
+                statute_files = [
+                    f"{self.source}/{x}"
+                    for x in os.listdir(self.source)
+                    if str(snapshot) in x
+                ]
+                regulation_files = (
+                    [
+                        f"{self.source_regulation}/{x}"
+                        for x in os.listdir(self.source_regulation)
+                        if str(snapshot) in x
+                    ]
+                    if self.regulations
+                    else None
+                )
                 files.append(
                     (
                         snapshot,
-                        [
-                            f"{self.source}/{x}"
-                            for x in os.listdir(self.source)
-                            if str(snapshot) in x
-                        ],
+                        statute_files,
+                        regulation_files,
                     )
                 )
         else:  # is DE
@@ -73,13 +86,17 @@ class CrossreferenceGraphStep(RegulationsPipelineStep):
                             f'{self.source}/{x.replace(".xml", ".graphml")}'
                             for x in graph_files
                         ],
+                        None,
                     )
                 )
 
         return files
 
     def execute_item(self, item):
-        year, files = item
+        year, files, files_regulations = item
+
+        if self.regulations and files_regulations:
+            files += files_regulations
 
         # make forest from trees
         G = nx.MultiDiGraph()
@@ -104,6 +121,11 @@ class CrossreferenceGraphStep(RegulationsPipelineStep):
         # Get reference edges
         edge_list = pd.read_csv(f"{self.edgelist_folder}/{year}.csv")
         edges = [tuple(edge[1].values) for edge in edge_list.iterrows()]
+
+        if self.regulations and self.edgelist_folder_regulation:
+            # Get reference edges for regulations
+            edge_list = pd.read_csv(f"{self.edgelist_folder_regulation}/{year}.csv")
+            edges += [tuple(edge[1].values) for edge in edge_list.iterrows()]
 
         # Assert that no new nodes will be added by the edges
         for node_from, node_to in edges:

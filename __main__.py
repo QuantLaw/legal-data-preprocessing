@@ -21,7 +21,6 @@ from statics import (
     US_HIERARCHY_GRAPH_PATH,
     US_REFERENCE_PARSED_PATH,
     US_REG_AUTHORITY_EDGELIST_PATH,
-    US_REG_CROSSREFERENCE_EDGELIST_PATH,
     US_REG_CROSSREFERENCE_GRAPH_PATH,
     US_REG_HIERARCHY_GRAPH_PATH,
     US_REG_REFERENCE_PARSED_PATH,
@@ -334,9 +333,11 @@ if __name__ == "__main__":
         for subseqitems_conf in get_subseqitem_conf(args.subseqitems):
             if dataset == "us":
                 source = os.path.join(
-                    US_REG_HIERARCHY_GRAPH_PATH
-                    if regulations
-                    else US_HIERARCHY_GRAPH_PATH,
+                    US_HIERARCHY_GRAPH_PATH,
+                    "subseqitems" if subseqitems_conf else "seqitems",
+                )
+                source_regulation = os.path.join(
+                    US_REG_HIERARCHY_GRAPH_PATH,
                     "subseqitems" if subseqitems_conf else "seqitems",
                 )
                 destination = os.path.join(
@@ -345,11 +346,7 @@ if __name__ == "__main__":
                     else US_CROSSREFERENCE_GRAPH_PATH,
                     "subseqitems" if subseqitems_conf else "seqitems",
                 )
-                edgelist_folder = (
-                    US_REG_CROSSREFERENCE_EDGELIST_PATH
-                    if regulations
-                    else US_CROSSREFERENCE_EDGELIST_PATH
-                )
+                edgelist_folder = US_CROSSREFERENCE_EDGELIST_PATH
                 authority_edgelist_folder = US_REG_AUTHORITY_EDGELIST_PATH
             elif dataset == "de":
                 source = (
@@ -358,6 +355,7 @@ if __name__ == "__main__":
                     else DE_HIERARCHY_GRAPH_PATH
                 )
                 source += f'/{"subseqitems" if subseqitems_conf else "seqitems"}'
+                source_regulation = None
                 destination = (
                     DE_RVO_CROSSREFERENCE_GRAPH_PATH
                     if regulations
@@ -374,6 +372,7 @@ if __name__ == "__main__":
             step = CrossreferenceGraphStep(
                 regulations=regulations,
                 source=source,
+                source_regulation=source_regulation,
                 destination=destination,
                 edgelist_folder=edgelist_folder,
                 dataset=dataset,
