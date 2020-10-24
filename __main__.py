@@ -60,6 +60,21 @@ def get_subseqitem_conf(subseqitems):
         return (False,)
 
 
+ALL_STEPS = [
+    "prepare_input",
+    "xml",
+    "law_names",  # DE only
+    "reference_areas",
+    "reference_parse",
+    "hierarchy_graph",
+    "crossreference_lookup",
+    "crossreference_edgelist",
+    "authority_edgelist",  # DE only
+    "crossreference_graph",
+    # creates edgelist to map nodes between snapshots for DYNAMIC graph
+    "snapshot_mapping_edgelist",
+]
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("dataset", help="select a dataset: DE or US")
@@ -145,20 +160,10 @@ if __name__ == "__main__":
             snapshots = [f"{year}-01-01" for year in years]
 
     if "all" in steps:
-        steps = [
-            "prepare_input",
-            "xml",
-            "law_names",  # DE only
-            "reference_areas",
-            "reference_parse",
-            "hierarchy_graph",
-            "crossreference_lookup",
-            "crossreference_edgelist",
-            "authority_edgelist",  # DE only
-            "crossreference_graph",
-            # creates edgelist to map nodes between snapshots for DYNAMIC graph
-            "snapshot_mapping_edgelist",
-        ]
+        steps = ALL_STEPS
+    else:
+        unknown_steps = [s for s in steps if s not in ALL_STEPS]
+        assert not unknown_steps, unknown_steps
 
     if (
         "crossreference_lookup" in steps
@@ -293,7 +298,9 @@ if __name__ == "__main__":
 
     if "crossreference_edgelist" in steps:
         if dataset == "us":
-            step = UsCrossreferenceEdgelist(regulations=regulations, processes=2)
+            step = UsCrossreferenceEdgelist(
+                regulations=regulations, processes=processes
+            )
             items = step.get_items(overwrite, snapshots)
             step.execute_items(items)
 

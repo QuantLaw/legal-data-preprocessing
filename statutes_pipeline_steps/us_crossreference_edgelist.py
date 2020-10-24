@@ -1,8 +1,8 @@
 import json
 import os
 
+import lxml.etree
 import pandas as pd
-from quantlaw.utils.beautiful_soup import create_soup
 from quantlaw.utils.files import ensure_exists, list_dir
 
 from statics import (
@@ -48,63 +48,52 @@ class UsCrossreferenceEdgelist(RegulationsPipelineStep):
             else US_CROSSREFERENCE_LOOKUP_PATH
         )
 
-    @property
-    def src(self):
-        return (
-            US_REG_REFERENCE_PARSED_PATH
-            if self.regulations
-            else US_REFERENCE_PARSED_PATH
-        )
-
     def execute_item(self, item):
-        yearfiles = [x for x in list_dir(self.src, ".xml") if str(item) in x]
+        yearfiles = [
+            os.path.join(US_REFERENCE_PARSED_PATH, x)
+            for x in list_dir(US_REFERENCE_PARSED_PATH, ".xml")
+            if str(item) in x
+        ]
+        if self.regulations:
+            yearfiles += [
+                os.path.join(US_REG_REFERENCE_PARSED_PATH, x)
+                for x in list_dir(US_REG_REFERENCE_PARSED_PATH, ".xml")
+                if str(item) in x
+            ]
+
         key_df = pd.read_csv(f"{self.lookup}/{item}.csv").dropna().set_index("citekey")
+        key_dict = {}
+        for idx, val in key_df.key.iteritems():
+            if idx not in key_dict:
+                key_dict[idx] = val
         edge_list = []
         for i, yearfile_path in enumerate(yearfiles):
             print(f"\r{item} {i:6} / {len(yearfiles)}", end="")
-            edge_list_file = self.make_edge_list(yearfile_path, key_df)
+            edge_list_file = self.make_edge_list(yearfile_path, key_dict)
             edge_list.extend(edge_list_file)
         if edge_list:
             df = pd.DataFrame(edge_list, columns=["out_node", "in_node"])
             df.to_csv(f"{self.dest}/{item}.csv", index=False)
 
-    def make_edge_list(self, yearfile_path, key_df):
-        soup = create_soup(self.src + "/" + yearfile_path)
+    def make_edge_list(self, yearfile_path, key_dict):
+        with open(yearfile_path, encoding="utf8") as f:
+            file_elem = lxml.etree.parse(f)
         edge_list = []
 
         # for debug
         # problem_matches = set()
         # problem_keys = set()
 
-        for item in soup.find_all(["seqitem"]):
-            if item.find_all(["reference"]):
-                node_out = item.get("key")
-                for node in item.find_all(["reference"]):
-                    refs = json.loads(node.attrs["parsed"])
-                    for ref in refs:
-                        try:  # for debug
-                            key = "_".join(ref[:2])
-                            matches = key_df.at[key, "key"]
+        for seqitem_elem in file_elem.xpath("//seqitem"):
+            node_out = seqitem_elem.attrib.get("key")
+            for ref_elem in seqitem_elem.xpath(".//reference"):
+                refs = json.loads(ref_elem.attrib["parsed"])
+                for ref in refs:
+                    key = "_".join(ref[:2])
+                    node_in = key_dict.get(key)
 
-                            # # for debug
-                            # if type(matches) != str:
-                            #     problem_matches.add(tuple(matches))
-
-                            node_in = matches if type(matches) == str else matches[0]
-                            edge_list.append([node_out, node_in])
-                            assert len(ref) > 1
-
-                        except KeyError:
-                            # # for debug
-                            # problem_keys.add(key)
-                            pass
-
-        # # for debug
-        # if len(problem_matches) > 0:
-        #     print(f"{yearfile_path} Problem Matches:\n",
-        #           sorted(list(problem_matches)))
-        # if len(problem_keys) > 0:
-        #     print(f"{yearfile_path} Problem Matches:\n", sorted(list(problem_keys)))
+                    if node_in:
+                        edge_list.append([node_out, node_in])
         return edge_list
 
 

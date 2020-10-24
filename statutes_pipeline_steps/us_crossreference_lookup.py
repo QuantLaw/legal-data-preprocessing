@@ -1,7 +1,7 @@
 import os
 
+import lxml.etree
 import pandas as pd
-from quantlaw.utils.beautiful_soup import create_soup
 from quantlaw.utils.files import ensure_exists, list_dir
 
 from statics import (
@@ -20,17 +20,17 @@ class UsCrossreferenceLookup(RegulationsPipelineStep):
             if self.regulations
             else US_CROSSREFERENCE_LOOKUP_PATH
         )
-        src = (
-            US_REG_REFERENCE_PARSED_PATH
-            if self.regulations
-            else US_REFERENCE_PARSED_PATH
-        )
         ensure_exists(dest)
 
         # If snapshots not set, create list of all years
         if not snapshots:
             snapshots = sorted(
-                set([x.split(".")[0].split("_")[-1] for x in list_dir(src, ".xml")])
+                set(
+                    [
+                        x.split(".")[0].split("_")[-1]
+                        for x in list_dir(US_REFERENCE_PARSED_PATH, ".xml")
+                    ]
+                )
             )
 
         if not overwrite:
@@ -47,18 +47,24 @@ class UsCrossreferenceLookup(RegulationsPipelineStep):
             if self.regulations
             else US_CROSSREFERENCE_LOOKUP_PATH
         )
-        src = (
-            US_REG_REFERENCE_PARSED_PATH
-            if self.regulations
-            else US_REFERENCE_PARSED_PATH
-        )
 
-        yearfiles = [x for x in list_dir(src, ".xml") if str(item) in x]
+        yearfiles = [
+            os.path.join(US_REFERENCE_PARSED_PATH, x)
+            for x in list_dir(US_REFERENCE_PARSED_PATH, ".xml")
+            if str(item) in x
+        ]
+        if self.regulations:
+            yearfiles += [
+                os.path.join(US_REG_REFERENCE_PARSED_PATH, x)
+                for x in list_dir(US_REG_REFERENCE_PARSED_PATH, ".xml")
+                if str(item) in x
+            ]
         data = []
         for file in yearfiles:
-            soup = create_soup(f"{src}/{file}")
-            for tag in soup.find_all(citekey=True):
-                data.append([tag.attrs["key"], tag.attrs["citekey"]])
+            with open(file, encoding="utf8") as f:
+                file_elem = lxml.etree.parse(f)
+            for node in file_elem.xpath("//*[@citekey]"):
+                data.append([node.attrib["key"], node.attrib["citekey"]])
         df = pd.DataFrame(data, columns=["key", "citekey"])
         destination_file = f"{dest}/{get_filename(item)}"
         df.to_csv(destination_file, index=False)
