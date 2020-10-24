@@ -46,6 +46,7 @@ from statutes_pipeline_steps.us_prepare_input import us_prepare_input
 from statutes_pipeline_steps.us_reference_areas import UsReferenceAreasStep
 from statutes_pipeline_steps.us_reference_parse import UsReferenceParseStep
 from statutes_pipeline_steps.us_reg_prepare_input import us_reg_prepare_input
+from statutes_pipeline_steps.us_reg_to_xml import UsRegsToXmlStep
 from statutes_pipeline_steps.us_to_xml import UsToXmlStep
 from utils.common import load_law_names, load_law_names_compiled, str_to_bool
 
@@ -190,7 +191,10 @@ if __name__ == "__main__":
 
     if "xml" in steps:
         if dataset == "us":
-            step = UsToXmlStep(processes)
+            if regulations:
+                step = UsRegsToXmlStep(processes)
+            else:
+                step = UsToXmlStep(processes)
             items = step.get_items(overwrite)
             step.execute_filtered_items(items, selected_items)
         elif dataset == "de":
