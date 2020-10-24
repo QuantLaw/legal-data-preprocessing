@@ -67,8 +67,7 @@ class UsCrossreferenceEdgelist(RegulationsPipelineStep):
             if idx not in key_dict:
                 key_dict[idx] = val
         edge_list = []
-        for i, yearfile_path in enumerate(yearfiles):
-            print(f"\r{item} {i:6} / {len(yearfiles)}", end="")
+        for yearfile_path in yearfiles:
             edge_list_file = self.make_edge_list(yearfile_path, key_dict)
             edge_list.extend(edge_list_file)
         if edge_list:

@@ -122,11 +122,6 @@ class CrossreferenceGraphStep(RegulationsPipelineStep):
         edge_list = pd.read_csv(f"{self.edgelist_folder}/{year}.csv")
         edges = [tuple(edge[1].values) for edge in edge_list.iterrows()]
 
-        if self.regulations and self.edgelist_folder_regulation:
-            # Get reference edges for regulations
-            edge_list = pd.read_csv(f"{self.edgelist_folder_regulation}/{year}.csv")
-            edges += [tuple(edge[1].values) for edge in edge_list.iterrows()]
-
         # Assert that no new nodes will be added by the edges
         for node_from, node_to in edges:
             assert G.has_node(node_from)
