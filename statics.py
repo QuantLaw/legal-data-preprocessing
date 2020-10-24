@@ -1,5 +1,5 @@
-ALL_YEARS = list(range(1994, 2019))
-ALL_YEARS_REG = list(range(1996, 2019))  # TODO update end year
+ALL_YEARS = list(range(1994, 2020))
+ALL_YEARS_REG = list(range(1996, 2020))
 
 DATA_PATH = "../legal-networks-data"
 US_DATA_PATH = "../legal-networks-data/us"
