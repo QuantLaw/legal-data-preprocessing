@@ -682,6 +682,10 @@ def doc_to_soup(doc, soup, level, version, root=False) -> Tag:
     """
     tag_name = "document" if root else ("item" if len(doc["children"]) else "seqitem")
     tag = soup.new_tag(tag_name, level=level, heading=doc["expcite"].split("!@!")[-1])
+
+    if tag_name == "document":
+        tag.attrs["document_type"] = "statute"
+
     if tag_name == "seqitem":
         title_path_component = doc["itempath"].split("/")[1]
         if title_path_component[-1] == "0":

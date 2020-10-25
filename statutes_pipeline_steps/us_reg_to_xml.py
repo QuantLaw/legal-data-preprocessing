@@ -412,6 +412,17 @@ def nodeid_counter():
     return nodeid_counter.counter
 
 
+def document_element_attribs():
+    xsi_url = "http://www.w3.org/2001/XMLSchema-instance"
+    lxml.etree.register_namespace("xsi", xsi_url)
+    noNamespaceSchemaLocation = lxml.etree.QName(xsi_url, "noNamespaceSchemaLocation")
+    return {
+        "level": str(0),
+        noNamespaceSchemaLocation: "../../xml-schema.xsd",
+        "document_type": "regulation",
+    }
+
+
 def parse_cfr_container(container_element, law_key, level=0):
     """
     Parse a container element.
@@ -421,17 +432,9 @@ def parse_cfr_container(container_element, law_key, level=0):
 
     # setup element with appropriate level-based tag name
     if level == 0:
-        xsi_url = "http://www.w3.org/2001/XMLSchema-instance"
-        lxml.etree.register_namespace("xsi", xsi_url)
-        noNamespaceSchemaLocation = lxml.etree.QName(
-            xsi_url, "noNamespaceSchemaLocation"
-        )
         output_container = lxml.etree.Element(
             "document",
-            attrib={
-                "level": str(0),
-                noNamespaceSchemaLocation: "../../xml-schema.xsd",
-            },
+            attrib=document_element_attribs(),
         )
     else:
         output_container = lxml.etree.Element("item", attrib={"level": str(level)})
@@ -508,7 +511,9 @@ def parse_cfr_zip(file_name):
     :return:
     """
     with zipfile.ZipFile(file_name) as zip_file:
-        complete_title_element = lxml.etree.Element("document")
+        complete_title_element = lxml.etree.Element(
+            "document", attrib=document_element_attribs()
+        )
         last_title_number = None
         for member_info in sorted(zip_file.namelist()):
             name_tokens = member_info.split("/")[1].split("-")
@@ -552,7 +557,9 @@ def parse_cfr_zip(file_name):
                             )
 
                         # reset
-                        complete_title_element = lxml.etree.Element("document")
+                        complete_title_element = lxml.etree.Element(
+                            "document", attrib=document_element_attribs()
+                        )
                         last_title_number = title_number
 
                     # extend current title
