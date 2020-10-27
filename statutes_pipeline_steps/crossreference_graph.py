@@ -141,5 +141,17 @@ class CrossreferenceGraphStep(RegulationsPipelineStep):
 
         G.graph["name"] = f"{year}"
 
+        # TODO remove later when rerun whole pipeline
+        if self.dataset.lower() == "us":
+            nx.set_node_attributes(
+                G,
+                {
+                    n: "regulation" if n.startswith("cfr") else "statute"
+                    for n, t in G.nodes(data="type")
+                    if t == "document"
+                },
+                "document_type",
+            )
+
         # Save
         nx.write_gpickle(G, f"{self.destination}/{year}.gpickle.gz")

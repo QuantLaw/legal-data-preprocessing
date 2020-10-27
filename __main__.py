@@ -15,17 +15,22 @@ from statics import (
     DE_RVO_HIERARCHY_GRAPH_PATH,
     DE_RVO_REFERENCE_PARSED_PATH,
     DE_RVO_SNAPSHOT_MAPPING_EDGELIST_PATH,
+    DE_RVO_SNAPSHOT_MAPPING_INDEX_PATH,
     DE_SNAPSHOT_MAPPING_EDGELIST_PATH,
+    DE_SNAPSHOT_MAPPING_INDEX_PATH,
     US_CROSSREFERENCE_EDGELIST_PATH,
     US_CROSSREFERENCE_GRAPH_PATH,
     US_HIERARCHY_GRAPH_PATH,
     US_REFERENCE_PARSED_PATH,
     US_REG_AUTHORITY_EDGELIST_PATH,
+    US_REG_CROSSREFERENCE_EDGELIST_PATH,
     US_REG_CROSSREFERENCE_GRAPH_PATH,
     US_REG_HIERARCHY_GRAPH_PATH,
     US_REG_REFERENCE_PARSED_PATH,
     US_REG_SNAPSHOT_MAPPING_EDGELIST_PATH,
+    US_REG_SNAPSHOT_MAPPING_INDEX_PATH,
     US_SNAPSHOT_MAPPING_EDGELIST_PATH,
+    US_SNAPSHOT_MAPPING_INDEX_PATH,
 )
 from statutes_pipeline_steps.crossreference_graph import CrossreferenceGraphStep
 from statutes_pipeline_steps.de_authority_edgelist import DeAuthorityEdgelist
@@ -40,6 +45,7 @@ from statutes_pipeline_steps.hierarchy_graph import HierarchyGraphStep
 from statutes_pipeline_steps.snapshot_mapping_edgelist import (
     SnapshotMappingEdgelistStep,
 )
+from statutes_pipeline_steps.snapshot_mapping_index import SnapshotMappingIndexStep
 from statutes_pipeline_steps.us_authority_edgelist import UsAuthorityEdgelist
 from statutes_pipeline_steps.us_crossreference_edgelist import UsCrossreferenceEdgelist
 from statutes_pipeline_steps.us_crossreference_lookup import UsCrossreferenceLookup
@@ -73,6 +79,7 @@ ALL_STEPS = [
     "authority_edgelist",  # DE only
     "crossreference_graph",
     # creates edgelist to map nodes between snapshots for DYNAMIC graph
+    "snapshot_mapping_index",
     "snapshot_mapping_edgelist",
 ]
 
@@ -351,7 +358,11 @@ if __name__ == "__main__":
                     else US_CROSSREFERENCE_GRAPH_PATH,
                     "subseqitems" if subseqitems_conf else "seqitems",
                 )
-                edgelist_folder = US_CROSSREFERENCE_EDGELIST_PATH
+                edgelist_folder = (
+                    US_REG_CROSSREFERENCE_EDGELIST_PATH
+                    if regulations
+                    else US_CROSSREFERENCE_EDGELIST_PATH
+                )
                 authority_edgelist_folder = US_REG_AUTHORITY_EDGELIST_PATH
             elif dataset == "de":
                 source = (
@@ -389,7 +400,7 @@ if __name__ == "__main__":
 
         print("Make crossreference graph: done")
 
-    if "snapshot_mapping_edgelist" in steps:
+    if "snapshot_mapping_index" in steps:
         if dataset == "us":
             source_graph = os.path.join(
                 US_REG_CROSSREFERENCE_GRAPH_PATH
@@ -400,9 +411,9 @@ if __name__ == "__main__":
             source_text = US_REFERENCE_PARSED_PATH
             source_text_reg = US_REG_REFERENCE_PARSED_PATH if regulations else None
             destination = os.path.join(
-                US_REG_SNAPSHOT_MAPPING_EDGELIST_PATH
+                US_REG_SNAPSHOT_MAPPING_INDEX_PATH
                 if regulations
-                else US_SNAPSHOT_MAPPING_EDGELIST_PATH,
+                else US_SNAPSHOT_MAPPING_INDEX_PATH,
                 "subseqitems",
             )
             law_names_data = None
@@ -419,22 +430,60 @@ if __name__ == "__main__":
                 else DE_REFERENCE_PARSED_PATH
             )
             destination = os.path.join(
+                DE_RVO_SNAPSHOT_MAPPING_INDEX_PATH
+                if regulations
+                else DE_SNAPSHOT_MAPPING_INDEX_PATH,
+                "subseqitems",
+            )
+            law_names_data = load_law_names(regulations)
+
+        step = SnapshotMappingIndexStep(
+            source_graph,
+            source_text,
+            destination,
+            dataset,
+            law_names_data,
+            processes=2,
+        )
+        items = step.get_items(overwrite, snapshots)
+        step.execute_items(items)
+
+        print("Make snapshot mapping: done")
+
+    if "snapshot_mapping_edgelist" in steps:
+        if dataset == "us":
+            source = os.path.join(
+                US_REG_SNAPSHOT_MAPPING_INDEX_PATH
+                if regulations
+                else US_SNAPSHOT_MAPPING_INDEX_PATH,
+                "subseqitems",
+            )
+            destination = os.path.join(
+                US_REG_SNAPSHOT_MAPPING_EDGELIST_PATH
+                if regulations
+                else US_SNAPSHOT_MAPPING_EDGELIST_PATH,
+                "subseqitems",
+            )
+        elif dataset == "de":
+            source = os.path.join(
+                DE_RVO_SNAPSHOT_MAPPING_INDEX_PATH
+                if regulations
+                else DE_SNAPSHOT_MAPPING_INDEX_PATH,
+                "subseqitems",
+            )
+            destination = os.path.join(
                 DE_RVO_SNAPSHOT_MAPPING_EDGELIST_PATH
                 if regulations
                 else DE_SNAPSHOT_MAPPING_EDGELIST_PATH,
                 "subseqitems",
             )
-            law_names_data = load_law_names(regulations)
 
         step = SnapshotMappingEdgelistStep(
-            source_graph,
-            source_text,
-            source_text_reg,
+            source,
             destination,
             interval,
             dataset,
-            law_names_data,
-            processes=1,
+            processes=4,
         )
         items = step.get_items(overwrite, snapshots)
         step.execute_items(items)

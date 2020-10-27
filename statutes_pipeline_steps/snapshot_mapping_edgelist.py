@@ -1,14 +1,17 @@
 import json
 import os
-from collections import deque
+import pickle
+from collections import Counter, deque
 
 import networkx as nx
 import textdistance
 from quantlaw.utils.beautiful_soup import create_soup
 from quantlaw.utils.files import ensure_exists, list_dir
-from quantlaw.utils.networkx import get_leaves, sequence_graph
+from quantlaw.utils.networkx import get_leaves
 from quantlaw.utils.pipeline import PipelineStep
 from regex import regex
+from whoosh.index import open_dir
+from whoosh.query import Phrase
 
 from utils.common import (
     get_snapshot_law_list,
@@ -20,26 +23,20 @@ from utils.common import (
 class SnapshotMappingEdgelistStep(PipelineStep):
     def __init__(
         self,
-        source_graph,
-        source_text,
-        source_text_reg,
+        source,
         destination,
         interval,
         dataset,
-        law_names_data=None,
         min_text_length=50,
         radius=5,
         distance_threshold=0.9,
         *args,
         **kwargs,
     ):
-        self.source_graph = source_graph
-        self.source_text = source_text
-        self.source_text_reg = source_text_reg
+        self.source = source
         self.destination = destination
         self.interval = interval
         self.dataset = dataset
-        self.law_names_data = law_names_data
         self.min_text_length = min_text_length
         self.radius = radius
         self.distance_threshold = distance_threshold
@@ -47,18 +44,17 @@ class SnapshotMappingEdgelistStep(PipelineStep):
 
     def get_items(self, overwrite, snapshots) -> list:
         ensure_exists(self.destination)
-        files = sorted(list_dir(self.source_graph, ".gpickle.gz"))
+        items = sorted(list_dir(self.source, "_index"))
+        items = [i[: -len("_index")] for i in items]
 
         # Create mappings to draw the edges
         mappings = [
             (file1, file2)
-            for file1, file2 in zip(files[: -self.interval], files[self.interval :])
+            for file1, file2 in zip(items[: -self.interval], items[self.interval :])
         ]
 
         if snapshots:
-            mappings = list(
-                filter(lambda f: f[0][: -len(".gpickle.gz")] in snapshots, mappings)
-            )
+            mappings = list(filter(lambda f: f[0] in snapshots, mappings))
 
         if not overwrite:
             existing_files = list_dir(self.destination, ".json")
@@ -71,71 +67,44 @@ class SnapshotMappingEdgelistStep(PipelineStep):
     def execute_item(self, item):
         filename1, filename2 = item
 
-        # Load structure
-        G1 = load_crossref_graph(filename1, self.source_graph)
-        G2 = load_crossref_graph(filename2, self.source_graph)
-
-        print("Graphs loaded")
-
-        # Load texts
-        leave_texts1 = get_leaf_texts_to_compare(
-            filename1,
-            G1,
-            self.source_text,
-            self.source_text_reg,
-            self.law_names_data,
-            self.dataset,
-        )
-        leave_texts2 = get_leaf_texts_to_compare(
-            filename2,
-            G2,
-            self.source_text,
-            self.source_text_reg,
-            self.law_names_data,
-            self.dataset,
-        )
+        data1 = self.load_pickle(filename1)
+        data2 = self.load_pickle(filename2)
 
         print("Text loaded")
 
         # STEP 1: unique perfect matches
         new_mappings = map_unique_texts(
-            leave_texts1, leave_texts2, min_text_length=self.min_text_length
+            data1, data2, min_text_length=self.min_text_length
         )
-        remaining_keys1, remaining_keys2 = get_remaining(
-            leave_texts1, leave_texts2, new_mappings
-        )
+        remaining_keys1, remaining_keys2 = get_remaining(data1, data2, new_mappings)
 
         print("Step 1")
 
         # STEP 2: nonunique, nonmoved perfect matches
         new_mappings_current_step = map_same_citekey_same_text(
-            leave_texts1, leave_texts2, G1, G2, remaining_keys1, remaining_keys2
+            data1, data2, remaining_keys1, remaining_keys2
         )
         new_mappings = {**new_mappings_current_step, **new_mappings}
-        remaining_keys1, remaining_keys2 = get_remaining(
-            leave_texts1, leave_texts2, new_mappings
-        )
+        remaining_keys1, remaining_keys2 = get_remaining(data1, data2, new_mappings)
 
         print("Step 2")
 
         # STEP 3: text appended/prepended/removed
+        index_path1 = os.path.join(self.source, filename1 + "_index")
+        index_path2 = os.path.join(self.source, filename2 + "_index")
         new_mappings_current_step = map_text_containment(
-            leave_texts1, leave_texts2, remaining_keys1, remaining_keys2
+            index_path1, index_path2, data1, data2, remaining_keys1, remaining_keys2
         )
         new_mappings = {**new_mappings_current_step, **new_mappings}
-        remaining_keys1, remaining_keys2 = get_remaining(
-            leave_texts1, leave_texts2, new_mappings
-        )
+        remaining_keys1, remaining_keys2 = get_remaining(data1, data2, new_mappings)
 
         print("Step 3")
 
         # STEP 4: neighborhood matching
         map_similar_text_common_neighbors(
             new_mappings,
-            leave_texts1,
-            leave_texts2,
-            G1,
-            G2,
+            data1,
+            data2,
             remaining_keys1,
             remaining_keys2,
             radius=self.radius,
@@ -148,9 +117,12 @@ class SnapshotMappingEdgelistStep(PipelineStep):
             json.dump(new_mappings, f)
 
         # only called to print stats
-        get_remaining(
-            leave_texts1, leave_texts2, new_mappings, asserting=False, printing=True
-        )
+        get_remaining(data1, data2, new_mappings)
+
+    def load_pickle(self, snapshot):
+        with open(os.path.join(self.source, snapshot + ".pickle"), "rb") as f:
+            raw_data = pickle.load(f)
+        return raw_data
 
 
 def mapping_filename(mapping):
@@ -158,9 +130,7 @@ def mapping_filename(mapping):
     returns the filename mappings are stored in
     """
     filename1, filename2 = mapping
-    result = (
-        f"{filename1[: -len('.gpickle.gz')]}_{filename2[: -len('.gpickle.gz')]}.json"
-    )
+    result = f"{filename1}_{filename2}.json"
     return result
 
 
@@ -170,17 +140,19 @@ def load_crossref_graph(filename, source):
     return G
 
 
-def get_remaining(t1, t2, new_mappings, asserting=True, printing=False):
+def get_remaining(data1, data2, new_mappings, asserting=True, printing=True):
     """
     Prints stats and returns keys of both snapshots to be matched
     """
-    remaining_keys1 = set(t1.keys()) - set(new_mappings.keys())
-    remaining_keys2 = set(t2.keys()) - set(new_mappings.values())
+    remaining_keys1 = set(data1["keys"]) - set(new_mappings.keys())
+    remaining_keys2 = set(data2["keys"]) - set(new_mappings.values())
     if asserting:
         assert len(set(new_mappings.keys())) == len(set(new_mappings.values()))
     if printing:
         print(f"{len(remaining_keys1)} {len(remaining_keys2)}")
-        print(f"Progress {len(new_mappings)/min(len(t1), len(t2))}")
+        print(
+            f"Progress {len(new_mappings)/min(len(data1['keys']), len(data2['keys']))}"
+        )
     return remaining_keys1, remaining_keys2
 
 
@@ -226,11 +198,14 @@ def get_leaf_texts_to_compare(
     return texts
 
 
-def map_unique_texts(leave_texts1, leave_texts2, min_text_length=50):
+def map_unique_texts(data1, data2, min_text_length=50):
     """
     Maps nodes from snapshot t1 to t2 if texts are in each snapshot unique and appear
     in the both snapshots
     """
+    leave_texts1 = {k: t for k, t in zip(data1["keys"], data1["texts"])}
+    leave_texts2 = {k: t for k, t in zip(data2["keys"], data2["texts"])}
+
     # Create dicts with text as keys
     inverted_unique_leave_texts1 = invert_dict_mapping_unique(leave_texts1)
     inverted_unique_leave_texts2 = invert_dict_mapping_unique(leave_texts2)
@@ -252,11 +227,15 @@ def map_unique_texts(leave_texts1, leave_texts2, min_text_length=50):
     return new_mappings
 
 
-def map_same_citekey_same_text(
-    leave_texts1, leave_texts2, G1, G2, remaining_keys1, remaining_keys2
-):
+def map_same_citekey_same_text(data1, data2, remaining_keys1, remaining_keys2):
     # inverted_leave_texts1 = invert_dict_mapping_all(leave_texts1)
     # # currently not needed
+    leave_texts1 = {k: t for k, t in zip(data1["keys"], data1["texts"])}
+    leave_texts2 = {k: t for k, t in zip(data2["keys"], data2["texts"])}
+
+    cite_keys1 = {k: c for k, c in zip(data1["keys"], data1["citekeys"])}
+    cite_keys2 = {k: c for k, c in zip(data2["keys"], data2["citekeys"])}
+
     inverted_leave_texts2 = invert_dict_mapping_all(leave_texts2)
 
     new_mappings = {}
@@ -266,13 +245,13 @@ def map_same_citekey_same_text(
         ids2 = inverted_leave_texts2.get(text1)
         if not ids2 or not len(ids2):
             continue
-        cite_key1 = G1.nodes[remaining_key1].get("citekey")
+        cite_key1 = cite_keys1[remaining_key1]
         # does not work for subseqitems. in this case to up to seqitem and use their
         # citekey. Same for cite_key2.
         if not cite_key1:
             continue
         for id2 in ids2:
-            cite_key2 = G2.nodes[id2].get("citekey")
+            cite_key2 = cite_keys2[id2]
             if not cite_key2:
                 continue
             if cite_key1.lower() == cite_key2.lower() and id2 in remaining_keys2:
@@ -288,46 +267,79 @@ def clip_text_for_containment_matching(text):
 
 
 def map_text_containment(
-    leave_texts1, leave_texts2, remaining_keys1, remaining_keys2, min_text_length=50
+    index_path1,
+    index_path2,
+    data1,
+    data2,
+    remaining_keys1,
+    remaining_keys2,
+    min_text_length=50,
 ):
-    leave_texts_clipped1 = {
-        k: clip_text_for_containment_matching(v) for k, v in leave_texts1.items()
-    }
-    leave_texts_clipped2 = {
-        k: clip_text_for_containment_matching(v) for k, v in leave_texts2.items()
-    }
+    leave_texts1 = {k: v for k, v in zip(data1["keys"], data1["texts"])}
+    leave_texts2 = {k: v for k, v in zip(data2["keys"], data2["texts"])}
 
-    candidate_mappings = {k: list() for k in remaining_keys1}
-    candidate_inverted_mappings = {k: list() for k in remaining_keys2}
-    for remaining_key1 in sorted(remaining_keys1):
-        text1 = leave_texts_clipped1[remaining_key1]
+    candidate_mappings = {}
+
+    matched_keys2 = Counter()
+    matched_keys1 = Counter()
+
+    ix = open_dir(index_path1)
+    i = 0
+    with ix.searcher() as searcher:
+        for remaining_key1 in sorted(remaining_keys1):
+            i += 1
+            print(f"\r{i} / {len(remaining_keys1)}", end="")
+            text_clipped = clip_text_for_containment_matching(
+                leave_texts1[remaining_key1]
+            )
+            if len(text_clipped) > min_text_length:
+                query_text = text_clipped.lower()
+                query = Phrase("content", query_text.split())
+                results = searcher.search(query)
+                result_keys = [r["key"] for r in results]
+                result_keys = [k for k in result_keys if k in remaining_keys2]
+                matched_keys2.update(result_keys)
+                if len(result_keys) == 1:
+                    candidate_mappings[remaining_key1] = result_keys[0]
+
+    ix = open_dir(index_path2)
+    with ix.searcher() as searcher:
         for remaining_key2 in sorted(remaining_keys2):
-            text2 = leave_texts_clipped2[remaining_key2]
-            if (len(text1) > min_text_length and text1 in text2) or (
-                len(text2) > min_text_length and text2 in text1
-            ):
-                candidate_mappings[remaining_key1].append(remaining_key2)
-                candidate_inverted_mappings[remaining_key2].append(remaining_key1)
-
-    candidate_mappings = {k: v[0] for k, v in candidate_mappings.items() if len(v) == 1}
-    candidate_inverted_mappings = {
-        k: v[0] for k, v in candidate_inverted_mappings.items() if len(v) == 1
-    }
+            text_clipped = clip_text_for_containment_matching(
+                leave_texts2[remaining_key2]
+            )
+            if len(text_clipped) <= min_text_length:
+                query_text = text_clipped.lower()
+                query = Phrase("content", query_text.split())
+                results = searcher.search(query)
+                result_keys = [r["key"] for r in results]
+                result_keys = [k for k in result_keys if k in remaining_keys1]
+                matched_keys1.update(result_keys)
+                if len(result_keys) == 1:
+                    candidate_mappings[result_keys[0]] = remaining_key2
 
     new_mappings = {
-        k: v
-        for k, v in candidate_mappings.items()
-        if v in candidate_inverted_mappings.keys()
+        key1: key2
+        for key1, key2 in candidate_mappings.items()
+        if matched_keys1[key1] == 1 and matched_keys2[key2] == 1
     }
 
     return new_mappings
 
 
-def get_neighborhood(G, node, radius):
-    return sorted(
-        nx.ego_graph(G, node, radius).nodes,
-        key=lambda x: nx.shortest_path_length(G, node, x),
-    )
+def get_neighborhood(data, node, radius):
+
+    curr_index = data["keys"].index(node)
+    lower_bound = max(0, curr_index - radius)
+    upper_bound = min(len(data["keys"]), curr_index + radius)
+
+    neighborhood = data["keys"][lower_bound : upper_bound + 1]
+
+    # Remove node in radius but of another law/title as their order ist mostly arbitrary
+    key_prefix = node.split("_")[0]
+    neighborhood = [n for n in neighborhood if n.startswith(key_prefix)]
+
+    return neighborhood
 
 
 def cached_text_distance(s1, s2, cache):
@@ -342,17 +354,15 @@ def cached_text_distance(s1, s2, cache):
 
 def map_similar_text_common_neighbors(
     new_mappings,
-    leave_texts1,
-    leave_texts2,
-    G1,
-    G2,
+    data1,
+    data2,
     remaining_keys1,
     remaining_keys2,
     radius=5,
     distance_threshold=0.9,
 ):
-    sG1 = sequence_graph(G1)
-    sG2 = sequence_graph(G2)
+    leave_texts1 = {k: v for k, v in zip(data1["keys"], data1["texts"])}
+    leave_texts2 = {k: v for k, v in zip(data2["keys"], data2["texts"])}
 
     text_distance_cache = dict()
 
@@ -371,13 +381,13 @@ def map_similar_text_common_neighbors(
         # Get neighborhood of node in G1
         # Get mapping to G2 for neighborhood nodes
         # Get neighborhood of mapped G2 nodes
-        neighborhood_nodes1 = get_neighborhood(sG1, remaining_key1, radius)
+        neighborhood_nodes1 = get_neighborhood(data1, remaining_key1, radius)
         neighborhood_nodes2 = []
 
         for neighborhood_node1 in neighborhood_nodes1:
             if neighborhood_node1 in new_mappings:
                 neighborhood_nodes2 += get_neighborhood(
-                    sG2, new_mappings[neighborhood_node1], radius
+                    data2, new_mappings[neighborhood_node1], radius
                 )
 
         # Remove duplicates in G2 neighborhood
