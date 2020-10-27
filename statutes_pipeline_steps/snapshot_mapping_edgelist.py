@@ -1,4 +1,5 @@
 import json
+import os
 from collections import deque
 
 import networkx as nx
@@ -21,6 +22,7 @@ class SnapshotMappingEdgelistStep(PipelineStep):
         self,
         source_graph,
         source_text,
+        source_text_reg,
         destination,
         interval,
         dataset,
@@ -33,6 +35,7 @@ class SnapshotMappingEdgelistStep(PipelineStep):
     ):
         self.source_graph = source_graph
         self.source_text = source_text
+        self.source_text_reg = source_text_reg
         self.destination = destination
         self.interval = interval
         self.dataset = dataset
@@ -72,13 +75,27 @@ class SnapshotMappingEdgelistStep(PipelineStep):
         G1 = load_crossref_graph(filename1, self.source_graph)
         G2 = load_crossref_graph(filename2, self.source_graph)
 
+        print("Graphs loaded")
+
         # Load texts
         leave_texts1 = get_leaf_texts_to_compare(
-            filename1, G1, self.source_text, self.law_names_data, self.dataset
+            filename1,
+            G1,
+            self.source_text,
+            self.source_text_reg,
+            self.law_names_data,
+            self.dataset,
         )
         leave_texts2 = get_leaf_texts_to_compare(
-            filename2, G2, self.source_text, self.law_names_data, self.dataset
+            filename2,
+            G2,
+            self.source_text,
+            self.source_text_reg,
+            self.law_names_data,
+            self.dataset,
         )
+
+        print("Text loaded")
 
         # STEP 1: unique perfect matches
         new_mappings = map_unique_texts(
@@ -87,6 +104,8 @@ class SnapshotMappingEdgelistStep(PipelineStep):
         remaining_keys1, remaining_keys2 = get_remaining(
             leave_texts1, leave_texts2, new_mappings
         )
+
+        print("Step 1")
 
         # STEP 2: nonunique, nonmoved perfect matches
         new_mappings_current_step = map_same_citekey_same_text(
@@ -97,6 +116,8 @@ class SnapshotMappingEdgelistStep(PipelineStep):
             leave_texts1, leave_texts2, new_mappings
         )
 
+        print("Step 2")
+
         # STEP 3: text appended/prepended/removed
         new_mappings_current_step = map_text_containment(
             leave_texts1, leave_texts2, remaining_keys1, remaining_keys2
@@ -105,6 +126,8 @@ class SnapshotMappingEdgelistStep(PipelineStep):
         remaining_keys1, remaining_keys2 = get_remaining(
             leave_texts1, leave_texts2, new_mappings
         )
+
+        print("Step 3")
 
         # STEP 4: neighborhood matching
         map_similar_text_common_neighbors(
@@ -118,6 +141,8 @@ class SnapshotMappingEdgelistStep(PipelineStep):
             radius=self.radius,
             distance_threshold=self.distance_threshold,
         )
+
+        print("Step 4")
 
         with open(f"{self.destination}/{mapping_filename(item)}", "w") as f:
             json.dump(new_mappings, f)
@@ -159,7 +184,9 @@ def get_remaining(t1, t2, new_mappings, asserting=True, printing=False):
     return remaining_keys1, remaining_keys2
 
 
-def get_leaf_texts_to_compare(graph_filename, G, source_text, law_names_data, dataset):
+def get_leaf_texts_to_compare(
+    graph_filename, G, source_text, source_text_reg, law_names_data, dataset
+):
     """
     get text for leaves of a hierarchy graph. Can be seqitem or supseqitem graph.
     Leaves are only seqitems or supseqitems.
@@ -169,20 +196,27 @@ def get_leaf_texts_to_compare(graph_filename, G, source_text, law_names_data, da
     snapshot = graph_filename[: -len(".gpickle.gz")]
 
     if dataset == "us":
-        files = sorted(
-            [
-                x
-                for x in list_dir(source_text, ".xml")
+        files = [
+            os.path.join(source_text, x)
+            for x in list_dir(source_text, ".xml")
+            if x.split(".")[0].split("_")[-1] == snapshot
+        ]
+        if source_text_reg:
+            files += [
+                os.path.join(source_text_reg, x)
+                for x in list_dir(source_text_reg, ".xml")
                 if x.split(".")[0].split("_")[-1] == snapshot
             ]
-        )
+        files.sort()
     else:  # is DE
         files = get_snapshot_law_list(snapshot, law_names_data)
+        files = [os.path.join(source_text, f) for f in files]
 
     whitespace_pattern = regex.compile(r"[\s\n]+")
     texts = {}
     for file in files:
-        soup = create_soup(f"{source_text}/{file}")
+        print(f"\r{files.index(file)} / {len(files)}", end="")
+        soup = create_soup(file)
         tags = soup.find_all(["seqitem", "subseqitem"])
         for tag in tags:
             if tag["key"] in leaf_keys:

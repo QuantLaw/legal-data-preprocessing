@@ -24,6 +24,7 @@ from statics import (
     US_REG_CROSSREFERENCE_GRAPH_PATH,
     US_REG_HIERARCHY_GRAPH_PATH,
     US_REG_REFERENCE_PARSED_PATH,
+    US_REG_SNAPSHOT_MAPPING_EDGELIST_PATH,
     US_SNAPSHOT_MAPPING_EDGELIST_PATH,
 )
 from statutes_pipeline_steps.crossreference_graph import CrossreferenceGraphStep
@@ -390,9 +391,20 @@ if __name__ == "__main__":
 
     if "snapshot_mapping_edgelist" in steps:
         if dataset == "us":
-            source_graph = f"{US_CROSSREFERENCE_GRAPH_PATH}/subseqitems"
+            source_graph = os.path.join(
+                US_REG_CROSSREFERENCE_GRAPH_PATH
+                if regulations
+                else US_CROSSREFERENCE_GRAPH_PATH,
+                "subseqitems",
+            )
             source_text = US_REFERENCE_PARSED_PATH
-            destination = f"{US_SNAPSHOT_MAPPING_EDGELIST_PATH}/subseqitems"
+            source_text_reg = US_REG_REFERENCE_PARSED_PATH if regulations else None
+            destination = os.path.join(
+                US_REG_SNAPSHOT_MAPPING_EDGELIST_PATH
+                if regulations
+                else US_SNAPSHOT_MAPPING_EDGELIST_PATH,
+                "subseqitems",
+            )
             law_names_data = None
         elif dataset == "de":
             source_graph = os.path.join(
@@ -415,7 +427,14 @@ if __name__ == "__main__":
             law_names_data = load_law_names(regulations)
 
         step = SnapshotMappingEdgelistStep(
-            source_graph, source_text, destination, interval, dataset, law_names_data
+            source_graph,
+            source_text,
+            source_text_reg,
+            destination,
+            interval,
+            dataset,
+            law_names_data,
+            processes=1,
         )
         items = step.get_items(overwrite, snapshots)
         step.execute_items(items)
