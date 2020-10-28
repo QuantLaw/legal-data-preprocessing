@@ -1,6 +1,5 @@
 import os
 import pickle
-import shutil
 
 import networkx as nx
 from quantlaw.utils.beautiful_soup import create_soup
@@ -8,9 +7,6 @@ from quantlaw.utils.files import ensure_exists, list_dir
 from quantlaw.utils.networkx import get_leaves
 from quantlaw.utils.pipeline import PipelineStep
 from regex import regex
-from whoosh.analysis import KeywordAnalyzer
-from whoosh.fields import ID, NUMERIC, TEXT, Schema
-from whoosh.index import create_in
 
 from utils.common import get_snapshot_law_list
 
@@ -42,8 +38,8 @@ class SnapshotMappingIndexStep(PipelineStep):
             items = list(filter(lambda i: i in snapshots, items))
 
         if not overwrite:
-            existing_files = list_dir(self.destination, ".json")
-            items = list(filter(lambda x: (x + "_index") not in existing_files, items))
+            existing_files = list_dir(self.destination, ".pickle")
+            items = list(filter(lambda x: (x + ".pickle") not in existing_files, items))
         return items
 
     def execute_item(self, item):
@@ -60,7 +56,7 @@ class SnapshotMappingIndexStep(PipelineStep):
         self.save_raw(item, G, leave_texts)
         del G
 
-        self.save_index(item, leave_texts)
+        # self.save_index(item, leave_texts)
 
     def save_raw(self, item, G, leave_texts):
 
@@ -75,25 +71,25 @@ class SnapshotMappingIndexStep(PipelineStep):
         with open(pickle_path, "wb") as f:
             pickle.dump(dict(keys=keys, texts=texts, citekeys=citekeys), f)
 
-    def save_index(self, item, leave_texts):
-        index_dir = os.path.join(self.destination, item + "_index")
-
-        if os.path.exists(index_dir):
-            shutil.rmtree(index_dir)
-        os.makedirs(index_dir)
-
-        snapshot_mapping_schema = Schema(
-            content=TEXT(analyzer=KeywordAnalyzer(lowercase=True, commas=False)),
-            content_len=NUMERIC,
-            key=ID(stored=True),
-        )
-
-        ix = create_in(index_dir, snapshot_mapping_schema)
-        writer = ix.writer()
-        for key, text in leave_texts:
-            writer.add_document(content=text, key=key, content_len=len(text))
-
-        writer.commit()
+    # def save_index(self, item, leave_texts):
+    #     index_dir = os.path.join(self.destination, item + "_index")
+    #
+    #     if os.path.exists(index_dir):
+    #         shutil.rmtree(index_dir)
+    #     os.makedirs(index_dir)
+    #
+    #     snapshot_mapping_schema = Schema(
+    #         content=TEXT(analyzer=KeywordAnalyzer(lowercase=True, commas=False)),
+    #         content_len=NUMERIC,
+    #         key=ID(stored=True),
+    #     )
+    #
+    #     ix = create_in(index_dir, snapshot_mapping_schema)
+    #     writer = ix.writer()
+    #     for key, text in leave_texts:
+    #         writer.add_document(content=text, key=key, content_len=len(text))
+    #
+    #     writer.commit()
 
 
 def load_crossref_graph(item, source):
