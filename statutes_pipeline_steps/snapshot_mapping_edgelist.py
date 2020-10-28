@@ -10,14 +10,13 @@ from quantlaw.utils.files import ensure_exists, list_dir
 from quantlaw.utils.networkx import get_leaves
 from quantlaw.utils.pipeline import PipelineStep
 from regex import regex
-from whoosh.index import open_dir
-from whoosh.query import Phrase
 
 from utils.common import (
     get_snapshot_law_list,
     invert_dict_mapping_all,
     invert_dict_mapping_unique,
 )
+from utils.string_list_contains import StringContainsAlign
 
 
 class SnapshotMappingEdgelistStep(PipelineStep):
@@ -90,10 +89,8 @@ class SnapshotMappingEdgelistStep(PipelineStep):
         print("Step 2")
 
         # STEP 3: text appended/prepended/removed
-        index_path1 = os.path.join(self.source, filename1 + "_index")
-        index_path2 = os.path.join(self.source, filename2 + "_index")
         new_mappings_current_step = map_text_containment(
-            index_path1, index_path2, data1, data2, remaining_keys1, remaining_keys2
+            data1, data2, remaining_keys1, remaining_keys2
         )
         new_mappings = {**new_mappings_current_step, **new_mappings}
         remaining_keys1, remaining_keys2 = get_remaining(data1, data2, new_mappings)
@@ -267,62 +264,43 @@ def clip_text_for_containment_matching(text):
 
 
 def map_text_containment(
-    index_path1,
-    index_path2,
     data1,
     data2,
     remaining_keys1,
     remaining_keys2,
     min_text_length=50,
 ):
-    leave_texts1 = {k: v for k, v in zip(data1["keys"], data1["texts"])}
-    leave_texts2 = {k: v for k, v in zip(data2["keys"], data2["texts"])}
+    aligner = StringContainsAlign(min_text_length=min_text_length)
+    aligner.text_list_0 = [
+        clip_text_for_containment_matching(t) for t in data1["texts"]
+    ]
+    aligner.text_list_1 = [
+        clip_text_for_containment_matching(t) for t in data2["texts"]
+    ]
+    aligner.create_index()
 
-    candidate_mappings = {}
+    containment_idx_forward = aligner.run()
+    containment_idx_reversed = aligner.run(reversed=True)
+    containment_idx_reversed = [(v, u) for u, v in containment_idx_reversed]
 
-    matched_keys2 = Counter()
-    matched_keys1 = Counter()
+    # Filter one to one matches
+    idx_1_counts = Counter()
+    idx_1_counts.update(u for u, v in containment_idx_forward)
+    idx_1_counts.update(u for u, v in containment_idx_reversed)
 
-    ix = open_dir(index_path1)
-    i = 0
-    with ix.searcher() as searcher:
-        for remaining_key1 in sorted(remaining_keys1):
-            i += 1
-            print(f"\r{i} / {len(remaining_keys1)}", end="")
-            text_clipped = clip_text_for_containment_matching(
-                leave_texts1[remaining_key1]
-            )
-            if len(text_clipped) > min_text_length:
-                query_text = text_clipped.lower()
-                query = Phrase("content", query_text.split())
-                results = searcher.search(query)
-                result_keys = [r["key"] for r in results]
-                result_keys = [k for k in result_keys if k in remaining_keys2]
-                matched_keys2.update(result_keys)
-                if len(result_keys) == 1:
-                    candidate_mappings[remaining_key1] = result_keys[0]
+    idx_2_counts = Counter()
+    idx_2_counts.update(v for u, v in containment_idx_forward)
+    idx_2_counts.update(v for u, v in containment_idx_reversed)
 
-    ix = open_dir(index_path2)
-    with ix.searcher() as searcher:
-        for remaining_key2 in sorted(remaining_keys2):
-            text_clipped = clip_text_for_containment_matching(
-                leave_texts2[remaining_key2]
-            )
-            if len(text_clipped) <= min_text_length:
-                query_text = text_clipped.lower()
-                query = Phrase("content", query_text.split())
-                results = searcher.search(query)
-                result_keys = [r["key"] for r in results]
-                result_keys = [k for k in result_keys if k in remaining_keys1]
-                matched_keys1.update(result_keys)
-                if len(result_keys) == 1:
-                    candidate_mappings[result_keys[0]] = remaining_key2
+    unique_keys_1 = {idx for idx, cnt in idx_1_counts.items() if cnt == 1}
+    unique_keys_2 = {idx for idx, cnt in idx_2_counts.items() if cnt == 1}
 
-    new_mappings = {
-        key1: key2
-        for key1, key2 in candidate_mappings.items()
-        if matched_keys1[key1] == 1 and matched_keys2[key2] == 1
-    }
+    new_mappings = {}
+    for u, v in containment_idx_forward + containment_idx_reversed:
+        if u in unique_keys_1 and v in unique_keys_2:
+            u_key = data1["keys"][u]
+            v_key = data1["keys"][v]
+            new_mappings[u_key] = v_key
 
     return new_mappings
 
