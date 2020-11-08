@@ -1,4 +1,5 @@
 import json
+import multiprocessing
 import os
 import pickle
 from collections import Counter, deque
@@ -20,6 +21,8 @@ from utils.string_list_contains import StringContainsAlign
 
 
 class SnapshotMappingEdgelistStep(PipelineStep):
+    max_number_of_processes = min(max(multiprocessing.cpu_count() - 2, 1), 4)
+
     def __init__(
         self,
         source,
@@ -43,8 +46,8 @@ class SnapshotMappingEdgelistStep(PipelineStep):
 
     def get_items(self, overwrite, snapshots) -> list:
         ensure_exists(self.destination)
-        items = sorted(list_dir(self.source, "_index"))
-        items = [i[: -len("_index")] for i in items]
+        items = sorted(list_dir(self.source, ".pickle"))
+        items = [i[: -len(".pickle")] for i in items]
 
         # Create mappings to draw the edges
         mappings = [
@@ -68,8 +71,6 @@ class SnapshotMappingEdgelistStep(PipelineStep):
 
         data1 = self.load_pickle(filename1)
         data2 = self.load_pickle(filename2)
-
-        print("Text loaded")
 
         # STEP 1: unique perfect matches
         new_mappings = map_unique_texts(
@@ -109,8 +110,9 @@ class SnapshotMappingEdgelistStep(PipelineStep):
         )
 
         print("Step 4")
-
-        with open(f"{self.destination}/{mapping_filename(item)}", "w") as f:
+        dest_path = f"{self.destination}/{mapping_filename(item)}"
+        print(dest_path)
+        with open(dest_path, "w") as f:
             json.dump(new_mappings, f)
 
         # only called to print stats
@@ -148,6 +150,7 @@ def get_remaining(data1, data2, new_mappings, asserting=True, printing=True):
     if printing:
         print(f"{len(remaining_keys1)} {len(remaining_keys2)}")
         print(
+            f"Remiaining keys: {len(remaining_keys1)} {len(remaining_keys2)}; "
             f"Progress {len(new_mappings)/min(len(data1['keys']), len(data2['keys']))}"
         )
     return remaining_keys1, remaining_keys2
@@ -270,27 +273,33 @@ def map_text_containment(
     remaining_keys2,
     min_text_length=50,
 ):
+    remaining_keys1_list = sorted(remaining_keys1)
+    remaining_keys2_list = sorted(remaining_keys2)
+    leave_texts1_dict = {k: t for k, t in zip(data1["keys"], data1["texts"])}
+    leave_texts2_dict = {k: t for k, t in zip(data2["keys"], data2["texts"])}
+
     aligner = StringContainsAlign(min_text_length=min_text_length)
     aligner.text_list_0 = [
-        clip_text_for_containment_matching(t) for t in data1["texts"]
+        clip_text_for_containment_matching(leave_texts1_dict[k])
+        for k in remaining_keys1_list
     ]
     aligner.text_list_1 = [
-        clip_text_for_containment_matching(t) for t in data2["texts"]
+        clip_text_for_containment_matching(leave_texts2_dict[k])
+        for k in remaining_keys2_list
     ]
     aligner.create_index()
 
     containment_idx_forward = aligner.run()
     containment_idx_reversed = aligner.run(reversed=True)
+    aligner.clean_index()
+
     containment_idx_reversed = [(v, u) for u, v in containment_idx_reversed]
 
-    # Filter one to one matches
-    idx_1_counts = Counter()
-    idx_1_counts.update(u for u, v in containment_idx_forward)
-    idx_1_counts.update(u for u, v in containment_idx_reversed)
+    containment_idx = set(containment_idx_forward + containment_idx_reversed)
 
-    idx_2_counts = Counter()
-    idx_2_counts.update(v for u, v in containment_idx_forward)
-    idx_2_counts.update(v for u, v in containment_idx_reversed)
+    # Filter one to one matches
+    idx_1_counts = Counter(u for u, v in containment_idx)
+    idx_2_counts = Counter(v for u, v in containment_idx)
 
     unique_keys_1 = {idx for idx, cnt in idx_1_counts.items() if cnt == 1}
     unique_keys_2 = {idx for idx, cnt in idx_2_counts.items() if cnt == 1}
@@ -298,8 +307,8 @@ def map_text_containment(
     new_mappings = {}
     for u, v in containment_idx_forward + containment_idx_reversed:
         if u in unique_keys_1 and v in unique_keys_2:
-            u_key = data1["keys"][u]
-            v_key = data1["keys"][v]
+            u_key = remaining_keys1_list[u]
+            v_key = remaining_keys2_list[v]
             new_mappings[u_key] = v_key
 
     return new_mappings
@@ -349,10 +358,12 @@ def map_similar_text_common_neighbors(
     while len(key_queue):
         remaining_key1 = key_queue.popleft()
         i += 1  # only to print the process
-        print(
-            f"\r{i} \tof {len(key_queue) + i}",
-            end="",
-        )
+        if i % 100 == 0:
+            total = len(key_queue) + i
+            print(
+                f"\r{i/total*100:.2f}% \t ({total} )",
+                end="",
+            )
 
         remaining_text1 = leave_texts1[remaining_key1]
 
@@ -397,3 +408,4 @@ def map_similar_text_common_neighbors(
                 if n in remaining_keys1 and n not in key_queue
             ]
             key_queue.extend(neighborghood_to_requeue)
+    print()

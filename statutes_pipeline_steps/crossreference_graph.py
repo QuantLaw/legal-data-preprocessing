@@ -147,8 +147,8 @@ class CrossreferenceGraphStep(RegulationsPipelineStep):
                 G,
                 {
                     n: "regulation" if n.startswith("cfr") else "statute"
-                    for n, t in G.nodes(data="type")
-                    if t == "document"
+                    for n, l in G.nodes(data="level")
+                    if l >= 0
                 },
                 "document_type",
             )

@@ -24,6 +24,10 @@ class StringContainsAlign:
         self.index_0 = self._text_list_to_token_index(self.text_list_0)
         self.index_1 = self._text_list_to_token_index(self.text_list_1)
 
+    def clean_index(self):
+        self.index_0 = None
+        self.index_1 = None
+
     def _text_list_to_token_index(self, text_list):
         token_index = defaultdict(set)
         for i, text in enumerate(text_list):

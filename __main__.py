@@ -76,7 +76,7 @@ ALL_STEPS = [
     "hierarchy_graph",
     "crossreference_lookup",
     "crossreference_edgelist",
-    "authority_edgelist",  # DE only
+    "authority_edgelist",
     "crossreference_graph",
     # creates edgelist to map nodes between snapshots for DYNAMIC graph
     "snapshot_mapping_index",
@@ -443,7 +443,7 @@ if __name__ == "__main__":
             destination,
             dataset,
             law_names_data,
-            processes=2,
+            processes=processes,
         )
         items = step.get_items(overwrite, snapshots)
         step.execute_items(items)
@@ -483,7 +483,7 @@ if __name__ == "__main__":
             destination,
             interval,
             dataset,
-            processes=4,
+            processes=processes,
         )
         items = step.get_items(overwrite, snapshots)
         step.execute_items(items)
