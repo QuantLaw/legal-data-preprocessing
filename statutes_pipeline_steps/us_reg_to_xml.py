@@ -568,12 +568,10 @@ def parse_cfr_zip(file_name):
             "document", attrib=document_element_attribs()
         )
         last_title_number = None
-        last_volume_number = None
         for member_info in sorted(zip_file.namelist()):
             name_tokens = member_info.split("/")[1].split("-")
             file_year = name_tokens[1]
             title_number = name_tokens[2][5:]
-            volume_number = name_tokens[3][3 : -len(".xml")]
 
             with zip_file.open(member_info) as member_file:
                 nodeid_counter.counter = 1  # set 1 to skip id 1 for document
@@ -581,12 +579,10 @@ def parse_cfr_zip(file_name):
                     current_title_number = file_output_element.attrib["title"]
                     if last_title_number is None:
                         last_title_number = current_title_number
-                        last_volume_number = volume_number
                     elif current_title_number != last_title_number:
                         # output last title when complete
                         complete_title_element.attrib["year"] = file_year
                         complete_title_element.attrib["title"] = last_title_number
-                        complete_title_element.attrib["volume"] = last_volume_number
                         complete_title_element.attrib[
                             "key"
                         ] = f"{get_law_key(last_title_number,0,file_year)}_{1:06d}"
@@ -619,14 +615,12 @@ def parse_cfr_zip(file_name):
 
                     # extend current title
                     complete_title_element.extend(file_output_element.getchildren())
-                    last_volume_number = volume_number
 
             # output final title
             if len(complete_title_element.getchildren()) > 0:
                 # output last title when complete
                 complete_title_element.attrib["year"] = file_year
                 complete_title_element.attrib["title"] = last_title_number
-                complete_title_element.attrib["volume"] = last_volume_number
                 complete_title_element.attrib[
                     "key"
                 ] = f"{get_law_key(last_title_number, 0, file_year)}_{1:06d}"
