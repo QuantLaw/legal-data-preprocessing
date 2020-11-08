@@ -377,7 +377,7 @@ def parse_cfr_section(section_element, law_key, level):
     key_suffix = ""
     texts = []
     for child_element in section_element.getchildren():
-        if child_element.tag == "P":
+        if child_element.tag in ("P", "FP"):
             # process child elements
             texts.append(extract_text(child_element).decode("utf-8").strip())
             # debug_list.append(lxml.etree.tostring(
@@ -395,6 +395,59 @@ def parse_cfr_section(section_element, law_key, level):
                 )
         elif child_element.tag == "SUBJECT":
             section_subject = child_element.text
+        elif child_element.tag in [
+            "PRTPAGE",
+            "CITA",
+            "FTNT",
+            "GPH",
+            "EDNOTE",
+            "RESERVED",
+            "NOTE",
+            "EFFDNOT",
+            "EAR",
+            "APPRO",
+            "STARS",
+            "MATH",
+            "LRH",
+            "RRH",
+            "CONTENTS",
+            "SUBTITLE",
+            "CTRHD",
+            "WEDNOTE",
+            "CROSSREF",
+            "WEFFDNO",
+            "TEFFDNO",
+            "EXT-XREF",
+            "EFFDNOTP",
+            "PARAUTH",
+            "WEFFDNOP",
+            "EXHIBIT",
+            "SECAUTH",
+            "AUTH",
+        ]:
+            pass
+        elif child_element.tag in (
+            "EXTRACT",
+            "GPOTABLE",
+            "HD",
+            "LDRWK",
+            "WIDE",
+            "EXAMPLE",
+            "BOXTXT",
+            "TEAR",
+            "WBOXTXT",
+            "TSECT",
+        ):
+            new_text = extract_text(child_element).decode("utf-8").strip()
+            if texts:
+                texts[-1] = texts[-1] + " " + new_text
+            else:
+                texts.append(new_text)
+        else:
+            raise Exception(
+                child_element.tag + "------" + str(lxml.etree.tostring(section_element))
+            )
+
     output_container.attrib["heading"] = "{0} {1}".format(
         section_number, section_subject
     ).strip()
@@ -515,6 +568,7 @@ def parse_cfr_zip(file_name):
             "document", attrib=document_element_attribs()
         )
         last_title_number = None
+        last_volume_number = None
         for member_info in sorted(zip_file.namelist()):
             name_tokens = member_info.split("/")[1].split("-")
             file_year = name_tokens[1]
@@ -527,14 +581,15 @@ def parse_cfr_zip(file_name):
                     current_title_number = file_output_element.attrib["title"]
                     if last_title_number is None:
                         last_title_number = current_title_number
+                        last_volume_number = volume_number
                     elif current_title_number != last_title_number:
                         # output last title when complete
                         complete_title_element.attrib["year"] = file_year
-                        complete_title_element.attrib["title"] = title_number
-                        complete_title_element.attrib["volume"] = volume_number
+                        complete_title_element.attrib["title"] = last_title_number
+                        complete_title_element.attrib["volume"] = last_volume_number
                         complete_title_element.attrib[
                             "key"
-                        ] = f"{get_law_key(title_number,0,file_year)}_{1:06d}"
+                        ] = f"{get_law_key(last_title_number,0,file_year)}_{1:06d}"
 
                         output_file_name = "cfr{0}_{1}.xml".format(
                             last_title_number, file_year
@@ -564,16 +619,17 @@ def parse_cfr_zip(file_name):
 
                     # extend current title
                     complete_title_element.extend(file_output_element.getchildren())
+                    last_volume_number = volume_number
 
             # output final title
             if len(complete_title_element.getchildren()) > 0:
                 # output last title when complete
                 complete_title_element.attrib["year"] = file_year
-                complete_title_element.attrib["title"] = title_number
-                complete_title_element.attrib["volume"] = volume_number
+                complete_title_element.attrib["title"] = last_title_number
+                complete_title_element.attrib["volume"] = last_volume_number
                 complete_title_element.attrib[
                     "key"
-                ] = f"{get_law_key(title_number, 0, file_year)}_{1:06d}"
+                ] = f"{get_law_key(last_title_number, 0, file_year)}_{1:06d}"
 
                 output_file_name = "cfr{0}_{1}.xml".format(last_title_number, file_year)
                 output_file_path = os.path.join(US_REG_XML_PATH, output_file_name)
