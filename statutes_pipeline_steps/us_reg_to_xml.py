@@ -2,6 +2,7 @@ import os
 import re
 import string
 import zipfile
+from collections import deque
 
 import lxml.etree
 from quantlaw.utils.files import list_dir
@@ -544,6 +545,8 @@ def parse_cfr_xml_file(xml_file):
 
     xml_doc = lxml.etree.parse(xml_file)
 
+    title_output_elements = []
+
     for title_element in xml_doc.xpath(".//TITLE"):
         law_key = get_law_key(title_number, volume_number, file_year)
         title_output_element = parse_cfr_container(title_element, law_key)
@@ -551,10 +554,43 @@ def parse_cfr_xml_file(xml_file):
         title_output_element.attrib["title"] = title_number
         title_output_element.attrib["volume"] = volume_number
 
+        title_output_elements.append(title_output_element)
+
+    if len(title_output_elements) > 1:
+        queued_title_output_elements = deque(title_output_elements)
+        title_output_elements = []
+        while queued_title_output_elements:
+            title_output_element = queued_title_output_elements.popleft()
+            # Not last element
+            if len(queued_title_output_elements):
+
+                # contains only one element
+                item_count = len(title_output_element.xpath("//item | //seqitem"))
+                if item_count == 1:
+                    item_elem = title_output_element.xpath("./item")[0]
+
+                    # Item has a heading
+                    assert "heading" in item_elem.attrib
+
+                    # Next elem has only one direct child
+                    next_items = queued_title_output_elements[0].xpath("./item")
+                    if len(next_items) == 1:
+                        next_item = next_items[0]
+
+                        # This direct child has no heading
+                        if "heading" not in next_item.attrib:
+
+                            # Add content of next elem to current and deque next elem
+                            item_elem.extend(next_item.getchildren())
+                            queued_title_output_elements.popleft()
+
+            title_output_elements.append(title_output_element)
+
+    for title_output_element in title_output_elements:
         for element in title_output_element.xpath("//item | //seqitem | //subseqitem"):
             element.attrib["key"] = f"{law_key}_{nodeid_counter():06d}"
 
-        yield title_output_element
+    return title_output_elements
 
 
 def parse_cfr_zip(file_name):
@@ -583,6 +619,9 @@ def parse_cfr_zip(file_name):
                         # output last title when complete
                         complete_title_element.attrib["year"] = file_year
                         complete_title_element.attrib["title"] = last_title_number
+                        complete_title_element.attrib[
+                            "heading"
+                        ] = f"Title {last_title_number}"
                         complete_title_element.attrib[
                             "key"
                         ] = f"{get_law_key(last_title_number,0,file_year)}_{1:06d}"
@@ -621,6 +660,7 @@ def parse_cfr_zip(file_name):
                 # output last title when complete
                 complete_title_element.attrib["year"] = file_year
                 complete_title_element.attrib["title"] = last_title_number
+                complete_title_element.attrib["heading"] = f"Title {last_title_number}"
                 complete_title_element.attrib[
                     "key"
                 ] = f"{get_law_key(last_title_number, 0, file_year)}_{1:06d}"
