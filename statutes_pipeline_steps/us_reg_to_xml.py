@@ -570,19 +570,20 @@ def parse_cfr_xml_file(xml_file):
                     item_elem = title_output_element.xpath("./item")[0]
 
                     # Item has a heading
-                    assert "heading" in item_elem.attrib
+                    if "heading" in item_elem.attrib:
 
-                    # Next elem has only one direct child
-                    next_items = queued_title_output_elements[0].xpath("./item")
-                    if len(next_items) == 1:
-                        next_item = next_items[0]
+                        # Next elem has only one direct child
+                        next_items = queued_title_output_elements[0].xpath("./item")
+                        if len(next_items) == 1:
+                            next_item = next_items[0]
 
-                        # This direct child has no heading
-                        if "heading" not in next_item.attrib:
+                            # This direct child has no heading
+                            if "heading" not in next_item.attrib:
 
-                            # Add content of next elem to current and deque next elem
-                            item_elem.extend(next_item.getchildren())
-                            queued_title_output_elements.popleft()
+                                # Add content of next elem to current and deque
+                                # next elem
+                                item_elem.extend(next_item.getchildren())
+                                queued_title_output_elements.popleft()
 
             title_output_elements.append(title_output_element)
 
