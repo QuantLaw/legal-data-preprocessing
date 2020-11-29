@@ -19,9 +19,9 @@ class HierarchyGraphStep(PipelineStep):
         files = list_dir(self.source, ".xml")
 
         if not overwrite:
-            existing_files = list_dir(self.destination, ".graphml")
+            existing_files = list_dir(self.destination, ".gpickle")
             files = list(
-                filter(lambda f: get_graphml_filename(f) not in existing_files, files)
+                filter(lambda f: get_gpickle_filename(f) not in existing_files, files)
             )
 
         return files
@@ -29,8 +29,8 @@ class HierarchyGraphStep(PipelineStep):
     def execute_item(self, item):
         G = build_graph(f"{self.source}/{item}", add_subseqitems=self.add_subseqitems)
 
-        destination_path = f"{self.destination}/{get_graphml_filename(item)}"
-        nx.write_graphml(G, destination_path)
+        destination_path = f"{self.destination}/{get_gpickle_filename(item)}"
+        nx.write_gpickle(G, destination_path)
 
 
 ###########
@@ -38,8 +38,8 @@ class HierarchyGraphStep(PipelineStep):
 ###########
 
 
-def get_graphml_filename(filename):
-    return f"{os.path.splitext(filename)[0]}.graphml"
+def get_gpickle_filename(filename):
+    return f"{os.path.splitext(filename)[0]}.gpickle"
 
 
 def add_juris_attrs(item, node_attrs):

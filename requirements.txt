@@ -22,7 +22,7 @@ python-dateutil==2.8.1
 pytz==2020.1
 PyYAML==5.3.1
 quantlaw==0.0.1
-regex==2020.9.27
+regex==2020.11.13
 requests==2.24.0
 six==1.15.0
 smmap==3.0.4

@@ -62,8 +62,8 @@ to multiple clean formats focussing on the structure of the law.
 Output formats are:
 
 - XML files containing the text, the hierarchical structure of the law, and cross-references.
-- GraphML files for each Title/Gesetz and version containing the hierarchical structure of the statutes.
-- GraphML files for each snapshot (year in the US or date in Germany) containing the hierarchical structure of the statutes
+- Gpickle files for each Title/Gesetz and version containing the hierarchical structure of the statutes.
+- Gpickle files for each snapshot (year in the US or date in Germany) containing the hierarchical structure of the statutes
     and the cross-references between different elements of the statutes.
 - Snapshot mapping edgelists: These lists map elements of a network at one snapshot
     to a snapshot at another time. They encode, e.g., where a clause of the US Code in 2010 is
@@ -134,7 +134,7 @@ Hierarchy graphs are avaiable in two resolutions:
 - Hierarchy graphs of the individual Titles are combined and edges for cross-references are added within and between
     Titles.
 
-One graph for each annual version of the US Code is stored at `../legal-networks-data/us/4_crossreference_graph`.
+Each annual version of the US Code is stored at `../legal-networks-data/us/4_crossreference_graph` in three files as a nodes-list, an edge-list and networkx graph stored as gpickle.gz-file in the subfolder `seqitems`. The node-list contains all nodes, whereas subseqitems are excluded in the networkx file.
 (Result of step: `crossreference_graph`)
 
 

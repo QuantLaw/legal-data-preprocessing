@@ -4,7 +4,12 @@ import networkx as nx
 import pandas as pd
 from quantlaw.utils.files import ensure_exists, list_dir
 
-from utils.common import RegulationsPipelineStep, get_snapshot_law_list, load_law_names
+from utils.common import (
+    RegulationsPipelineStep,
+    get_snapshot_law_list,
+    load_law_names,
+    load_nx_graph,
+)
 
 
 class CrossreferenceGraphStep(RegulationsPipelineStep):
@@ -28,7 +33,7 @@ class CrossreferenceGraphStep(RegulationsPipelineStep):
         super().__init__(*args, **kwargs)
 
     def get_items(self, overwrite, snapshots) -> list:
-        ensure_exists(self.destination)
+        ensure_exists(self.destination + "/seqitems")
         if not snapshots:
             snapshots = sorted(
                 set(
@@ -54,14 +59,16 @@ class CrossreferenceGraphStep(RegulationsPipelineStep):
             files = []
             for snapshot in snapshots:
                 statute_files = [
-                    f"{self.source}/{x}"
-                    for x in os.listdir(self.source)
+                    f"{self.source}/subseqitems/{x}"
+                    for x in os.listdir(os.path.join(self.source, "subseqitems"))
                     if str(snapshot) in x
                 ]
                 regulation_files = (
                     [
-                        f"{self.source_regulation}/{x}"
-                        for x in os.listdir(self.source_regulation)
+                        f"{self.source_regulation}/subseqitems/{x}"
+                        for x in os.listdir(
+                            os.path.join(self.source_regulation, "subseqitems")
+                        )
                         if str(snapshot) in x
                     ]
                     if self.regulations
@@ -83,7 +90,7 @@ class CrossreferenceGraphStep(RegulationsPipelineStep):
                     (
                         snapshot,
                         [
-                            f'{self.source}/{x.replace(".xml", ".graphml")}'
+                            f'{self.source}/subseqitems/{x.replace(".xml", ".gpickle")}'
                             for x in graph_files
                         ],
                         None,
@@ -98,60 +105,120 @@ class CrossreferenceGraphStep(RegulationsPipelineStep):
         if self.regulations and files_regulations:
             files += files_regulations
 
-        # make forest from trees
-        G = nx.MultiDiGraph()
+        node_columns = [
+            "key",
+            "level",
+            "citekey",
+            "parent_key",
+            "type",
+            "document_type",
+            "heading",
+            "law_name",
+            "chars_n",
+            "chars_nowhites",
+            "tokens_n",
+            "tokens_unique",
+            "abbr_1",
+            "abbr_2",
+            "subject_areas",
+            "legislators",
+            "contributors",
+        ]
+        edge_columns = ["u", "v", "edge_type"]
+
+        nodes_csv_path = f"{self.destination}/{year}.nodes.csv.gz"
+        edges_csv_path = f"{self.destination}/{year}.edges.csv.gz"
+
+        pd.DataFrame(
+            [dict(level=-1, key="root", law_name="root")], columns=node_columns
+        ).to_csv(
+            nodes_csv_path,
+            header=True,
+            index=False,
+            columns=node_columns,
+        )
+
+        pd.DataFrame([], columns=edge_columns).to_csv(
+            edges_csv_path,
+            header=True,
+            index=False,
+            columns=edge_columns,
+        )
+
         for file in files:
-            nG = nx.read_graphml(file)
-
-            # enable filtering by law name
+            nG = nx.read_gpickle(file)
             nx.set_node_attributes(nG, nG.graph.get("name", file), name="law_name")
-            G.add_nodes_from(nG.nodes(data=True))
-            G.add_edges_from(nG.edges())
-        G = nx.MultiDiGraph(G)
 
-        # root means "U.S.C." for US and "Bundesgesetze" for DE (umbrella node)
-        # if regulations flag is set it includes regulations as well
-        G.add_node("root", level=-1, key="root", law_name="root")
+            nodes_df = pd.DataFrame(
+                [d for n, d in nG.nodes(data=True)], columns=node_columns
+            )
 
-        # Add edges from root to the roots to titles (US) or laws (DE)
-        for root in [r for r in G.nodes() if G.nodes[r]["level"] == 0]:
-            G.add_edge("root", root, edge_type="containment")
-        nx.set_edge_attributes(G, "containment", name="edge_type")
+            if self.dataset.lower() == "us":
+                nodes_df["document_type"] = [
+                    "regulation" if key.startswith("cfr") else "statute"
+                    for key in nodes_df.key
+                ]
+
+            nodes_df.to_csv(
+                nodes_csv_path,
+                header=False,
+                index=False,
+                columns=node_columns,
+                mode="a",
+            )
+
+            edges_df = pd.DataFrame(
+                [dict(u=u, v=v, edge_type="containment") for u, v in nG.edges()],
+                columns=edge_columns,
+            )
+
+            for idx, row in nodes_df[nodes_df.level == 0].iterrows():
+                edges_df = edges_df.append(
+                    [dict(u="root", v=row.key, edge_type="containment")]
+                )
+
+            edges_df.to_csv(
+                edges_csv_path,
+                header=False,
+                index=False,
+                columns=edge_columns,
+                mode="a",
+            )
 
         # Get reference edges
         edge_list = pd.read_csv(f"{self.edgelist_folder}/{year}.csv")
-        edges = [tuple(edge[1].values) for edge in edge_list.iterrows()]
-
-        # Assert that no new nodes will be added by the edges
-        for node_from, node_to in edges:
-            assert G.has_node(node_from)
-            assert G.has_node(node_to)
-
-        # Add reference edges
-        G.add_edges_from(edges, edge_type="reference")
+        edges_df = pd.DataFrame(
+            {"u": edge_list.out_node, "v": edge_list.in_node, "edge_type": "reference"},
+            columns=edge_columns,
+        )
+        edges_df.to_csv(
+            edges_csv_path,
+            header=False,
+            index=False,
+            columns=edge_columns,
+            mode="a",
+        )
 
         # add authority edges
         if self.regulations:
             edge_list = pd.read_csv(f"{self.authority_edgelist_folder}/{year}.csv")
-            edges = [tuple(edge[1].values) for edge in edge_list.iterrows()]
-            for node_from, node_to in edges:
-                assert G.has_node(node_from)
-                assert G.has_node(node_to)
-            G.add_edges_from(edges, edge_type="authority")
-
-        G.graph["name"] = f"{year}"
-
-        # TODO remove later when rerun whole pipeline
-        if self.dataset.lower() == "us":
-            nx.set_node_attributes(
-                G,
+            edges_df = pd.DataFrame(
                 {
-                    n: "regulation" if n.startswith("cfr") else "statute"
-                    for n, l in G.nodes(data="level")
-                    if l >= 0
+                    "u": edge_list.out_node,
+                    "v": edge_list.in_node,
+                    "edge_type": "authority",
                 },
-                "document_type",
+                columns=edge_columns,
+            )
+            edges_df.to_csv(
+                edges_csv_path,
+                header=False,
+                index=False,
+                columns=edge_columns,
+                mode="a",
             )
 
-        # Save
-        nx.write_gpickle(G, f"{self.destination}/{year}.gpickle.gz")
+        # Create and save seqitem graph
+        G = load_nx_graph(self.destination, year, subseqitems=False)
+
+        nx.write_gpickle(G, f"{self.destination}/seqitems/{year}.gpickle.gz")

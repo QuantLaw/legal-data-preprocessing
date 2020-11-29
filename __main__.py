@@ -342,71 +342,58 @@ if __name__ == "__main__":
         print("Create authority edgelist: done")
 
     if "crossreference_graph" in steps:
-        for subseqitems_conf in get_subseqitem_conf(args.subseqitems):
-            if dataset == "us":
-                source = os.path.join(
-                    US_HIERARCHY_GRAPH_PATH,
-                    "subseqitems" if subseqitems_conf else "seqitems",
-                )
-                source_regulation = os.path.join(
-                    US_REG_HIERARCHY_GRAPH_PATH,
-                    "subseqitems" if subseqitems_conf else "seqitems",
-                )
-                destination = os.path.join(
-                    US_REG_CROSSREFERENCE_GRAPH_PATH
-                    if regulations
-                    else US_CROSSREFERENCE_GRAPH_PATH,
-                    "subseqitems" if subseqitems_conf else "seqitems",
-                )
-                edgelist_folder = (
-                    US_REG_CROSSREFERENCE_EDGELIST_PATH
-                    if regulations
-                    else US_CROSSREFERENCE_EDGELIST_PATH
-                )
-                authority_edgelist_folder = US_REG_AUTHORITY_EDGELIST_PATH
-            elif dataset == "de":
-                source = (
-                    DE_RVO_HIERARCHY_GRAPH_PATH
-                    if regulations
-                    else DE_HIERARCHY_GRAPH_PATH
-                )
-                source += f'/{"subseqitems" if subseqitems_conf else "seqitems"}'
-                source_regulation = None
-                destination = (
-                    DE_RVO_CROSSREFERENCE_GRAPH_PATH
-                    if regulations
-                    else DE_CROSSREFERENCE_GRAPH_PATH
-                )
-                destination += f'/{"subseqitems" if subseqitems_conf else "seqitems"}'
-                edgelist_folder = (
-                    DE_RVO_CROSSREFERENCE_EDGELIST_PATH
-                    if regulations
-                    else DE_CROSSREFERENCE_EDGELIST_PATH
-                )
-                authority_edgelist_folder = DE_RVO_AUTHORITY_EDGELIST_PATH
-
-            step = CrossreferenceGraphStep(
-                regulations=regulations,
-                source=source,
-                source_regulation=source_regulation,
-                destination=destination,
-                edgelist_folder=edgelist_folder,
-                dataset=dataset,
-                authority_edgelist_folder=authority_edgelist_folder,
-                processes=processes,
+        if dataset == "us":
+            source = US_HIERARCHY_GRAPH_PATH
+            source_regulation = US_REG_HIERARCHY_GRAPH_PATH
+            destination = (
+                US_REG_CROSSREFERENCE_GRAPH_PATH
+                if regulations
+                else US_CROSSREFERENCE_GRAPH_PATH
             )
-            items = step.get_items(overwrite, snapshots)
-            step.execute_items(items)
+            edgelist_folder = (
+                US_REG_CROSSREFERENCE_EDGELIST_PATH
+                if regulations
+                else US_CROSSREFERENCE_EDGELIST_PATH
+            )
+            authority_edgelist_folder = US_REG_AUTHORITY_EDGELIST_PATH
+        elif dataset == "de":
+            source = (
+                DE_RVO_HIERARCHY_GRAPH_PATH if regulations else DE_HIERARCHY_GRAPH_PATH
+            )
+            source_regulation = None
+            destination = (
+                DE_RVO_CROSSREFERENCE_GRAPH_PATH
+                if regulations
+                else DE_CROSSREFERENCE_GRAPH_PATH
+            )
+            edgelist_folder = (
+                DE_RVO_CROSSREFERENCE_EDGELIST_PATH
+                if regulations
+                else DE_CROSSREFERENCE_EDGELIST_PATH
+            )
+            authority_edgelist_folder = DE_RVO_AUTHORITY_EDGELIST_PATH
+
+        step = CrossreferenceGraphStep(
+            regulations=regulations,
+            source=source,
+            source_regulation=source_regulation,
+            destination=destination,
+            edgelist_folder=edgelist_folder,
+            dataset=dataset,
+            authority_edgelist_folder=authority_edgelist_folder,
+            processes=processes,
+        )
+        items = step.get_items(overwrite, snapshots)
+        step.execute_items(items)
 
         print("Make crossreference graph: done")
 
     if "snapshot_mapping_index" in steps:
         if dataset == "us":
-            source_graph = os.path.join(
+            source_graph = (
                 US_REG_CROSSREFERENCE_GRAPH_PATH
                 if regulations
-                else US_CROSSREFERENCE_GRAPH_PATH,
-                "subseqitems",
+                else US_CROSSREFERENCE_GRAPH_PATH
             )
             source_text = US_REFERENCE_PARSED_PATH
             source_text_reg = US_REG_REFERENCE_PARSED_PATH if regulations else None
@@ -418,11 +405,10 @@ if __name__ == "__main__":
             )
             law_names_data = None
         elif dataset == "de":
-            source_graph = os.path.join(
+            source_graph = (
                 DE_RVO_CROSSREFERENCE_GRAPH_PATH
                 if regulations
-                else DE_CROSSREFERENCE_GRAPH_PATH,
-                "subseqitems",
+                else DE_CROSSREFERENCE_GRAPH_PATH
             )
             source_text = (
                 DE_RVO_REFERENCE_PARSED_PATH
