@@ -255,7 +255,8 @@ if __name__ == "__main__":
             print("Parse references: done")
 
     if "hierarchy_graph" in steps:
-        for subseqitems_conf in get_subseqitem_conf(args.subseqitems):
+        # for subseqitems_conf in get_subseqitem_conf(args.subseqitems):
+        for subseqitems_conf in [True]:
             if dataset == "us":
                 source = (
                     US_REG_REFERENCE_PARSED_PATH

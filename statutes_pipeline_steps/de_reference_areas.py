@@ -21,6 +21,8 @@ from utils.common import RegulationsPipelineStep, get_stemmed_law_names_for_file
 
 
 class DeReferenceAreasStep(RegulationsPipelineStep):
+    max_number_of_processes = 2
+
     def __init__(self, law_names, *args, **kwargs):
         self.law_names = law_names
         super().__init__(*args, **kwargs)
