@@ -146,29 +146,41 @@ def load_nx_graph(crossreference_folder, year, subseqitems=False):
 
     G = nx.MultiDiGraph(name=str(year))
 
-    for nodes_df in pd.read_csv(nodes_csv_path, chunksize=10000):
-        nodes = [
-            (row.key, dict(row))
-            for idx, row in nodes_df.iterrows()
-            if subseqitems or row.type != "subseqitem"
-        ]
-        G.add_nodes_from(nodes)
+    nodes_df = pd.read_csv(nodes_csv_path)
 
-    all_nodes = set(G.nodes)
+    if not subseqitems:
+        nodes_df = nodes_df[nodes_df.type != "subseqitem"]
 
-    for edges_df in pd.read_csv(edges_csv_path, chunksize=10000):
-        edges = [
-            (row.u, row.v, {"edge_type": row.edge_type})
-            for idx, row in edges_df.iterrows()
-            if row.u in all_nodes and row.v in all_nodes
-        ]
-        G.add_edges_from(edges)
+    G.add_nodes_from(list(nodes_df.key))
+    for column in nodes_df.columns:
+        nx.set_node_attributes(
+            G,
+            {
+                k: v
+                for k, v in zip(nodes_df.key, nodes_df[column])
+                if v and not pd.isna(v)
+            },
+            column,
+        )
 
-        # For debug
-        for idx, row in edges_df.iterrows():
-            if row.edge_type != "containment" and (
-                row.u not in all_nodes or row.v not in all_nodes
-            ):
-                raise Exception(row)
+    all_nodes = set(nodes_df.key)
+    del nodes_df
+
+    edges_df = pd.read_csv(edges_csv_path)
+    edges = [
+        (row.u, row.v, {"edge_type": row.edge_type})
+        for idx, row in edges_df.iterrows()
+        if row.u in all_nodes and row.v in all_nodes
+    ]
+    del edges_df
+
+    G.add_edges_from(edges)
+
+    # # For debug
+    # for idx, row in edges_df.iterrows():
+    #     if row.edge_type != "containment" and (
+    #         row.u not in all_nodes or row.v not in all_nodes
+    #     ):
+    #         raise Exception(row)
 
     return G

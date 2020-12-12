@@ -1,3 +1,4 @@
+import multiprocessing
 import os
 
 import networkx as nx
@@ -13,6 +14,8 @@ from utils.common import (
 
 
 class CrossreferenceGraphStep(RegulationsPipelineStep):
+    max_number_of_processes = min(2, max(multiprocessing.cpu_count() - 2, 1))
+
     def __init__(
         self,
         source,
