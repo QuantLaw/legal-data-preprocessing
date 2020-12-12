@@ -408,13 +408,21 @@ STATUTE_STRUCTURE = OrderedDict(
         ("note-body-small", "text"),  # discretion
         ("note-body-block", "text"),  # discretion, maybe text-misc instead
         ("italic-text-block", "text"),  # discretion
+        ("statutory-body-block", "text"),
         ("statutory-body-1em", "text-enumeration1"),
+        ("statutory-body-block-1em", "text-enumeration1"),
         ("note-body-1em", "text-enumeration1"),  # discretion
+        ("note-body-block-1em", "text-enumeration1"),
         ("statutory-body-2em", "text-enumeration2"),
+        ("statutory-body-block-2em", "text-enumeration2"),
+        ("statutory-body-flush0_hang2", "text-enumeration2"),  # discretion
         ("note-body-2em", "text-enumeration2"),  # discretion
         ("statutory-body-3em", "text-enumeration3"),
+        ("statutory-body-flush2_hang3", "text-enumeration3"),  # discretion
         ("note-body-3em", "text-enumeration3"),  # discretion
         ("statutory-body-4em", "text-enumeration4"),
+        ("statutory-body-block-4em", "text-enumeration4"),
+        ("statutory-body-flush2_hang4", "text-enumeration4"),  # discretion
         ("statutory-body-5em", "text-enumeration5"),
         ("statutory-body-6em", "text-enumeration6"),
         ("formula", "text-misc"),  # discretion
@@ -569,6 +577,22 @@ def convert_statute_field_to_contents(document):
             open_elements[-1]["contents"].append(new_element)
             # do not add to open_elements , as other elements cannot be nested in table
 
+        elif (
+            child_class in CONTINUATIONS
+            and CONTINUATIONS[child_class] in open_element_types[:-1]
+        ):
+            # add text to previously opened element
+            # e.g. [beginning of sentence] [enumeration] [END OF SENTENCE].
+            continued_item_type = CONTINUATIONS[child_class]
+
+            # Close subelements and continue element of current level
+            # This is the only actions required,
+            # if the continued element already exists in the tree
+            parent_level = open_element_types.index(continued_item_type)
+            del open_elements[parent_level + 1 :]
+            open_elements[-1]["contents"].append(child.get_text())
+            # Raise an error if class in unknown and not in skipped
+
         elif child_class in STATUTE_STRUCTURE:  # default way of adding new elements
             child_type = STATUTE_STRUCTURE[child_class]
 
@@ -605,62 +629,6 @@ def convert_statute_field_to_contents(document):
             open_elements.append(
                 new_element
             )  # open element to enable adding children to it
-
-        elif child_class in CONTINUATIONS:  # add text to previously opened element
-            # e.g. [beginning of sentence] [enumeration] [END OF SENTENCE].
-            continued_item_type = CONTINUATIONS[child_class]
-
-            # In some cases, text of that element only appears after the enumeration.
-            # In this case the omitted element must be added around the enumeration
-            if continued_item_type not in open_element_types:
-                # get types that should be nested in current type
-                lower_types = STATUTE_STRUCTURE_VALUES[
-                    STATUTE_STRUCTURE_VALUES.index(continued_item_type) + 1 :
-                ]
-                subelement_type = None
-                for lower_type in lower_types:
-                    if lower_type in open_element_types:
-                        subelement_type = lower_type
-                        break
-
-                # No subtypes are found to nest: Append without nesting
-                # Single case in 2017: 2017usc /180/PART I/CHAPTER 2/Sec. 33.
-                if not subelement_type:
-                    previous_element = open_elements.pop()
-                    new_element = {
-                        "type": previous_element["type"],
-                        "contents": [child.get_text()],
-                    }
-                    previous_element["contents"].append(new_element)
-                    open_elements.append(new_element)
-                    continue
-
-                lower_level = open_element_types.index(
-                    subelement_type
-                )  # get level of subelements
-                contents_to_move = open_elements[lower_level - 1][
-                    "contents"
-                ]  # get subelements
-                # create a new element containing subelements
-                interim_element = {
-                    "type": continued_item_type,
-                    "contents": contents_to_move,
-                }
-                open_elements[lower_level - 1]["contents"] = [
-                    interim_element
-                ]  # insert new element into tree
-                open_elements.insert(lower_level, interim_element)  # open new element
-                open_element_types = [
-                    elem["type"] for elem in open_elements
-                ]  # regenerate open_element_types
-
-            # Close subelements and continue element of current level
-            # This is the only actions required,
-            # if the continued element already exists in the tree
-            parent_level = open_element_types.index(continued_item_type)
-            del open_elements[parent_level + 1 :]
-            open_elements[-1]["contents"].append(child.get_text())
-            # Raise an error if class in unknown and not in skipped
 
         else:
             if (
