@@ -239,12 +239,12 @@ def convert_to_xml(source_soup, filename, dest, regulations, dok_is_statute):
         if s_enbez and not is_appendix:
             is_appendix = bool(analyse_is_appendix_pattern.match(s_enbez))
 
-        if regulations:
-            if is_appendix:
-                continue
-        else:
-            if is_preamble or is_appendix:
-                continue
+        # if regulations:
+        if is_appendix:
+            continue
+        # else:
+        #     if is_preamble or is_appendix:
+        #         continue
 
         if s_gliederungseinheit:
             # is Item
@@ -282,21 +282,21 @@ def convert_to_xml(source_soup, filename, dest, regulations, dok_is_statute):
                     : corrected_level + 1
                 ]
 
-        if regulations:
-            if s_enbez and s_enbez.lower() in [
-                "inhaltsverzeichnis",
-                "inhaltsübersicht",
-                "inhalt",
-            ]:
-                continue
-        else:
-            if s_enbez and s_enbez.lower() in [
-                "inhaltsverzeichnis",
-                "eingangsformel",
-                "inhaltsübersicht",
-                "inhalt",
-            ]:
-                continue
+        # if regulations:
+        if s_enbez and s_enbez.lower() in [
+            "inhaltsverzeichnis",
+            "inhaltsübersicht",
+            "inhalt",
+        ]:
+            continue
+        # else:
+        #     if s_enbez and s_enbez.lower() in [
+        #         "inhaltsverzeichnis",
+        #         "eingangsformel",
+        #         "inhaltsübersicht",
+        #         "inhalt",
+        #     ]:
+        #         continue
 
         if s_text:  # is seqitem
             t_seqitem = add_new_seqitem(s_enbez, s_text, t_soup, cursor)
