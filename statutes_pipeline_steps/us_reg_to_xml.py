@@ -735,5 +735,6 @@ def merge_continued_items(complete_title_element):
             item.getparent().remove(item)
         else:
             beginning_of_volume = False
-
-            prev_items[(item.attrib["level"], shorten_heading(item))] = item
+            heading = shorten_heading(item)
+            if heading:
+                prev_items[(item.attrib["level"], heading)] = item
