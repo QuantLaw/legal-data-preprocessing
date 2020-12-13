@@ -2,7 +2,7 @@ import os
 import re
 import string
 import zipfile
-from collections import deque
+from collections import defaultdict, deque
 
 import lxml.etree
 from quantlaw.utils.files import list_dir
@@ -20,6 +20,7 @@ CONTAINER_TAG_SET = [
     "SUBCHAP",
     "PART",
     "SUBPART",
+    "SUBJGRP",
 ]
 
 
@@ -38,13 +39,17 @@ class UsRegsToXmlStep(PipelineStep):
         parse_cfr_zip(file_path)
 
 
+extract_text_pattern = re.compile(r"\s+")
+
+
 def extract_text(e):
     """
     Extract normalized text from an element.
     :param e:
     :return:
     """
-    e_text = lxml.etree.tostring(e, encoding="utf-8", method="text")
+    e_text = lxml.etree.tostring(e, encoding="utf-8", method="text").decode("utf-8")
+    e_text = extract_text_pattern.sub(" ", e_text)
     return e_text
 
 
@@ -300,7 +305,7 @@ def disambiguate_number_types(number_types):
                 number_types[i] = ("roman-lower-double-bracket", number)
                 continue
 
-        print(i, "-", values)
+        # print(i, "-", values)
         number_types[i] = ("roman-lower-double-bracket", number)
         continue
 
@@ -380,7 +385,7 @@ def parse_cfr_section(section_element, law_key, level):
     for child_element in section_element.getchildren():
         if child_element.tag in ("P", "FP"):
             # process child elements
-            texts.append(extract_text(child_element).decode("utf-8").strip())
+            texts.append(extract_text(child_element).strip())
             # debug_list.append(lxml.etree.tostring(
             #     child_element, encoding="utf-8", method='text').strip())
         elif child_element.tag == "SECTNO":
@@ -425,6 +430,7 @@ def parse_cfr_section(section_element, law_key, level):
             "EXHIBIT",
             "SECAUTH",
             "AUTH",
+            "LHD1",
         ]:
             pass
         elif child_element.tag in (
@@ -439,7 +445,7 @@ def parse_cfr_section(section_element, law_key, level):
             "WBOXTXT",
             "TSECT",
         ):
-            new_text = extract_text(child_element).decode("utf-8").strip()
+            new_text = extract_text(child_element).strip()
             if texts:
                 texts[-1] = texts[-1] + " " + new_text
             else:
@@ -461,11 +467,6 @@ def parse_cfr_section(section_element, law_key, level):
     return output_container
 
 
-def nodeid_counter():
-    nodeid_counter.counter += 1
-    return nodeid_counter.counter
-
-
 def document_element_attribs():
     xsi_url = "http://www.w3.org/2001/XMLSchema-instance"
     lxml.etree.register_namespace("xsi", xsi_url)
@@ -477,7 +478,40 @@ def document_element_attribs():
     }
 
 
-def parse_cfr_container(container_element, law_key, level=0):
+def get_heading_text(
+    container_element, consider_previous_chapter=True, first_chapter_in_vol=True
+):
+    child_element = container_element.find("./HD")
+    if child_element is not None:
+        return child_element.text and child_element.text.strip()
+
+    child_element = container_element.find("./TOC/TOCHD/HD")
+    if child_element is not None:
+        return child_element.text and child_element.text.strip()
+
+    reserved_element = container_element.find("./RESERVED")
+    if reserved_element is not None:
+        return reserved_element.text and reserved_element.text.strip()
+
+    if container_element.tag == "CHAPTER":
+        if consider_previous_chapter:
+            prev = container_element.getprevious()
+            if prev is not None and [t.tag for t in prev.getchildren()] == ["TOC"]:
+                return get_heading_text(prev, consider_previous_chapter=False)
+
+        if first_chapter_in_vol:
+            chapti = container_element.getroottree().xpath(
+                "/CFRDOC/TOC/TITLENO/CHAPTI[1]/SUBJECT"
+            )
+            if chapti and chapti[0].text:
+                return chapti[0].text.strip()
+
+    return None
+
+
+def parse_cfr_container(
+    container_element, law_key, level=0, first_chapter_in_vol=False
+):
     """
     Parse a container element.
     :param container_element:
@@ -494,17 +528,17 @@ def parse_cfr_container(container_element, law_key, level=0):
         output_container = lxml.etree.Element("item", attrib={"level": str(level)})
 
     # get heading first so that we can pass the key downwards in the tree
-    heading_text = None
-    child_element = container_element.find("./HD")
-    if child_element is not None:
-        heading_text = child_element.text and child_element.text.strip()
-    else:
-        child_element = container_element.find("./TOC/TOCHD/HD")
-        if child_element is not None:
-            heading_text = child_element.text and child_element.text.strip()
-
+    heading_text = get_heading_text(
+        container_element,
+        consider_previous_chapter=True,
+        first_chapter_in_vol=first_chapter_in_vol,
+    )
     if heading_text:
         output_container.attrib["heading"] = heading_text
+
+    # Update first_chapter_in_vol that is used in get_heading_text
+    if first_chapter_in_vol and container_element.tag == "CHAPTER":
+        first_chapter_in_vol = False
 
     auth_element = container_element.find("./AUTH/P")
     if auth_element is not None:
@@ -514,18 +548,21 @@ def parse_cfr_container(container_element, law_key, level=0):
 
     # iterate through children and process recursively
     for child_element in container_element.getchildren():
-        if child_element.tag in CONTAINER_TAG_SET:
+        if [c.tag for c in child_element.getchildren()] == ["TOC"]:
+            pass
+        elif child_element.tag in CONTAINER_TAG_SET:
             # recursively process containers
-            output_container.append(
-                parse_cfr_container(child_element, law_key, level + 1)
+            elems, first_chapter_in_vol = parse_cfr_container(
+                child_element, law_key, level + 1, first_chapter_in_vol
             )
+            output_container.append(elems)
         elif child_element.tag == "SECTION":
             # process "child" sections
             output_container.append(
                 parse_cfr_section(child_element, law_key, level + 1)
             )
 
-    return output_container
+    return output_container, first_chapter_in_vol
 
 
 def get_law_key(title_number, volume_number, file_year):
@@ -547,9 +584,13 @@ def parse_cfr_xml_file(xml_file):
 
     title_output_elements = []
 
-    for title_element in xml_doc.xpath(".//TITLE"):
+    first_chapter_in_vol = True
+
+    for title_element in xml_doc.xpath("/CFRDOC/TITLE"):
         law_key = get_law_key(title_number, volume_number, file_year)
-        title_output_element = parse_cfr_container(title_element, law_key)
+        title_output_element, first_chapter_in_vol = parse_cfr_container(
+            title_element, law_key, first_chapter_in_vol=first_chapter_in_vol
+        )
         title_output_element.attrib["year"] = file_year
         title_output_element.attrib["title"] = title_number
         title_output_element.attrib["volume"] = volume_number
@@ -589,7 +630,7 @@ def parse_cfr_xml_file(xml_file):
 
     for title_output_element in title_output_elements:
         for element in title_output_element.xpath("//item | //seqitem | //subseqitem"):
-            element.attrib["key"] = f"{law_key}_{nodeid_counter():06d}"
+            element.attrib["key"] = law_key
 
     return title_output_elements
 
@@ -611,41 +652,15 @@ def parse_cfr_zip(file_name):
             title_number = name_tokens[2][5:]
 
             with zip_file.open(member_info) as member_file:
-                nodeid_counter.counter = 1  # set 1 to skip id 1 for document
                 for file_output_element in parse_cfr_xml_file(member_file):
                     current_title_number = file_output_element.attrib["title"]
                     if last_title_number is None:
                         last_title_number = current_title_number
                     elif current_title_number != last_title_number:
                         # output last title when complete
-                        complete_title_element.attrib["year"] = file_year
-                        complete_title_element.attrib["title"] = last_title_number
-                        complete_title_element.attrib[
-                            "heading"
-                        ] = f"Title {last_title_number}"
-                        complete_title_element.attrib[
-                            "key"
-                        ] = f"{get_law_key(last_title_number,0,file_year)}_{1:06d}"
-
-                        output_file_name = "cfr{0}_{1}.xml".format(
-                            last_title_number, file_year
+                        finish_title(
+                            complete_title_element, file_year, last_title_number
                         )
-                        output_file_path = os.path.join(
-                            US_REG_XML_PATH, output_file_name
-                        )
-                        with open(output_file_path, "wb") as output_file:
-                            output_xml_doc = lxml.etree.ElementTree(
-                                complete_title_element
-                            )
-                            output_file.write(
-                                lxml.etree.tostring(
-                                    output_xml_doc,
-                                    encoding="utf-8",
-                                    doctype='<?xml version="1.0" encoding="utf-8"?>'
-                                    '<?xml-stylesheet href="../../xml-styles.css"?>',
-                                    pretty_print=True,
-                                )
-                            )
 
                         # reset
                         complete_title_element = lxml.etree.Element(
@@ -656,26 +671,69 @@ def parse_cfr_zip(file_name):
                     # extend current title
                     complete_title_element.extend(file_output_element.getchildren())
 
-            # output final title
-            if len(complete_title_element.getchildren()) > 0:
-                # output last title when complete
-                complete_title_element.attrib["year"] = file_year
-                complete_title_element.attrib["title"] = last_title_number
-                complete_title_element.attrib["heading"] = f"Title {last_title_number}"
-                complete_title_element.attrib[
-                    "key"
-                ] = f"{get_law_key(last_title_number, 0, file_year)}_{1:06d}"
+        # output final title
+        if len(complete_title_element.getchildren()) > 0:
+            # output last title when complete
+            finish_title(complete_title_element, file_year, last_title_number)
 
-                output_file_name = "cfr{0}_{1}.xml".format(last_title_number, file_year)
-                output_file_path = os.path.join(US_REG_XML_PATH, output_file_name)
-                with open(output_file_path, "wb") as output_file:
-                    output_xml_doc = lxml.etree.ElementTree(complete_title_element)
-                    output_file.write(
-                        lxml.etree.tostring(
-                            output_xml_doc,
-                            encoding="utf-8",
-                            doctype='<?xml version="1.0" encoding="utf-8"?>'
-                            '<?xml-stylesheet href="../../xml-styles.css"?>',
-                            pretty_print=True,
-                        )
-                    )
+
+def finish_title(complete_title_element, file_year, last_title_number):
+    complete_title_element.attrib["year"] = file_year
+    complete_title_element.attrib["title"] = last_title_number
+    complete_title_element.attrib["heading"] = f"Title {last_title_number}"
+    complete_title_element.attrib[
+        "key"
+    ] = f"{get_law_key(last_title_number, 0, file_year)}_{1:06d}"
+
+    counters = defaultdict(int)
+
+    merge_continued_items(complete_title_element)
+
+    for element in complete_title_element.xpath("//item | //seqitem | //subseqitem"):
+        vol_key = element.attrib["key"]
+        counters[vol_key] += 1
+        element.attrib["key"] = f"{vol_key}_{counters[vol_key]:06d}"
+
+    output_file_name = "cfr{0}_{1}.xml".format(last_title_number, file_year)
+    output_file_path = os.path.join(US_REG_XML_PATH, output_file_name)
+    with open(output_file_path, "wb") as output_file:
+        output_xml_doc = lxml.etree.ElementTree(complete_title_element)
+        output_file.write(
+            lxml.etree.tostring(
+                output_xml_doc,
+                encoding="utf-8",
+                doctype='<?xml version="1.0" encoding="utf-8"?>'
+                '<?xml-stylesheet href="../../xml-styles.css"?>',
+                pretty_print=True,
+            )
+        )
+
+
+def merge_continued_items(complete_title_element):
+    def shorten_heading(tag):
+        return " ".join(tag.attrib.get("heading", "").split(" ")[:2]).lower().strip()
+
+    prev_items = {}
+
+    last_key_prefix = None
+
+    for item in complete_title_element.xpath("//item"):
+
+        if last_key_prefix != item.attrib["key"]:
+            beginning_of_volume = True
+            last_key_prefix = item.attrib["key"]
+
+        if beginning_of_volume:
+            continued_item = prev_items.get(
+                (item.attrib["level"], shorten_heading(item))
+            )
+        else:
+            continued_item = None
+
+        if continued_item is not None:
+            continued_item.extend(item.getchildren())
+            item.getparent().remove(item)
+        else:
+            beginning_of_volume = False
+
+            prev_items[(item.attrib["level"], shorten_heading(item))] = item
