@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 from quantlaw.de_extract.statutes_parse import StatutesParser
 
 from statutes_pipeline_steps.de_reference_parse import parse_reference_content
+from statutes_pipeline_steps.us_reference_parse import split_block_reference
 
 
 class TestDeReferenceParse(unittest.TestCase):
@@ -50,3 +51,6 @@ class TestDeReferenceParse(unittest.TestCase):
         self.assertEqual(
             '[["6", "1", "2", "4"], ' '["6", "1", "2", "5"]]', reference.attrs["parsed"]
         )
+
+    def test_cfrsec_splitter(self):
+        split_block_reference("47 CFRSec. 1.1204(b)", debug_context=None)

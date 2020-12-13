@@ -105,7 +105,7 @@ def sortable_paragraph_number(string):
 
 
 split_pattern_short = regex.compile(
-    r"\s*(?:\b|(?<=\d))(U\.?S\.?C\.?|C\.?F\.?R\.?)(?:\b|(?=\d))\s*",
+    r"\s*(?:\b|(?<=\d))(U\.?S\.?C\.?|C\.?F\.?R\.?)(?:\b|(?=\d)|Sec\.)\s*",
     flags=regex.IGNORECASE,
 )
 split_pattern_inline = regex.compile(
