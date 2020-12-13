@@ -4,7 +4,6 @@ import pickle
 import shutil
 from collections import Counter
 
-import networkx as nx
 import pandas as pd
 from quantlaw.utils.files import ensure_exists
 from quantlaw.utils.pipeline import PipelineStep
@@ -138,49 +137,3 @@ def copy_xml_schema_to_data_folder():
     ensure_exists(DATA_PATH)
     shutil.copyfile("xml-schema.xsd", os.path.join(DATA_PATH, "xml-schema.xsd"))
     shutil.copyfile("xml-styles.css", os.path.join(DATA_PATH, "xml-styles.css"))
-
-
-def load_nx_graph(crossreference_folder, year, subseqitems=False):
-    nodes_csv_path = os.path.join(crossreference_folder, f"{year}.nodes.csv.gz")
-    edges_csv_path = os.path.join(crossreference_folder, f"{year}.edges.csv.gz")
-
-    G = nx.MultiDiGraph(name=str(year))
-
-    nodes_df = pd.read_csv(nodes_csv_path)
-
-    if not subseqitems:
-        nodes_df = nodes_df[nodes_df.type != "subseqitem"]
-
-    G.add_nodes_from(list(nodes_df.key))
-    for column in nodes_df.columns:
-        nx.set_node_attributes(
-            G,
-            {
-                k: v
-                for k, v in zip(nodes_df.key, nodes_df[column])
-                if v and not pd.isna(v)
-            },
-            column,
-        )
-
-    all_nodes = set(nodes_df.key)
-    del nodes_df
-
-    edges_df = pd.read_csv(edges_csv_path)
-    edges = [
-        (row.u, row.v, {"edge_type": row.edge_type})
-        for idx, row in edges_df.iterrows()
-        if row.u in all_nodes and row.v in all_nodes
-    ]
-    del edges_df
-
-    G.add_edges_from(edges)
-
-    # # For debug
-    # for idx, row in edges_df.iterrows():
-    #     if row.edge_type != "containment" and (
-    #         row.u not in all_nodes or row.v not in all_nodes
-    #     ):
-    #         raise Exception(row)
-
-    return G

@@ -4,13 +4,9 @@ import os
 import networkx as nx
 import pandas as pd
 from quantlaw.utils.files import ensure_exists, list_dir
+from quantlaw.utils.networkx import load_graph_from_csv_files
 
-from utils.common import (
-    RegulationsPipelineStep,
-    get_snapshot_law_list,
-    load_law_names,
-    load_nx_graph,
-)
+from utils.common import RegulationsPipelineStep, get_snapshot_law_list, load_law_names
 
 
 class CrossreferenceGraphStep(RegulationsPipelineStep):
@@ -222,6 +218,8 @@ class CrossreferenceGraphStep(RegulationsPipelineStep):
             )
 
         # Create and save seqitem graph
-        G = load_nx_graph(self.destination, year, subseqitems=False)
+        G = load_graph_from_csv_files(
+            self.destination, year, filter="exclude_subseqitems"
+        )
 
         nx.write_gpickle(G, f"{self.destination}/seqitems/{year}.gpickle.gz")
