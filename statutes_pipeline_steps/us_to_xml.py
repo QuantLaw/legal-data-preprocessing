@@ -48,6 +48,8 @@ class UsToXmlStep(PipelineStep):
         # Split into documents (roughly sections)
         documents = split_into_documents(soup)
 
+        fix_nesting_errors(item, documents)
+
         # Create a nested structure of sections
         roots = nest_documents(documents)
 
@@ -732,3 +734,19 @@ def export_to_xml(roots, version):
             remove_unnecessary_subseqitems(soup)
             add_keys_to_items(soup, f'{root["itempathcomponents"][0]}_{version}')
             f.write(soup.encode("utf-8"))
+
+
+def fix_nesting_errors(item, documents):
+    if item in ["420_2005.xml", "420_2006.xml", "420_2007.xml"]:
+        parent_element = None
+        for doc in documents:
+            if doc["itempath"] == "/420/CHAPTER 149":
+                parent_element = doc
+            if doc["itempath"].startswith("/420/SUBCHAPTER"):
+                assert parent_element
+                doc["itempath"] = "/420/CHAPTER 149" + doc["itempath"][4:]
+                expcite = (
+                    parent_element["expcite"].split("!@!")[:2]
+                    + doc["expcite"].split("!@!")[1:]
+                )
+                doc["expcite"] = "!@!".join(expcite)
