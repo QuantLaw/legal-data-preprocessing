@@ -11,10 +11,10 @@ from statics import (
     DE_HELPERS_PATH,
     DE_REFERENCE_AREAS_LOG_PATH,
     DE_REFERENCE_AREAS_PATH,
-    DE_RVO_HELPERS_PATH,
-    DE_RVO_REFERENCE_AREAS_LOG_PATH,
-    DE_RVO_REFERENCE_AREAS_PATH,
-    DE_RVO_XML_PATH,
+    DE_REG_HELPERS_PATH,
+    DE_REG_REFERENCE_AREAS_LOG_PATH,
+    DE_REG_REFERENCE_AREAS_PATH,
+    DE_REG_XML_PATH,
     DE_XML_PATH,
 )
 from utils.common import RegulationsPipelineStep, get_stemmed_law_names_for_filename
@@ -28,9 +28,9 @@ class DeReferenceAreasStep(RegulationsPipelineStep):
         super().__init__(*args, **kwargs)
 
     def get_items(self, overwrite) -> list:
-        src = DE_RVO_XML_PATH if self.regulations else DE_XML_PATH
+        src = DE_REG_XML_PATH if self.regulations else DE_XML_PATH
         dest = (
-            DE_RVO_REFERENCE_AREAS_PATH if self.regulations else DE_REFERENCE_AREAS_PATH
+            DE_REG_REFERENCE_AREAS_PATH if self.regulations else DE_REFERENCE_AREAS_PATH
         )
 
         ensure_exists(dest)
@@ -42,9 +42,9 @@ class DeReferenceAreasStep(RegulationsPipelineStep):
         return files
 
     def execute_item(self, item):
-        src = DE_RVO_XML_PATH if self.regulations else DE_XML_PATH
+        src = DE_REG_XML_PATH if self.regulations else DE_XML_PATH
         dest = (
-            DE_RVO_REFERENCE_AREAS_PATH if self.regulations else DE_REFERENCE_AREAS_PATH
+            DE_REG_REFERENCE_AREAS_PATH if self.regulations else DE_REFERENCE_AREAS_PATH
         )
 
         laws_lookup = get_stemmed_law_names_for_filename(item, self.law_names)
@@ -72,9 +72,9 @@ class DeReferenceAreasStep(RegulationsPipelineStep):
 
     def finish_execution(self, results):
         logs = list(itertools.chain.from_iterable(results))
-        ensure_exists(DE_RVO_HELPERS_PATH if self.regulations else DE_HELPERS_PATH)
+        ensure_exists(DE_REG_HELPERS_PATH if self.regulations else DE_HELPERS_PATH)
         with open(
-            DE_RVO_REFERENCE_AREAS_LOG_PATH
+            DE_REG_REFERENCE_AREAS_LOG_PATH
             if self.regulations
             else DE_REFERENCE_AREAS_LOG_PATH,
             mode="w",

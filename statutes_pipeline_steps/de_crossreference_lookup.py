@@ -5,8 +5,8 @@ from quantlaw.utils.files import ensure_exists
 from statics import (
     DE_CROSSREFERENCE_LOOKUP_PATH,
     DE_REFERENCE_PARSED_PATH,
-    DE_RVO_CROSSREFERENCE_LOOKUP_PATH,
-    DE_RVO_REFERENCE_PARSED_PATH,
+    DE_REG_CROSSREFERENCE_LOOKUP_PATH,
+    DE_REG_REFERENCE_PARSED_PATH,
 )
 from utils.common import RegulationsPipelineStep, get_snapshot_law_list, load_law_names
 
@@ -14,7 +14,7 @@ from utils.common import RegulationsPipelineStep, get_snapshot_law_list, load_la
 class DeCrossreferenceLookup(RegulationsPipelineStep):
     def get_items(self, snapshots) -> list:
         ensure_exists(
-            DE_RVO_CROSSREFERENCE_LOOKUP_PATH
+            DE_REG_CROSSREFERENCE_LOOKUP_PATH
             if self.regulations
             else DE_CROSSREFERENCE_LOOKUP_PATH
         )
@@ -28,12 +28,12 @@ class DeCrossreferenceLookup(RegulationsPipelineStep):
         date, files = item
         data = []
         source_folder = (
-            DE_RVO_REFERENCE_PARSED_PATH
+            DE_REG_REFERENCE_PARSED_PATH
             if self.regulations
             else DE_REFERENCE_PARSED_PATH
         )
         target_folder = (
-            DE_RVO_CROSSREFERENCE_LOOKUP_PATH
+            DE_REG_CROSSREFERENCE_LOOKUP_PATH
             if self.regulations
             else DE_CROSSREFERENCE_LOOKUP_PATH
         )

@@ -6,7 +6,7 @@ from quantlaw.utils.files import ensure_exists
 
 from statics import (
     DE_ORIGINAL_PATH,
-    DE_RVO_ORIGINAL_PATH,
+    DE_REG_ORIGINAL_PATH,
     JURIS_EXPORT_GESETZE_LIST_PATH,
     JURIS_EXPORT_PATH,
     JURIS_EXPORT_RVO_LIST_PATH,
@@ -29,7 +29,7 @@ def copy_selected_doknrs(selection_list, target_dir):
 
 def de_prepare_input(regulations):
 
-    dest = DE_RVO_ORIGINAL_PATH if regulations else DE_ORIGINAL_PATH
+    dest = DE_REG_ORIGINAL_PATH if regulations else DE_ORIGINAL_PATH
 
     with open(JURIS_EXPORT_GESETZE_LIST_PATH) as f:
         gesetze_dirs = f.read().strip().split("\n")
@@ -38,4 +38,4 @@ def de_prepare_input(regulations):
     if regulations:
         with open(JURIS_EXPORT_RVO_LIST_PATH) as f:
             rvo_dirs = f.read().strip().split("\n")
-        copy_selected_doknrs(rvo_dirs, DE_RVO_ORIGINAL_PATH)
+        copy_selected_doknrs(rvo_dirs, DE_REG_ORIGINAL_PATH)

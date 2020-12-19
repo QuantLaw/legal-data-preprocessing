@@ -8,9 +8,9 @@ from quantlaw.utils.files import list_dir
 from statics import (
     DE_LAW_NAMES_COMPILED_PATH,
     DE_LAW_NAMES_PATH,
-    DE_RVO_LAW_NAMES_COMPILED_PATH,
-    DE_RVO_LAW_NAMES_PATH,
-    DE_RVO_XML_PATH,
+    DE_REG_LAW_NAMES_COMPILED_PATH,
+    DE_REG_LAW_NAMES_PATH,
+    DE_REG_XML_PATH,
     DE_XML_PATH,
 )
 from utils.common import RegulationsPipelineStep, load_law_names
@@ -18,12 +18,12 @@ from utils.common import RegulationsPipelineStep, load_law_names
 
 class DeLawNamesStep(RegulationsPipelineStep):
     def get_items(self) -> list:
-        src = DE_RVO_XML_PATH if self.regulations else DE_XML_PATH
+        src = DE_REG_XML_PATH if self.regulations else DE_XML_PATH
         files = list_dir(src, ".xml")
         return files
 
     def execute_item(self, item):
-        src = DE_RVO_XML_PATH if self.regulations else DE_XML_PATH
+        src = DE_REG_XML_PATH if self.regulations else DE_XML_PATH
         soup = create_soup(f"{src}/{item}")
         document = soup.find("document", recursive=False)
         result = set()
@@ -48,11 +48,11 @@ class DeLawNamesStep(RegulationsPipelineStep):
 
     def finish_execution(self, names_per_file):
         dest_compiled = (
-            DE_RVO_LAW_NAMES_COMPILED_PATH
+            DE_REG_LAW_NAMES_COMPILED_PATH
             if self.regulations
             else DE_LAW_NAMES_COMPILED_PATH
         )
-        dest_csv = DE_RVO_LAW_NAMES_PATH if self.regulations else DE_LAW_NAMES_PATH
+        dest_csv = DE_REG_LAW_NAMES_PATH if self.regulations else DE_LAW_NAMES_PATH
 
         result = []
         for names_of_file in names_per_file:

@@ -88,40 +88,40 @@ DE_DECISIONS_REFERENCE_AREAS = f"{DE_DECISIONS_TEMP_DATA_PATH}/03_reference_area
 DE_DECISIONS_REFERENCE_PARSED_XML = f"{DE_DECISIONS_DATA_PATH}/1_xml"
 DE_DECISIONS_NETWORK = f"{DE_DECISIONS_DATA_PATH}/2_network.gpickle.gz"
 
-DE_RVO_DATA_PATH = "../legal-networks-data/de_rvo"
-DE_RVO_TEMP_DATA_PATH = "temp/de_rvo"
+DE_REG_DATA_PATH = "../legal-networks-data/de_reg"
+DE_REG_TEMP_DATA_PATH = "temp/de_reg"
 
-DE_RVO_ORIGINAL_PATH = f"{DE_RVO_TEMP_DATA_PATH}/11_gii_xml"
+DE_REG_ORIGINAL_PATH = f"{DE_REG_TEMP_DATA_PATH}/11_gii_xml"
 
-DE_RVO_DATA_PATH = "../legal-networks-data/de_rvo"
-DE_RVO_TEMP_DATA_PATH = "temp/de_rvo"
+DE_REG_DATA_PATH = "../legal-networks-data/de_reg"
+DE_REG_TEMP_DATA_PATH = "temp/de_reg"
 
-DE_RVO_ORIGINAL_PATH = f"{DE_RVO_TEMP_DATA_PATH}/11_gii_xml"
-DE_RVO_XML_PATH = f"{DE_RVO_TEMP_DATA_PATH}/12_xml"
-DE_RVO_LAW_NAMES_COMPILED_PATH = (
-    f"{DE_RVO_TEMP_DATA_PATH}/12_xml_law_names_compiled.pickle"
+DE_REG_ORIGINAL_PATH = f"{DE_REG_TEMP_DATA_PATH}/11_gii_xml"
+DE_REG_XML_PATH = f"{DE_REG_TEMP_DATA_PATH}/12_xml"
+DE_REG_LAW_NAMES_COMPILED_PATH = (
+    f"{DE_REG_TEMP_DATA_PATH}/12_xml_law_names_compiled.pickle"
 )
-DE_RVO_LAW_NAMES_PATH = f"{DE_RVO_TEMP_DATA_PATH}/12_xml_law_names.csv"
-DE_RVO_REFERENCE_AREAS_PATH = f"{DE_RVO_TEMP_DATA_PATH}/13_reference_areas"
-DE_RVO_REFERENCE_PARSED_PATH = f"{DE_RVO_DATA_PATH}/2_xml"
-DE_RVO_HIERARCHY_GRAPH_PATH = f"{DE_RVO_DATA_PATH}/3_hierarchy_graph"
-DE_RVO_CROSSREFERENCE_LOOKUP_PATH = f"{DE_RVO_TEMP_DATA_PATH}/31_crossreference_lookup"
-DE_RVO_CROSSREFERENCE_EDGELIST_PATH = (
-    f"{DE_RVO_TEMP_DATA_PATH}/32_crossreference_edgelist"
+DE_REG_LAW_NAMES_PATH = f"{DE_REG_TEMP_DATA_PATH}/12_xml_law_names.csv"
+DE_REG_REFERENCE_AREAS_PATH = f"{DE_REG_TEMP_DATA_PATH}/13_reference_areas"
+DE_REG_REFERENCE_PARSED_PATH = f"{DE_REG_DATA_PATH}/2_xml"
+DE_REG_HIERARCHY_GRAPH_PATH = f"{DE_REG_DATA_PATH}/3_hierarchy_graph"
+DE_REG_CROSSREFERENCE_LOOKUP_PATH = f"{DE_REG_TEMP_DATA_PATH}/31_crossreference_lookup"
+DE_REG_CROSSREFERENCE_EDGELIST_PATH = (
+    f"{DE_REG_TEMP_DATA_PATH}/32_crossreference_edgelist"
 )
-DE_RVO_AUTHORITY_EDGELIST_PATH = f"{DE_RVO_TEMP_DATA_PATH}/33_authority_edgelist"
-DE_RVO_CROSSREFERENCE_GRAPH_PATH = f"{DE_RVO_DATA_PATH}/4_crossreference_graph"
-DE_RVO_SNAPSHOT_MAPPING_INDEX_PATH = (
-    f"{DE_RVO_TEMP_DATA_PATH}/41_snapshot_mapping_index"
+DE_REG_AUTHORITY_EDGELIST_PATH = f"{DE_REG_TEMP_DATA_PATH}/33_authority_edgelist"
+DE_REG_CROSSREFERENCE_GRAPH_PATH = f"{DE_REG_DATA_PATH}/4_crossreference_graph"
+DE_REG_SNAPSHOT_MAPPING_INDEX_PATH = (
+    f"{DE_REG_TEMP_DATA_PATH}/41_snapshot_mapping_index"
 )
-DE_RVO_SNAPSHOT_MAPPING_EDGELIST_PATH = (
-    f"{DE_RVO_DATA_PATH}/5_snapshot_mapping_edgelist"
+DE_REG_SNAPSHOT_MAPPING_EDGELIST_PATH = (
+    f"{DE_REG_DATA_PATH}/5_snapshot_mapping_edgelist"
 )
 
-DE_RVO_HELPERS_PATH = f"{DE_RVO_TEMP_DATA_PATH}/helpers"
-DE_RVO_REFERENCE_AREAS_LOG_PATH = (
-    f"{DE_RVO_HELPERS_PATH}/de_extract_reference_areas.log"
+DE_REG_HELPERS_PATH = f"{DE_REG_TEMP_DATA_PATH}/helpers"
+DE_REG_REFERENCE_AREAS_LOG_PATH = (
+    f"{DE_REG_HELPERS_PATH}/de_extract_reference_areas.log"
 )
-DE_RVO_REFERENCE_PARSED_LOG_PATH = (
-    f"{DE_RVO_HELPERS_PATH}/de_extract_reference_parsed.log"
+DE_REG_REFERENCE_PARSED_LOG_PATH = (
+    f"{DE_REG_HELPERS_PATH}/de_extract_reference_parsed.log"
 )

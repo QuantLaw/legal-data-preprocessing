@@ -7,8 +7,8 @@ from quantlaw.utils.files import ensure_exists, list_dir
 
 from statics import (
     DE_ORIGINAL_PATH,
-    DE_RVO_ORIGINAL_PATH,
-    DE_RVO_XML_PATH,
+    DE_REG_ORIGINAL_PATH,
+    DE_REG_XML_PATH,
     DE_XML_PATH,
     JURIS_EXPORT_GESETZE_LIST_PATH,
     JURIS_EXPORT_RVO_LIST_PATH,
@@ -31,8 +31,8 @@ class DeToXmlStep(RegulationsPipelineStep):
         super().__init__(*args, **kwargs)
 
     def get_items(self, overwrite) -> list:
-        src = DE_RVO_ORIGINAL_PATH if self.regulations else DE_ORIGINAL_PATH
-        dest = DE_RVO_XML_PATH if self.regulations else DE_XML_PATH
+        src = DE_REG_ORIGINAL_PATH if self.regulations else DE_ORIGINAL_PATH
+        dest = DE_REG_XML_PATH if self.regulations else DE_XML_PATH
 
         ensure_exists(dest)
         files = list_dir(src, ".xml")
@@ -50,8 +50,8 @@ class DeToXmlStep(RegulationsPipelineStep):
         return sorted(files)
 
     def execute_item(self, item):
-        src = DE_RVO_ORIGINAL_PATH if self.regulations else DE_ORIGINAL_PATH
-        dest = DE_RVO_XML_PATH if self.regulations else DE_XML_PATH
+        src = DE_REG_ORIGINAL_PATH if self.regulations else DE_ORIGINAL_PATH
+        dest = DE_REG_XML_PATH if self.regulations else DE_XML_PATH
 
         with open(f"{src}/{item}") as f:
             soup = BeautifulSoup(f.read(), "lxml-xml")

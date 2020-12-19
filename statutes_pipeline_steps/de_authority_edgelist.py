@@ -9,9 +9,9 @@ from quantlaw.utils.pipeline import PipelineStep
 
 from statics import (
     DE_REFERENCE_PARSED_PATH,
-    DE_RVO_AUTHORITY_EDGELIST_PATH,
-    DE_RVO_CROSSREFERENCE_LOOKUP_PATH,
-    DE_RVO_REFERENCE_PARSED_PATH,
+    DE_REG_AUTHORITY_EDGELIST_PATH,
+    DE_REG_CROSSREFERENCE_LOOKUP_PATH,
+    DE_REG_REFERENCE_PARSED_PATH,
 )
 from utils.common import get_snapshot_law_list
 
@@ -26,10 +26,10 @@ class DeAuthorityEdgelist(PipelineStep):
         super().__init__(*args, **kwargs)
 
     def get_items(self, overwrite, snapshots) -> list:
-        ensure_exists(DE_RVO_AUTHORITY_EDGELIST_PATH)
+        ensure_exists(DE_REG_AUTHORITY_EDGELIST_PATH)
 
         if not overwrite:
-            existing_files = os.listdir(DE_RVO_AUTHORITY_EDGELIST_PATH)
+            existing_files = os.listdir(DE_REG_AUTHORITY_EDGELIST_PATH)
             snapshots = list(
                 filter(lambda f: get_filename(f) not in existing_files, snapshots)
             )
@@ -38,8 +38,8 @@ class DeAuthorityEdgelist(PipelineStep):
 
     def execute_item(self, item):
         files = get_snapshot_law_list(item, self.law_names_data)
-        source_folder = DE_RVO_CROSSREFERENCE_LOOKUP_PATH
-        target_folder = DE_RVO_AUTHORITY_EDGELIST_PATH
+        source_folder = DE_REG_CROSSREFERENCE_LOOKUP_PATH
+        target_folder = DE_REG_AUTHORITY_EDGELIST_PATH
         key_df = (
             pd.read_csv(f"{source_folder}/{item}.csv").dropna().set_index("citekey")
         )
@@ -58,7 +58,7 @@ class DeAuthorityEdgelist(PipelineStep):
 def make_edge_list(file, key_df, law_citekeys_dict, regulations):
     soup = create_soup(
         os.path.join(
-            DE_RVO_REFERENCE_PARSED_PATH if regulations else DE_REFERENCE_PARSED_PATH,
+            DE_REG_REFERENCE_PARSED_PATH if regulations else DE_REFERENCE_PARSED_PATH,
             file,
         )
     )

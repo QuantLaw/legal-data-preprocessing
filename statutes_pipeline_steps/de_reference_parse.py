@@ -12,10 +12,10 @@ from statics import (
     DE_REFERENCE_AREAS_PATH,
     DE_REFERENCE_PARSED_LOG_PATH,
     DE_REFERENCE_PARSED_PATH,
-    DE_RVO_HELPERS_PATH,
-    DE_RVO_REFERENCE_AREAS_PATH,
-    DE_RVO_REFERENCE_PARSED_LOG_PATH,
-    DE_RVO_REFERENCE_PARSED_PATH,
+    DE_REG_HELPERS_PATH,
+    DE_REG_REFERENCE_AREAS_PATH,
+    DE_REG_REFERENCE_PARSED_LOG_PATH,
+    DE_REG_REFERENCE_PARSED_PATH,
 )
 from statutes_pipeline_steps.de_reference_parse_vso_list import (
     identify_reference_in_juris_vso_list,
@@ -36,10 +36,10 @@ class DeReferenceParseStep(RegulationsPipelineStep):
 
     def get_items(self, overwrite) -> list:
         src = (
-            DE_RVO_REFERENCE_AREAS_PATH if self.regulations else DE_REFERENCE_AREAS_PATH
+            DE_REG_REFERENCE_AREAS_PATH if self.regulations else DE_REFERENCE_AREAS_PATH
         )
         dest = (
-            DE_RVO_REFERENCE_PARSED_PATH
+            DE_REG_REFERENCE_PARSED_PATH
             if self.regulations
             else DE_REFERENCE_PARSED_PATH
         )
@@ -60,10 +60,10 @@ class DeReferenceParseStep(RegulationsPipelineStep):
 
     def execute_item(self, item):
         src = (
-            DE_RVO_REFERENCE_AREAS_PATH if self.regulations else DE_REFERENCE_AREAS_PATH
+            DE_REG_REFERENCE_AREAS_PATH if self.regulations else DE_REFERENCE_AREAS_PATH
         )
         dest = (
-            DE_RVO_REFERENCE_PARSED_PATH
+            DE_REG_REFERENCE_PARSED_PATH
             if self.regulations
             else DE_REFERENCE_PARSED_PATH
         )
@@ -89,9 +89,9 @@ class DeReferenceParseStep(RegulationsPipelineStep):
 
     def finish_execution(self, results):
         logs = list(itertools.chain.from_iterable(results))
-        ensure_exists(DE_RVO_HELPERS_PATH if self.regulations else DE_HELPERS_PATH)
+        ensure_exists(DE_REG_HELPERS_PATH if self.regulations else DE_HELPERS_PATH)
         with open(
-            DE_RVO_REFERENCE_PARSED_LOG_PATH
+            DE_REG_REFERENCE_PARSED_LOG_PATH
             if self.regulations
             else DE_REFERENCE_PARSED_LOG_PATH,
             mode="w",

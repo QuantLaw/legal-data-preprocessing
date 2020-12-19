@@ -9,13 +9,13 @@ from statics import (
     DE_CROSSREFERENCE_GRAPH_PATH,
     DE_HIERARCHY_GRAPH_PATH,
     DE_REFERENCE_PARSED_PATH,
-    DE_RVO_AUTHORITY_EDGELIST_PATH,
-    DE_RVO_CROSSREFERENCE_EDGELIST_PATH,
-    DE_RVO_CROSSREFERENCE_GRAPH_PATH,
-    DE_RVO_HIERARCHY_GRAPH_PATH,
-    DE_RVO_REFERENCE_PARSED_PATH,
-    DE_RVO_SNAPSHOT_MAPPING_EDGELIST_PATH,
-    DE_RVO_SNAPSHOT_MAPPING_INDEX_PATH,
+    DE_REG_AUTHORITY_EDGELIST_PATH,
+    DE_REG_CROSSREFERENCE_EDGELIST_PATH,
+    DE_REG_CROSSREFERENCE_GRAPH_PATH,
+    DE_REG_HIERARCHY_GRAPH_PATH,
+    DE_REG_REFERENCE_PARSED_PATH,
+    DE_REG_SNAPSHOT_MAPPING_EDGELIST_PATH,
+    DE_REG_SNAPSHOT_MAPPING_INDEX_PATH,
     DE_SNAPSHOT_MAPPING_EDGELIST_PATH,
     DE_SNAPSHOT_MAPPING_INDEX_PATH,
     US_CROSSREFERENCE_EDGELIST_PATH,
@@ -271,13 +271,13 @@ if __name__ == "__main__":
                 )
             elif dataset == "de":
                 source = (
-                    DE_RVO_REFERENCE_PARSED_PATH
+                    DE_REG_REFERENCE_PARSED_PATH
                     if regulations
                     else DE_REFERENCE_PARSED_PATH
                 )
                 destination = (
                     (
-                        DE_RVO_HIERARCHY_GRAPH_PATH
+                        DE_REG_HIERARCHY_GRAPH_PATH
                         if regulations
                         else DE_HIERARCHY_GRAPH_PATH
                     )
@@ -359,20 +359,20 @@ if __name__ == "__main__":
             authority_edgelist_folder = US_REG_AUTHORITY_EDGELIST_PATH
         elif dataset == "de":
             source = (
-                DE_RVO_HIERARCHY_GRAPH_PATH if regulations else DE_HIERARCHY_GRAPH_PATH
+                DE_REG_HIERARCHY_GRAPH_PATH if regulations else DE_HIERARCHY_GRAPH_PATH
             )
             source_regulation = None
             destination = (
-                DE_RVO_CROSSREFERENCE_GRAPH_PATH
+                DE_REG_CROSSREFERENCE_GRAPH_PATH
                 if regulations
                 else DE_CROSSREFERENCE_GRAPH_PATH
             )
             edgelist_folder = (
-                DE_RVO_CROSSREFERENCE_EDGELIST_PATH
+                DE_REG_CROSSREFERENCE_EDGELIST_PATH
                 if regulations
                 else DE_CROSSREFERENCE_EDGELIST_PATH
             )
-            authority_edgelist_folder = DE_RVO_AUTHORITY_EDGELIST_PATH
+            authority_edgelist_folder = DE_REG_AUTHORITY_EDGELIST_PATH
 
         step = CrossreferenceGraphStep(
             regulations=regulations,
@@ -407,17 +407,17 @@ if __name__ == "__main__":
             law_names_data = None
         elif dataset == "de":
             source_graph = (
-                DE_RVO_CROSSREFERENCE_GRAPH_PATH
+                DE_REG_CROSSREFERENCE_GRAPH_PATH
                 if regulations
                 else DE_CROSSREFERENCE_GRAPH_PATH
             )
             source_text = (
-                DE_RVO_REFERENCE_PARSED_PATH
+                DE_REG_REFERENCE_PARSED_PATH
                 if regulations
                 else DE_REFERENCE_PARSED_PATH
             )
             destination = os.path.join(
-                DE_RVO_SNAPSHOT_MAPPING_INDEX_PATH
+                DE_REG_SNAPSHOT_MAPPING_INDEX_PATH
                 if regulations
                 else DE_SNAPSHOT_MAPPING_INDEX_PATH,
                 "subseqitems",
@@ -453,13 +453,13 @@ if __name__ == "__main__":
             )
         elif dataset == "de":
             source = os.path.join(
-                DE_RVO_SNAPSHOT_MAPPING_INDEX_PATH
+                DE_REG_SNAPSHOT_MAPPING_INDEX_PATH
                 if regulations
                 else DE_SNAPSHOT_MAPPING_INDEX_PATH,
                 "subseqitems",
             )
             destination = os.path.join(
-                DE_RVO_SNAPSHOT_MAPPING_EDGELIST_PATH
+                DE_REG_SNAPSHOT_MAPPING_EDGELIST_PATH
                 if regulations
                 else DE_SNAPSHOT_MAPPING_EDGELIST_PATH,
                 "subseqitems",

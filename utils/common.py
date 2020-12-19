@@ -13,8 +13,8 @@ from statics import (
     DATA_PATH,
     DE_LAW_NAMES_COMPILED_PATH,
     DE_LAW_NAMES_PATH,
-    DE_RVO_LAW_NAMES_COMPILED_PATH,
-    DE_RVO_LAW_NAMES_PATH,
+    DE_REG_LAW_NAMES_COMPILED_PATH,
+    DE_REG_LAW_NAMES_PATH,
 )
 
 ##########
@@ -75,7 +75,7 @@ def invert_dict_mapping_unique(source_dict):
 
 
 def load_law_names(regulations):
-    df = pd.read_csv(DE_RVO_LAW_NAMES_PATH if regulations else DE_LAW_NAMES_PATH)
+    df = pd.read_csv(DE_REG_LAW_NAMES_PATH if regulations else DE_LAW_NAMES_PATH)
     data = [
         dict(
             citename=row.citename,
@@ -91,7 +91,7 @@ def load_law_names(regulations):
 
 def load_law_names_compiled(regulations):
     with open(
-        DE_RVO_LAW_NAMES_COMPILED_PATH if regulations else DE_LAW_NAMES_COMPILED_PATH,
+        DE_REG_LAW_NAMES_COMPILED_PATH if regulations else DE_LAW_NAMES_COMPILED_PATH,
         "rb",
     ) as f:
         return pickle.load(f)

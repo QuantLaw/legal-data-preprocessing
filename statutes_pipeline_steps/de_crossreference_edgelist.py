@@ -10,9 +10,9 @@ from statics import (
     DE_CROSSREFERENCE_EDGELIST_PATH,
     DE_CROSSREFERENCE_LOOKUP_PATH,
     DE_REFERENCE_PARSED_PATH,
-    DE_RVO_CROSSREFERENCE_EDGELIST_PATH,
-    DE_RVO_CROSSREFERENCE_LOOKUP_PATH,
-    DE_RVO_REFERENCE_PARSED_PATH,
+    DE_REG_CROSSREFERENCE_EDGELIST_PATH,
+    DE_REG_CROSSREFERENCE_LOOKUP_PATH,
+    DE_REG_REFERENCE_PARSED_PATH,
 )
 from utils.common import RegulationsPipelineStep, get_snapshot_law_list
 
@@ -24,7 +24,7 @@ class DeCrossreferenceEdgelist(RegulationsPipelineStep):
 
     def get_items(self, overwrite, snapshots) -> list:
         target_folder = (
-            DE_RVO_CROSSREFERENCE_EDGELIST_PATH
+            DE_REG_CROSSREFERENCE_EDGELIST_PATH
             if self.regulations
             else DE_CROSSREFERENCE_EDGELIST_PATH
         )
@@ -41,12 +41,12 @@ class DeCrossreferenceEdgelist(RegulationsPipelineStep):
     def execute_item(self, item):
         files = get_snapshot_law_list(item, self.law_names_data)
         source_folder = (
-            DE_RVO_CROSSREFERENCE_LOOKUP_PATH
+            DE_REG_CROSSREFERENCE_LOOKUP_PATH
             if self.regulations
             else DE_CROSSREFERENCE_LOOKUP_PATH
         )
         target_folder = (
-            DE_RVO_CROSSREFERENCE_EDGELIST_PATH
+            DE_REG_CROSSREFERENCE_EDGELIST_PATH
             if self.regulations
             else DE_CROSSREFERENCE_EDGELIST_PATH
         )
@@ -67,7 +67,7 @@ def get_filename(date):
 def make_edge_list(file, key_df, regulations):
     soup = create_soup(
         os.path.join(
-            DE_RVO_REFERENCE_PARSED_PATH if regulations else DE_REFERENCE_PARSED_PATH,
+            DE_REG_REFERENCE_PARSED_PATH if regulations else DE_REFERENCE_PARSED_PATH,
             file,
         )
     )
