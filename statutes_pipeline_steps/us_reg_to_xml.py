@@ -478,6 +478,9 @@ def document_element_attribs():
     }
 
 
+allowed_prev_tags = ["TOC", "LRH", "RRH"]
+
+
 def get_heading_text(
     container_element, consider_previous_chapter=True, first_chapter_in_vol=True
 ):
@@ -485,9 +488,9 @@ def get_heading_text(
     if child_element is not None:
         return child_element.text and child_element.text.strip()
 
-    child_element = container_element.find("./TOC/TOCHD/HD")
-    if child_element is not None:
-        return child_element.text and child_element.text.strip()
+    child_elements = container_element.xpath("./TOC/TOCHD/HD")
+    if child_elements:
+        return " ".join([t.text.strip() for t in child_elements])
 
     reserved_element = container_element.find("./RESERVED")
     if reserved_element is not None:
@@ -495,16 +498,26 @@ def get_heading_text(
 
     if container_element.tag == "CHAPTER":
         if consider_previous_chapter:
-            prev = container_element.getprevious()
-            if prev is not None and [t.tag for t in prev.getchildren()] == ["TOC"]:
-                return get_heading_text(prev, consider_previous_chapter=False)
+            prev = None
+            prevs = container_element.getparent().getparent().xpath(".//CHAPTER")
+            if container_element in prevs and prevs.index(container_element):
+                idx = prevs.index(container_element)
+                prev = prevs[idx - 1]
+
+            if prev is not None:
+                prev_tags = [t.tag for t in prev.getchildren()]
+                if "TOC" in prev_tags and all(
+                    t in allowed_prev_tags for t in prev_tags
+                ):
+                    return get_heading_text(prev, consider_previous_chapter=False)
 
         if first_chapter_in_vol:
-            chapti = container_element.getroottree().xpath(
-                "/CFRDOC/TOC/TITLENO/CHAPTI[1]/SUBJECT"
-            )
-            if chapti and chapti[0].text:
-                return chapti[0].text.strip()
+            chaptis = container_element.xpath(
+                "/CFRDOC/TOC/TITLENO/CHAPTI/SUBJECT"
+            ) or container_element.xpath("/CFRDOC/FMTR/TOC/TITLENO/CHAPTI/SUBJECT")
+            for chapti in chaptis:
+                if chapti.text and chapti.text.strip().lower().startswith("chap"):
+                    return chapti.text.strip()
 
     return None
 
@@ -533,8 +546,8 @@ def parse_cfr_container(
         consider_previous_chapter=True,
         first_chapter_in_vol=first_chapter_in_vol,
     )
-    if heading_text:
-        output_container.attrib["heading"] = heading_text
+
+    output_container.attrib["heading"] = heading_text or container_element.tag
 
     # Update first_chapter_in_vol that is used in get_heading_text
     if first_chapter_in_vol and container_element.tag == "CHAPTER":
