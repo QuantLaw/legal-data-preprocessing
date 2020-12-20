@@ -759,7 +759,6 @@ def fix_nesting_errors(item, documents):
             if doc["itempath"] == "/420/SUBCHAPTER I":
                 new_doc = dict(
                     itempath="/420/CHAPTER 85",
-                    itemsortkey=documents[idx - 1]["itemsortkey"] + "a",
                     expcite=doc["expcite"].split("!@!")[0]
                     + "!@!CHAPTER 85-AIR POLLUTION PREVENTION AND CONTROL",
                     fields={},
