@@ -742,6 +742,7 @@ def fix_nesting_errors(item, documents):
         parent_element = None
         for doc in documents:
             if doc["itempath"] == "/420/CHAPTER 149":
+                assert parent_element is None
                 parent_element = doc
             if doc["itempath"].startswith("/420/SUBCHAPTER"):
                 assert parent_element
