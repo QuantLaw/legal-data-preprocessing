@@ -100,28 +100,35 @@ def load_crossref_graph(item, source):
 
 
 def get_leaf_texts_to_compare(
-    snapshot, leaves_with_citekeys, source_text, law_names_data, dataset
+    snapshot, leaves_with_citekeys, source_texts, law_names_data, dataset
 ):
     """
     get text for leaves of a hierarchy graph. Can be seqitem or supseqitem graph.
     Leaves are only seqitems or supseqitems.
     """
+
     leaf_keys = {key for key, citekey in leaves_with_citekeys}
 
     if dataset == "us":
+        if type(source_texts) is str:
+            source_texts = [source_texts]
+
         files = sorted(
             [
-                x
+                os.path.join(source_text, x)
+                for source_text in source_texts
                 for x in list_dir(source_text, ".xml")
                 if x.split(".")[0].split("_")[-1] == snapshot
             ]
         )
     else:  # is DE
+        assert type(source_texts) is str
         files = get_snapshot_law_list(snapshot, law_names_data)
+        files = [os.path.join(source_texts, f) for f in files]
 
     whitespace_pattern = regex.compile(r"[\s\n]+")
     for file in files:
-        soup = create_soup(f"{source_text}/{file}")
+        soup = create_soup(file)
         tags = soup.find_all(["seqitem", "subseqitem"])
         for tag in tags:
             if tag["key"] in leaf_keys:

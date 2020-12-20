@@ -396,8 +396,11 @@ if __name__ == "__main__":
                 if regulations
                 else US_CROSSREFERENCE_GRAPH_PATH
             )
-            source_text = US_REFERENCE_PARSED_PATH
-            source_text_reg = US_REG_REFERENCE_PARSED_PATH if regulations else None
+            source_text = (
+                [US_REFERENCE_PARSED_PATH, US_REG_REFERENCE_PARSED_PATH]
+                if regulations
+                else US_REFERENCE_PARSED_PATH
+            )
             destination = os.path.join(
                 US_REG_SNAPSHOT_MAPPING_INDEX_PATH
                 if regulations
