@@ -1,6 +1,6 @@
 import os
 import re
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 
 import bs4
 from bs4 import BeautifulSoup, Tag
@@ -331,7 +331,14 @@ def nest_documents(documents):
 
     for document in documents:
         add_pathcomponents(document)
-    docs_by_itempath = {doc["itempathcomponents"]: doc for doc in documents}
+
+    docs_by_itempath = defaultdict(list)
+    for doc in documents:
+        docs_by_itempath[doc["itempathcomponents"]].append(doc)
+    for itempath, docs in docs_by_itempath.items():
+        if len(docs) > 1:
+            print(itempath, "has", len(docs), "items")
+
     roots = []
     for doc in documents:
         assert len(doc["itempathcomponents"]) > 0
@@ -343,7 +350,7 @@ def nest_documents(documents):
         else:
             # For elements ar lower levels (create and) get parent to add the document
             # to.
-            parent = get_or_create_parent(docs_by_itempath, doc)
+            parent = get_or_create_parent(docs_by_itempath, documents, doc)
             parent["children"].append(doc)
 
     return roots
@@ -361,12 +368,29 @@ def add_pathcomponents(document):
     document["children"] = []
 
 
-def get_or_create_parent(docs_by_itempath, doc):
+def get_or_create_parent(docs_by_itempath, documents, doc):
     """
     Get the parent for a document based on the itempathcomponents. If the parent does
     not exist yet it will be created.
     """
-    parent = docs_by_itempath.get(doc["itempathcomponents"][:-1])
+    parents = docs_by_itempath.get(doc["itempathcomponents"][:-1])
+    parent = None
+    doc_idx = documents.index(doc)
+    for parent_cadidate in reversed(parents):
+        parent_idx = documents.index(parent_cadidate)
+        if parent_idx < doc_idx:
+            parent = parent_cadidate
+            break
+
+    # Check in between
+    if parent:
+        docs_between = documents[parent_idx + 1 : doc_idx]
+        for docs_between in docs_between:
+            assert docs_between["itempath"].startswith(parent["itempath"]), (
+                docs_between,
+                parent,
+                doc,
+            )
 
     if not parent:
         grandparent = docs_by_itempath[doc["itempathcomponents"][:-2]]
