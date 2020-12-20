@@ -737,7 +737,8 @@ def export_to_xml(roots, version):
 
 
 def fix_nesting_errors(item, documents):
-    if item in ["420_2005.xml", "420_2006.xml", "420_2007.xml"]:
+    item_base, _ = os.path.splitext(item)
+    if item_base in ["420_2005", "420_2006", "420_2007"]:
         parent_element = None
         for doc in documents:
             if doc["itempath"] == "/420/CHAPTER 149":
@@ -747,6 +748,31 @@ def fix_nesting_errors(item, documents):
                 doc["itempath"] = "/420/CHAPTER 149" + doc["itempath"][4:]
                 expcite = (
                     parent_element["expcite"].split("!@!")[:2]
+                    + doc["expcite"].split("!@!")[1:]
+                )
+                doc["expcite"] = "!@!".join(expcite)
+
+    if item_base == "420_1999":
+        new_doc = None
+        for idx, doc in enumerate(documents):
+            if doc["itempath"] == "/420/SUBCHAPTER I":
+                new_doc = dict(
+                    itempath="/420/CHAPTER 85",
+                    itemsortkey=documents[idx - 1]["itemsortkey"] + "a",
+                    expcite=doc["expcite"].split("!@!")[0]
+                    + "!@!CHAPTER 85-AIR POLLUTION PREVENTION AND CONTROL",
+                    fields={},
+                )
+                documents.insert(idx, new_doc)
+                break
+
+        assert new_doc
+
+        for doc in documents:
+            if doc["itempath"].startswith("/420/SUBCHAPTER I"):
+                doc["itempath"] = "/420/CHAPTER 85" + doc["itempath"][4:]
+                expcite = (
+                    new_doc["expcite"].split("!@!")[:2]
                     + doc["expcite"].split("!@!")[1:]
                 )
                 doc["expcite"] = "!@!".join(expcite)
