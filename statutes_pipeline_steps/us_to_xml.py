@@ -338,6 +338,7 @@ def nest_documents(documents):
     for itempath, docs in docs_by_itempath.items():
         if len(docs) > 1:
             print(itempath, "has", len(docs), "items")
+    docs_by_itempath = dict(docs_by_itempath)
 
     roots = []
     for doc in documents:
@@ -401,7 +402,9 @@ def get_or_create_parent(docs_by_itempath, documents, doc):
             "fields": {},
         }
         add_pathcomponents(parent)
-        docs_by_itempath[parent["itempathcomponents"]] = parent
+        assert parent["itempathcomponents"] not in docs_by_itempath
+        docs_by_itempath[parent["itempathcomponents"]] = [parent]
+        documents.insert(documents.index(doc), parent)
         grandparent["children"].append(parent)
 
     return parent
