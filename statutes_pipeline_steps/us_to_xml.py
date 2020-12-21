@@ -369,14 +369,9 @@ def add_pathcomponents(document):
     document["children"] = []
 
 
-def get_or_create_parent(docs_by_itempath, documents, doc):
-    """
-    Get the parent for a document based on the itempathcomponents. If the parent does
-    not exist yet it will be created.
-    """
-    parents = docs_by_itempath.get(doc["itempathcomponents"][:-1])
+def get_parent(docs_by_itempath, documents, doc_idx, itempath):
+    parents = docs_by_itempath.get(itempath)
     parent = None
-    doc_idx = documents.index(doc)
     if parents:
         for parent_cadidate in reversed(parents):
             parent_idx = documents.index(parent_cadidate)
@@ -387,15 +382,37 @@ def get_or_create_parent(docs_by_itempath, documents, doc):
     # Check in between
     if parent:
         docs_between = documents[parent_idx + 1 : doc_idx]
-        for docs_between in docs_between:
-            assert docs_between["itempath"].startswith(parent["itempath"]), (
-                docs_between,
-                parent,
-                doc,
-            )
+        for doc_between in docs_between:
+            if not doc_between["itempath"].startswith(parent["itempath"]):
+                print(
+                    "Multiple items with same path for",
+                    itempath,
+                    "\n- ".join([d["expcite"] for d in docs_between]),
+                )
+                break
+
+    return parent
+
+
+def get_or_create_parent(docs_by_itempath, documents, doc):
+    """
+    Get the parent for a document based on the itempathcomponents. If the parent does
+    not exist yet it will be created.
+    """
+    parent = get_parent(
+        docs_by_itempath,
+        documents,
+        doc_idx=documents.index(doc),
+        itempath=doc["itempathcomponents"][:-1],
+    )
 
     if not parent:
-        grandparent = docs_by_itempath[doc["itempathcomponents"][:-2]]
+        grandparent = get_parent(
+            docs_by_itempath,
+            documents,
+            doc_idx=documents.index(doc),
+            itempath=doc["itempathcomponents"][:-2],
+        )
         parent = {
             "itempath": "/".join(doc["itempath"].split("/")[:-1]),
             "expcite": "!@!".join(doc["expcite"].split("!@!")[:-1]),
@@ -692,11 +709,27 @@ def doc_to_soup(doc, soup, level, version, root=False) -> Tag:
             tag.attrs["citekey"] = f"{title}_{section}"
         # else:
         #    assert title_path_component[-1] == '1'
-    for content in doc["contents"]["contents"] if doc["fields"].get("statute") else []:
+    statute_content = merge_strings_in_list(
+        doc["contents"]["contents"] if doc["fields"].get("statute") else []
+    )
+    for content in statute_content:
         tag.append(content_to_soup(content, soup, level + 1, version, doc))
     for child in doc["children"]:
         tag.append(doc_to_soup(child, soup, level + 1, version))
     return tag
+
+
+extract_text_pattern = re.compile(r"\s+")
+
+
+def merge_strings_in_list(elements, joined_with=" "):
+    res = []
+    for elem in elements:
+        if type(elem) is str and res and type(res[-1]) is str:
+            res[-1] += joined_with + elem
+        else:
+            res.append(elem)
+    return res
 
 
 def content_to_soup(content, soup, level, version, doc) -> Tag:
@@ -711,9 +744,10 @@ def content_to_soup(content, soup, level, version, doc) -> Tag:
         return tag
 
     elif type(content) is str:
-        text = soup.new_tag("text")
-        text.append(bs4.element.NavigableString(content))
-        return text
+        text = extract_text_pattern.sub(" ", content).strip()
+        text_tag = soup.new_tag("text")
+        text_tag.append(bs4.element.NavigableString(text))
+        return text_tag
     else:
         raise Exception(type(content))
 
