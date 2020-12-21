@@ -376,11 +376,12 @@ def get_or_create_parent(docs_by_itempath, documents, doc):
     parents = docs_by_itempath.get(doc["itempathcomponents"][:-1])
     parent = None
     doc_idx = documents.index(doc)
-    for parent_cadidate in reversed(parents):
-        parent_idx = documents.index(parent_cadidate)
-        if parent_idx < doc_idx:
-            parent = parent_cadidate
-            break
+    if parents:
+        for parent_cadidate in reversed(parents):
+            parent_idx = documents.index(parent_cadidate)
+            if parent_idx < doc_idx:
+                parent = parent_cadidate
+                break
 
     # Check in between
     if parent:
