@@ -2,8 +2,7 @@ import os
 import pickle
 
 import networkx as nx
-import pandas as pd
-from quantlaw.utils.beautiful_soup import create_soup
+from lxml import etree
 from quantlaw.utils.files import ensure_exists, list_dir
 from quantlaw.utils.pipeline import PipelineStep
 from regex import regex
@@ -14,7 +13,6 @@ from utils.common import get_snapshot_law_list
 class SnapshotMappingIndexStep(PipelineStep):
     def __init__(
         self,
-        source_graph,
         source_text,
         destination,
         dataset,
@@ -22,7 +20,6 @@ class SnapshotMappingIndexStep(PipelineStep):
         *args,
         **kwargs,
     ):
-        self.source_graph = source_graph
         self.source_text = source_text
         self.destination = destination
         self.dataset = dataset
@@ -31,61 +28,28 @@ class SnapshotMappingIndexStep(PipelineStep):
 
     def get_items(self, overwrite, snapshots) -> list:
         ensure_exists(self.destination)
-        files = sorted(list_dir(self.source_graph, ".nodes.csv.gz"))
-        items = [f[: -len(".nodes.csv.gz")] for f in files]
-
-        if snapshots:
-            items = list(filter(lambda i: i in snapshots, items))
-
+        items = snapshots
         if not overwrite:
             existing_files = list_dir(self.destination, ".pickle")
             items = list(filter(lambda x: (x + ".pickle") not in existing_files, items))
         return items
 
-    def get_leaves_with_citekeys(self, item):
-        nodes_csv_path = os.path.join(self.source_graph, f"{item}.nodes.csv.gz")
-        edges_csv_path = os.path.join(self.source_graph, f"{item}.edges.csv.gz")
-
-        connecting_nodes = set()
-        for edges_df in pd.read_csv(edges_csv_path, chunksize=10000):
-            connecting_nodes.update(
-                edges_df[edges_df.edge_type == "containment"].u.to_list()
-            )
-
-        leaves = []
-        for nodes_df in pd.read_csv(nodes_csv_path, chunksize=10000):
-            for idx, row in nodes_df.iterrows():
-                if row.key not in connecting_nodes:  # it's a leaf
-                    leaves.append(
-                        (row.key, None if pd.isnull(row.citekey) else row.citekey)
-                    )
-
-        return leaves
-
     def execute_item(self, item):
-        # Load structure
-        leaves_with_citekeys = self.get_leaves_with_citekeys(item)
-
         # Load texts
-        leave_texts = list(
-            get_leaf_texts_to_compare(
+        item_data = list(
+            get_texttags_to_compare(
                 item,
-                leaves_with_citekeys,
                 self.source_text,
                 self.law_names_data,
                 self.dataset,
             )
         )
 
-        self.save_raw(item, leaves_with_citekeys, leave_texts)
+        self.save_raw(item, item_data)
 
-    def save_raw(self, item, leaves_with_citekeys, leave_texts):
+    def save_raw(self, item, item_data):
 
-        keys = [key for key, text in leave_texts]
-        texts = [text for key, text in leave_texts]
-
-        citekeys_dict = {key: citekey for key, citekey in leaves_with_citekeys}
-        citekeys = [citekeys_dict[key] for key, text in leave_texts]
+        keys, citekeys, texts = list(zip(*item_data))
 
         pickle_path = os.path.join(self.destination, item + ".pickle")
 
@@ -99,15 +63,7 @@ def load_crossref_graph(item, source):
     return G
 
 
-def get_leaf_texts_to_compare(
-    snapshot, leaves_with_citekeys, source_texts, law_names_data, dataset
-):
-    """
-    get text for leaves of a hierarchy graph. Can be seqitem or supseqitem graph.
-    Leaves are only seqitems or supseqitems.
-    """
-
-    leaf_keys = {key for key, citekey in leaves_with_citekeys}
+def get_texttags_to_compare(snapshot, source_texts, law_names_data, dataset):
 
     if dataset == "us":
         if type(source_texts) is str:
@@ -127,11 +83,32 @@ def get_leaf_texts_to_compare(
         files = [os.path.join(source_texts, f) for f in files]
 
     whitespace_pattern = regex.compile(r"[\s\n]+")
+
     for file in files:
-        soup = create_soup(file)
-        tags = soup.find_all(["seqitem", "subseqitem"])
-        for tag in tags:
-            if tag["key"] in leaf_keys:
-                text = tag.get_text(" ")
-                text = whitespace_pattern.sub(" ", text).lower().strip()
-                yield tag["key"], text.lower()
+        tree = etree.parse(file)
+        for text_tag in tree.xpath("//text"):
+            item = text_tag.getparent()
+
+            pos_in_item = item.getchildren().index(text_tag)
+            text_key = item.attrib["key"] + f"_{pos_in_item}"
+
+            seqitem = get_seqitem(item)
+            if seqitem is not None:
+                citekey = seqitem.attrib.get("citekey")
+            else:
+                citekey = None
+
+            text = etree.tostring(text_tag, method="text", encoding="utf8").decode(
+                "utf-8"
+            )
+            text = whitespace_pattern.sub(" ", text).lower().strip()
+
+            yield text_key, citekey, text
+
+
+def get_seqitem(elem):
+    if elem is None:
+        return None
+    elif elem.tag == "seqitem":
+        return elem
+    return get_seqitem(elem.getparent())

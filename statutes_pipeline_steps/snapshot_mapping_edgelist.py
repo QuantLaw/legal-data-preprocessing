@@ -12,11 +12,7 @@ from quantlaw.utils.networkx import get_leaves
 from quantlaw.utils.pipeline import PipelineStep
 from regex import regex
 
-from utils.common import (
-    get_snapshot_law_list,
-    invert_dict_mapping_all,
-    invert_dict_mapping_unique,
-)
+from utils.common import get_snapshot_law_list, invert_dict_mapping_unique
 from utils.string_list_contains import StringContainsAlign
 
 
@@ -80,7 +76,7 @@ class SnapshotMappingEdgelistStep(PipelineStep):
 
         print("Step 1")
 
-        # STEP 2: nonunique, nonmoved perfect matches
+        # STEP 2: unique perfect matches considering text and citekey
         new_mappings_current_step = map_same_citekey_same_text(
             data1, data2, remaining_keys1, remaining_keys2
         )
@@ -228,37 +224,27 @@ def map_unique_texts(data1, data2, min_text_length=50):
 
 
 def map_same_citekey_same_text(data1, data2, remaining_keys1, remaining_keys2):
-    # inverted_leave_texts1 = invert_dict_mapping_all(leave_texts1)
-    # # currently not needed
-    leave_texts1 = {k: t for k, t in zip(data1["keys"], data1["texts"])}
-    leave_texts2 = {k: t for k, t in zip(data2["keys"], data2["texts"])}
+    text_and_citekeys1 = {
+        k: (c.lower(), t)
+        for k, t, c in zip(data1["keys"], data1["texts"], data1["citekeys"])
+    }
+    text_and_citekeys2 = {
+        k: (c.lower(), t)
+        for k, t, c in zip(data2["keys"], data2["texts"], data2["citekeys"])
+    }
+    inverted_text_and_citekeys1 = invert_dict_mapping_unique(text_and_citekeys1)
+    inverted_text_and_citekeys2 = invert_dict_mapping_unique(text_and_citekeys2)
 
-    cite_keys1 = {k: c for k, c in zip(data1["keys"], data1["citekeys"])}
-    cite_keys2 = {k: c for k, c in zip(data2["keys"], data2["citekeys"])}
+    both_unique_text_and_citekeys = set(inverted_text_and_citekeys1.keys()) & set(
+        inverted_text_and_citekeys2.keys()
+    )
 
-    inverted_leave_texts2 = invert_dict_mapping_all(leave_texts2)
-
+    # Create mapping
     new_mappings = {}
-
-    for remaining_key1 in sorted(remaining_keys1):
-        text1 = leave_texts1[remaining_key1]
-        ids2 = inverted_leave_texts2.get(text1)
-        if not ids2 or not len(ids2):
-            continue
-        cite_key1 = cite_keys1[remaining_key1]
-        # does not work for subseqitems. in this case to up to seqitem and use their
-        # citekey. Same for cite_key2.
-        if not cite_key1:
-            continue
-        for id2 in ids2:
-            cite_key2 = cite_keys2[id2]
-            if not cite_key2:
-                continue
-            if cite_key1.lower() == cite_key2.lower() and id2 in remaining_keys2:
-                new_mappings[remaining_key1] = id2
-                remaining_keys2.remove(id2)
-                break
-
+    for text_and_citekey in both_unique_text_and_citekeys:
+        new_mappings[
+            inverted_text_and_citekeys1[text_and_citekey]
+        ] = inverted_text_and_citekeys2[text_and_citekey]
     return new_mappings
 
 

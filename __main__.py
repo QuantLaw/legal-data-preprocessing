@@ -391,11 +391,6 @@ if __name__ == "__main__":
 
     if "snapshot_mapping_index" in steps:
         if dataset == "us":
-            source_graph = (
-                US_REG_CROSSREFERENCE_GRAPH_PATH
-                if regulations
-                else US_CROSSREFERENCE_GRAPH_PATH
-            )
             source_text = (
                 [US_REFERENCE_PARSED_PATH, US_REG_REFERENCE_PARSED_PATH]
                 if regulations
@@ -409,11 +404,6 @@ if __name__ == "__main__":
             )
             law_names_data = None
         elif dataset == "de":
-            source_graph = (
-                DE_REG_CROSSREFERENCE_GRAPH_PATH
-                if regulations
-                else DE_CROSSREFERENCE_GRAPH_PATH
-            )
             source_text = (
                 DE_REG_REFERENCE_PARSED_PATH
                 if regulations
@@ -428,7 +418,6 @@ if __name__ == "__main__":
             law_names_data = load_law_names(regulations)
 
         step = SnapshotMappingIndexStep(
-            source_graph,
             source_text,
             destination,
             dataset,
