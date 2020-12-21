@@ -56,7 +56,7 @@ def nest_items(G, items, document_type):
     Convert xml soup to graph tree using networkx
     """
     for item in items:
-        if item.tag != " document":
+        if item.tag != "document":
             node_attrs = dict(
                 key=item.attrib["key"],
                 citekey=item.attrib.get("citekey", ""),
@@ -70,7 +70,7 @@ def nest_items(G, items, document_type):
             add_juris_attrs(item, node_attrs)
 
             G.add_node(item.attrib["key"], **node_attrs)
-            G.add_edge(item.parent.attrib["key"], item.attrib["key"])
+            G.add_edge(item.getparent().attrib["key"], item.attrib["key"])
 
         else:  # handle root node
 
@@ -149,12 +149,12 @@ def build_graph(filename, add_subseqitems=False):
     # Add attributes regarding the contained text to the target graoh
     for item in tree.xpath(xpath):
         text = " ".join(item.itertext())
-        G.nodes[item.attrs["key"]]["chars_n"] = count_characters(text, whites=True)
-        G.nodes[item.attrs["key"]]["chars_nowhites"] = count_characters(
+        G.nodes[item.attrib["key"]]["chars_n"] = count_characters(text, whites=True)
+        G.nodes[item.attrib["key"]]["chars_nowhites"] = count_characters(
             text, whites=False
         )
-        G.nodes[item.attrs["key"]]["tokens_n"] = count_tokens(text, unique=False)
-        G.nodes[item.attrs["key"]]["tokens_unique"] = count_tokens(text, unique=True)
+        G.nodes[item.attrib["key"]]["tokens_n"] = count_tokens(text, unique=False)
+        G.nodes[item.attrib["key"]]["tokens_unique"] = count_tokens(text, unique=True)
 
     items_with_text = {elem.getparent() for elem in tree.xpath("//text")}
     for item in items_with_text:
@@ -166,8 +166,8 @@ def build_graph(filename, add_subseqitems=False):
             for elem in text_elems:
                 text = " ".join(elem.itertext())
                 texts_tokens_n.append(str(count_tokens(text, unique=False)))
-                texts_chars_n.append(str(count_characters(text, unique=False)))
-            G.nodes[item.attrs["key"]]["texts_tokens_n"] = ",".join(texts_tokens_n)
-            G.nodes[item.attrs["key"]]["texts_chars_n"] = ",".join(texts_chars_n)
+                texts_chars_n.append(str(count_characters(text, whites=False)))
+            G.nodes[item.attrib["key"]]["texts_tokens_n"] = ",".join(texts_tokens_n)
+            G.nodes[item.attrib["key"]]["texts_chars_n"] = ",".join(texts_chars_n)
 
     return G
