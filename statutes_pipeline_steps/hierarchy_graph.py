@@ -2,7 +2,7 @@ import os
 import re
 
 import networkx as nx
-from bs4 import BeautifulSoup
+from lxml import etree
 from quantlaw.utils.files import ensure_exists, list_dir
 from quantlaw.utils.pipeline import PipelineStep
 
@@ -43,12 +43,12 @@ def get_gpickle_filename(filename):
 
 
 def add_juris_attrs(item, node_attrs):
-    if item.attrs.get("normgeber"):
-        node_attrs["legislators"] = item.attrs["normgeber"]
-    if item.attrs.get("mitwirkende"):
-        node_attrs["contributors"] = item.attrs["mitwirkende"]
-    if item.attrs.get("sachgebiete"):
-        node_attrs["subject_areas"] = item.attrs["sachgebiete"]
+    if item.attrib.get("normgeber"):
+        node_attrs["legislators"] = item.attrib["normgeber"]
+    if item.attrib.get("mitwirkende"):
+        node_attrs["contributors"] = item.attrib["mitwirkende"]
+    if item.attrib.get("sachgebiete"):
+        node_attrs["subject_areas"] = item.attrib["sachgebiete"]
 
 
 def nest_items(G, items, document_type):
@@ -56,42 +56,41 @@ def nest_items(G, items, document_type):
     Convert xml soup to graph tree using networkx
     """
     for item in items:
-        if type(item.parent) is not BeautifulSoup:
+        if item.tag != " document":
             node_attrs = dict(
-                key=item.attrs["key"],
-                citekey=item.attrs.get("citekey", ""),
-                heading=item.attrs.get("heading", ""),
-                parent_key=item.parent.attrs["key"],
-                level=int(item.attrs["level"]),
-                type=item.name,
+                key=item.attrib["key"],
+                citekey=item.attrib.get("citekey", ""),
+                heading=item.attrib.get("heading", ""),
+                parent_key=item.getparent().attrib["key"],
+                level=int(item.attrib["level"]),
+                type=item.tag,
             )
             if document_type:
                 node_attrs["document_type"] = document_type
             add_juris_attrs(item, node_attrs)
 
-            G.add_node(item.attrs["key"], **node_attrs)
-            G.add_edge(item.parent.attrs["key"], item.attrs["key"])
+            G.add_node(item.attrib["key"], **node_attrs)
+            G.add_edge(item.parent.attrib["key"], item.attrib["key"])
 
         else:  # handle root node
-            if item.name == "document":
-                item.attrs["level"] = 0
+
             node_attrs = dict(
-                key=item.attrs["key"],
-                citekey=item.attrs.get("citekey", ""),
-                heading=item.attrs.get("heading", ""),
+                key=item.attrib["key"],
+                citekey=item.attrib.get("citekey", ""),
+                heading=item.attrib.get("heading", ""),
                 parent_key="",
-                level=int(item.attrs["level"]),
-                type=item.name,
+                level=0,
+                type=item.tag,
                 **(dict(document_type=document_type) if document_type else {}),
             )
-            if "abbr_1" in item.attrs:
-                node_attrs["abbr_1"] = item.attrs["abbr_1"]
-            if "abbr_2" in item.attrs:
-                node_attrs["abbr_2"] = item.attrs["abbr_2"]
+            if "abbr_1" in item.attrib:
+                node_attrs["abbr_1"] = item.attrib["abbr_1"]
+            if "abbr_2" in item.attrib:
+                node_attrs["abbr_2"] = item.attrib["abbr_2"]
             add_juris_attrs(item, node_attrs)
 
-            G.add_node(item.attrs["key"], **node_attrs)
-            G.graph["name"] = item.attrs.get("heading", "")
+            G.add_node(item.attrib["key"], **node_attrs)
+            G.graph["name"] = item.attrib.get("heading", "")
 
     return G
 
@@ -127,34 +126,48 @@ def build_graph(filename, add_subseqitems=False):
     """
 
     # Read input file
-    with open(filename, encoding="utf8") as f:
-        soup = BeautifulSoup(f.read(), "lxml-xml")
+    tree = etree.parse(filename)
 
     document_type = (
-        soup.document.attrs.get("document_type", None) if soup.document else None
+        tree.xpath("/document")[0].attrib.get("document_type", None)
+        if tree.xpath("/document")
+        else None
     )
 
     # Create target graph
     G = nx.DiGraph()
 
-    # Find all elements to add to the graph
-    items = soup.find_all(["document", "item", "seqitem"])
+    xpath = (
+        "//document | //item | //seqitem | //subseqitem"
+        if add_subseqitems
+        else "//document | //item | //seqitem"
+    )
 
-    # Create a tree if tge elements in the target graph
-    G = nest_items(G, items, document_type)
-    subitems = []
-    if add_subseqitems:
-        subitems = soup.find_all("subseqitem")
-        G = nest_items(G, subitems, document_type)
+    # Create a tree if the elements in the target graph
+    G = nest_items(G, items=tree.xpath(xpath), document_type=document_type)
 
     # Add attributes regarding the contained text to the target graoh
-    for item in items + subitems:
-        text = item.get_text(" ")
+    for item in tree.xpath(xpath):
+        text = " ".join(item.itertext())
         G.nodes[item.attrs["key"]]["chars_n"] = count_characters(text, whites=True)
         G.nodes[item.attrs["key"]]["chars_nowhites"] = count_characters(
             text, whites=False
         )
         G.nodes[item.attrs["key"]]["tokens_n"] = count_tokens(text, unique=False)
         G.nodes[item.attrs["key"]]["tokens_unique"] = count_tokens(text, unique=True)
+
+    items_with_text = {elem.getparent() for elem in tree.xpath("//text")}
+    for item in items_with_text:
+        all_elems = item.getchildren()
+        text_elems = [e for e in all_elems if e.tag == "text"]
+        if len(all_elems) > 1 and text_elems:
+            texts_tokens_n = []
+            texts_chars_n = []
+            for elem in text_elems:
+                text = " ".join(elem.itertext())
+                texts_tokens_n.append(str(count_tokens(text, unique=False)))
+                texts_chars_n.append(str(count_characters(text, unique=False)))
+            G.nodes[item.attrs["key"]]["texts_tokens_n"] = ",".join(texts_tokens_n)
+            G.nodes[item.attrs["key"]]["texts_chars_n"] = ",".join(texts_chars_n)
 
     return G

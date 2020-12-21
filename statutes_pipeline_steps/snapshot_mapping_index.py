@@ -89,7 +89,8 @@ def get_texttags_to_compare(snapshot, source_texts, law_names_data, dataset):
         for text_tag in tree.xpath("//text"):
             item = text_tag.getparent()
 
-            pos_in_item = item.getchildren().index(text_tag)
+            text_elems = [e for e in item.getchildren() if e.tag == "text"]
+            pos_in_item = text_elems.index(text_tag)
             text_key = item.attrib["key"] + f"_{pos_in_item}"
 
             seqitem = get_seqitem(item)
