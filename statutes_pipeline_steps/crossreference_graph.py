@@ -44,7 +44,9 @@ class CrossreferenceGraphStep(RegulationsPipelineStep):
             )
 
         if not overwrite:
-            existing_files = list_dir(self.destination, ".gpickle.gz")
+            existing_files = list_dir(
+                os.path.join(self.destination, "seqitems"), ".gpickle.gz"
+            )
             snapshots = list(
                 filter(
                     lambda year: f"{year}.gpickle.gz" not in existing_files, snapshots
