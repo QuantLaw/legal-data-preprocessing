@@ -10,3 +10,4 @@ quantlaw
 regex
 requests
 textdistance
+tqdm

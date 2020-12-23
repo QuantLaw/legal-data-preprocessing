@@ -65,7 +65,6 @@ class StringContainsAlign:
                         break
             else:
                 candidates = range(len(text_list_haystack))
-                print(needle)
 
             for haystack_index in candidates:
                 target_text = text_list_haystack[haystack_index]

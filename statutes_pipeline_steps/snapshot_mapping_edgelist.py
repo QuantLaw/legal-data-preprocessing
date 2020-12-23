@@ -1,11 +1,12 @@
 import json
-import multiprocessing
 import os
 import pickle
 from collections import Counter, deque
+from multiprocessing import Pool
 
 import networkx as nx
 import textdistance
+import tqdm
 from quantlaw.utils.beautiful_soup import create_soup
 from quantlaw.utils.files import ensure_exists, list_dir
 from quantlaw.utils.networkx import get_leaves
@@ -17,7 +18,7 @@ from utils.string_list_contains import StringContainsAlign
 
 
 class SnapshotMappingEdgelistStep(PipelineStep):
-    max_number_of_processes = min(max(multiprocessing.cpu_count() - 2, 1), 4)
+    max_number_of_processes = 1
 
     def __init__(
         self,
@@ -72,47 +73,68 @@ class SnapshotMappingEdgelistStep(PipelineStep):
         new_mappings = map_unique_texts(
             data1, data2, min_text_length=self.min_text_length
         )
-        remaining_keys1, remaining_keys2 = get_remaining(data1, data2, new_mappings)
-
-        print("Step 1")
+        remaining_keys1, remaining_keys2 = get_remaining(
+            data1["keys"], data2["keys"], new_mappings, printing=f"{item}/Step 1"
+        )
 
         # STEP 2: unique perfect matches considering text and citekey
         new_mappings_current_step = map_same_citekey_same_text(
             data1, data2, remaining_keys1, remaining_keys2
         )
         new_mappings = {**new_mappings_current_step, **new_mappings}
-        remaining_keys1, remaining_keys2 = get_remaining(data1, data2, new_mappings)
-
-        print("Step 2")
+        del new_mappings_current_step
+        remaining_keys1, remaining_keys2 = get_remaining(
+            data1["keys"], data2["keys"], new_mappings, printing=f"{item}/Step 2"
+        )
 
         # STEP 3: text appended/prepended/removed
         new_mappings_current_step = map_text_containment(
             data1, data2, remaining_keys1, remaining_keys2
         )
         new_mappings = {**new_mappings_current_step, **new_mappings}
-        remaining_keys1, remaining_keys2 = get_remaining(data1, data2, new_mappings)
-
-        print("Step 3")
+        del new_mappings_current_step
+        remaining_keys1, remaining_keys2 = get_remaining(
+            data1["keys"], data2["keys"], new_mappings, printing=f"{item}/Step 3"
+        )
 
         # STEP 4: neighborhood matching
-        map_similar_text_common_neighbors(
-            new_mappings,
-            data1,
-            data2,
-            remaining_keys1,
-            remaining_keys2,
+        data_keys1 = data1["keys"]
+        data_keys2 = data2["keys"]
+        data_texts1 = data1["texts"]
+        data_texts2 = data2["texts"]
+        del data1
+        del data2
+
+        common_neighbor_kwargs = dict(
+            new_mappings=new_mappings,
+            data_keys1=data_keys1,
+            data_keys2=data_keys2,
+            data_texts1=data_texts1,
+            data_texts2=data_texts2,
+            remaining_keys1=remaining_keys1,
+            remaining_keys2=remaining_keys2,
             radius=self.radius,
             distance_threshold=self.distance_threshold,
         )
 
-        print("Step 4")
+        text_distance_cache = map_similar_text_common_neighbors(
+            **common_neighbor_kwargs,
+            printing=str(item),
+            dry_run=True,
+        )
+        text_distance_cache = update_textdistance_cache(text_distance_cache)
+        map_similar_text_common_neighbors(
+            **common_neighbor_kwargs,
+            printing=str(item),
+            text_distance_cache=text_distance_cache,
+        )
+
         dest_path = f"{self.destination}/{mapping_filename(item)}"
-        print(dest_path)
         with open(dest_path, "w") as f:
             json.dump(new_mappings, f)
 
         # only called to print stats
-        get_remaining(data1, data2, new_mappings)
+        get_remaining(data_keys1, data_keys2, new_mappings, printing=f"{item}/DONE")
 
     def load_pickle(self, snapshot):
         with open(os.path.join(self.source, snapshot + ".pickle"), "rb") as f:
@@ -135,19 +157,19 @@ def load_crossref_graph(filename, source):
     return G
 
 
-def get_remaining(data1, data2, new_mappings, asserting=True, printing=True):
+def get_remaining(data_keys1, data_keys2, new_mappings, asserting=True, printing=True):
     """
     Prints stats and returns keys of both snapshots to be matched
     """
-    remaining_keys1 = set(data1["keys"]) - set(new_mappings.keys())
-    remaining_keys2 = set(data2["keys"]) - set(new_mappings.values())
+    remaining_keys1 = set(data_keys1) - set(new_mappings.keys())
+    remaining_keys2 = set(data_keys2) - set(new_mappings.values())
     if asserting:
         assert len(set(new_mappings.keys())) == len(set(new_mappings.values()))
     if printing:
-        print(f"{len(remaining_keys1)} {len(remaining_keys2)}")
         print(
-            f"Remiaining keys: {len(remaining_keys1)} {len(remaining_keys2)}; "
-            f"Progress {len(new_mappings)/min(len(data1['keys']), len(data2['keys']))}"
+            f"\n{printing}; "
+            f"Progress {len(new_mappings)/min(len(data_keys1), len(data_keys2))}; "
+            f"Remaining keys: {len(remaining_keys1)} {len(remaining_keys2)}; "
         )
     return remaining_keys1, remaining_keys2
 
@@ -300,24 +322,27 @@ def map_text_containment(
     return new_mappings
 
 
-def get_neighborhood(data, node, radius):
+def get_neighborhood(data_keys, node, radius, keys_len, key_index_dict):
 
-    curr_index = data["keys"].index(node)
+    curr_index = key_index_dict[node]
     lower_bound = max(0, curr_index - radius)
-    upper_bound = min(len(data["keys"]), curr_index + radius)
+    upper_bound = min(keys_len, curr_index + radius)
 
-    neighborhood = data["keys"][lower_bound : upper_bound + 1]
+    neighborhood = data_keys[lower_bound : upper_bound + 1]
 
     # Remove node in radius but of another law/title as their order ist mostly arbitrary
     key_prefix = node.split("_")[0]
-    neighborhood = [n for n in neighborhood if n.startswith(key_prefix)]
+    neighborhood = {n for n in neighborhood if n.startswith(key_prefix)}
 
     return neighborhood
 
 
-def cached_text_distance(s1, s2, cache):
+def cached_text_distance(s1, s2, cache, dry_run):
     key = (s1, s2)
-    if key not in cache:
+    if dry_run:
+        distance = None
+        cache[key] = distance
+    elif key not in cache:
         distance = textdistance.jaro_winkler(s1, s2)
         cache[key] = distance
     else:
@@ -325,29 +350,56 @@ def cached_text_distance(s1, s2, cache):
     return distance
 
 
+def calc_text_distance(args):
+    return textdistance.jaro_winkler(*args)
+
+
+def update_textdistance_cache(text_distance_cache):
+    text_distance_texts = list(text_distance_cache.keys())
+    with Pool() as p:
+        distances = tqdm.tqdm(
+            p.imap(calc_text_distance, text_distance_texts),
+            total=len(text_distance_texts),
+        )
+        return {k: v for k, v in zip(text_distance_texts, distances)}
+
+
 def map_similar_text_common_neighbors(
     new_mappings,
-    data1,
-    data2,
+    data_keys1,
+    data_keys2,
+    data_texts1,
+    data_texts2,
     remaining_keys1,
     remaining_keys2,
     radius=5,
     distance_threshold=0.9,
+    printing=None,
+    dry_run=False,
+    text_distance_cache=None,
 ):
-    leave_texts1 = {k: v for k, v in zip(data1["keys"], data1["texts"])}
-    leave_texts2 = {k: v for k, v in zip(data2["keys"], data2["texts"])}
+    if not text_distance_cache:
+        text_distance_cache = dict()
 
-    text_distance_cache = dict()
+    keys_len1 = len(data_keys1)
+    keys_len2 = len(data_keys2)
+    key_index_dict1 = {k: idx for idx, k in enumerate(data_keys1)}
+    key_index_dict2 = {k: idx for idx, k in enumerate(data_keys2)}
 
-    key_queue = deque(remaining_keys1)  # to show progress
+    leave_texts1 = {k: v for k, v in zip(data_keys1, data_texts1)}
+    leave_texts2 = {k: v for k, v in zip(data_keys2, data_texts2)}
+
+    key_queue = deque(remaining_keys1)
+    key_queue_set = set(key_queue)
     i = -1  # only to print the process
-    while len(key_queue):
+    while key_queue:
         remaining_key1 = key_queue.popleft()
+        key_queue_set.remove(remaining_key1)
         i += 1  # only to print the process
-        if i % 100 == 0:
+        if i % 100 == 0 and printing:
             total = len(key_queue) + i
             print(
-                f"\r{i/total*100:.2f}% \t ({total} )",
+                f"\r{printing} " f"{i/total*100:.2f}% \t ({total} )",
                 end="",
             )
 
@@ -356,42 +408,53 @@ def map_similar_text_common_neighbors(
         # Get neighborhood of node in G1
         # Get mapping to G2 for neighborhood nodes
         # Get neighborhood of mapped G2 nodes
-        neighborhood_nodes1 = get_neighborhood(data1, remaining_key1, radius)
-        neighborhood_nodes2 = []
+        neighborhood_nodes1 = get_neighborhood(
+            data_keys1, remaining_key1, radius, keys_len1, key_index_dict1
+        )
+        neighborhood_nodes2 = set()
 
         for neighborhood_node1 in neighborhood_nodes1:
             if neighborhood_node1 in new_mappings:
-                neighborhood_nodes2 += get_neighborhood(
-                    data2, new_mappings[neighborhood_node1], radius
+                neighborhood_nodes2.update(
+                    get_neighborhood(
+                        data_keys2,
+                        new_mappings[neighborhood_node1],
+                        radius,
+                        keys_len2,
+                        key_index_dict2,
+                    )
                 )
 
         # Remove duplicates in G2 neighborhood
-        neighborhood_nodes2 = [
-            x for x in set(neighborhood_nodes2) if x in remaining_keys2
-        ]
+        neighborhood_nodes2 = [x for x in neighborhood_nodes2 if x in remaining_keys2]
 
         # Find most similar text
-        neighborhood_text2 = [
-            leave_texts2[x] if x in leave_texts2 else None for x in neighborhood_nodes2
-        ]
+        neighborhood_text2 = [leave_texts2.get(x) for x in neighborhood_nodes2]
         similarity = [
-            cached_text_distance(remaining_text1, x, text_distance_cache) if x else 0
+            cached_text_distance(remaining_text1, x, text_distance_cache, dry_run)
+            if x
+            else 0
             for x in neighborhood_text2
         ]
+        if not dry_run:
+            max_similarity = max(similarity) if similarity else 0
 
-        if len(similarity) and max(similarity) > distance_threshold:
-            # Add to mapping and update remaining_keys
-            max_index = similarity.index(max(similarity))
-            id2_to_match_to = neighborhood_nodes2[max_index]
-            new_mappings[remaining_key1] = id2_to_match_to
-            remaining_keys2.remove(id2_to_match_to)
-            remaining_keys1.remove(remaining_key1)
+            if max_similarity > distance_threshold:
+                # Add to mapping and update remaining_keys
+                max_index = similarity.index(max_similarity)
+                id2_to_match_to = neighborhood_nodes2[max_index]
+                new_mappings[remaining_key1] = id2_to_match_to
+                remaining_keys2.remove(id2_to_match_to)
+                remaining_keys1.remove(remaining_key1)
 
-            # Requeue neighborhood of newly mapped element
-            neighborghood_to_requeue = [
-                n
-                for n in neighborhood_nodes1
-                if n in remaining_keys1 and n not in key_queue
-            ]
-            key_queue.extend(neighborghood_to_requeue)
+                # Requeue neighborhood of newly mapped element
+                neighborhood_to_requeue = [
+                    n
+                    for n in neighborhood_nodes1
+                    if n in remaining_keys1 and n not in key_queue_set
+                ]
+                key_queue.extend(neighborhood_to_requeue)
+                key_queue_set.update(neighborhood_to_requeue)
+
     print()
+    return text_distance_cache
