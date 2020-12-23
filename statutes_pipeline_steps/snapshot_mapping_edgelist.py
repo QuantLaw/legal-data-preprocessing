@@ -249,10 +249,12 @@ def map_same_citekey_same_text(data1, data2, remaining_keys1, remaining_keys2):
     text_and_citekeys1 = {
         k: (c.lower(), t)
         for k, t, c in zip(data1["keys"], data1["texts"], data1["citekeys"])
+        if c and k in remaining_keys1
     }
     text_and_citekeys2 = {
         k: (c.lower(), t)
         for k, t, c in zip(data2["keys"], data2["texts"], data2["citekeys"])
+        if c and k in remaining_keys2
     }
     inverted_text_and_citekeys1 = invert_dict_mapping_unique(text_and_citekeys1)
     inverted_text_and_citekeys2 = invert_dict_mapping_unique(text_and_citekeys2)
