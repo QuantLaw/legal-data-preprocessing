@@ -24,6 +24,18 @@ CONTAINER_TAG_SET = [
 ]
 
 
+def item_not_complete(item, existing_files):
+    with zipfile.ZipFile(os.path.join(US_REG_INPUT_PATH, item)) as zip_file:
+        required_titles = {
+            f"{file.split('/')[0].split('-')[-1]}" for file in zip_file.namelist()
+        }
+    year = os.path.splitext(item)[0]
+
+    required_files = {"cfr{0}_{1}.xml".format(t, year) for t in required_titles}
+    missing_files = required_files - existing_files
+    return bool(missing_files)
+
+
 class UsRegsToXmlStep(PipelineStep):
     def get_items(self, overwrite) -> list:
         # Create target folder
@@ -31,6 +43,10 @@ class UsRegsToXmlStep(PipelineStep):
 
         # Get source files
         files = list_dir(US_REG_INPUT_PATH, ".zip")
+
+        if not overwrite:
+            existing_files = set(list_dir(US_REG_XML_PATH, ".xml"))
+            files = [f for f in files if item_not_complete(f, existing_files)]
 
         return files
 
@@ -51,6 +67,20 @@ def extract_text(e):
     e_text = lxml.etree.tostring(e, encoding="utf-8", method="text").decode("utf-8")
     e_text = extract_text_pattern.sub(" ", e_text)
     return e_text
+
+
+def extract_children_text(e):
+    res = []
+    if e.text and e.text.strip():
+        res.append(extract_text_pattern.sub(" ", e.text).strip())
+    for child in e.getchildren():
+        text = extract_text(child).strip()
+        if text:
+            res.append(text)
+        if child.tail and child.tail.strip():
+            res.append(extract_text_pattern.sub(" ", child.tail).strip())
+
+    return res
 
 
 def extract_number_match(text):
@@ -81,6 +111,8 @@ def extract_number_match(text):
 
 
 def extract_number(text):
+    if type(text) is list:
+        return None, None
     number_type, match = extract_number_match(text)
     if not number_type:
         return None, None
@@ -110,7 +142,7 @@ split_double_units_pattern = regex.compile(
 )
 
 split_double_units_same_units_pattern = regex.compile(
-    r"(" + split_double_units_pattern_unit_str + r"\s?)+(?=\()"
+    r"(" + split_double_units_pattern_unit_str + r"\s?)+(?=\(|$|\s+)"
 )
 
 
@@ -123,35 +155,45 @@ def get_length_of_identical_start(str1, str2):
 
 
 def get_identical_start(str1, str2):
-    return str1[: get_length_of_identical_start(str1, str2)]
+    return str1[: get_length_of_identical_start(str1, str2) + 1]
 
 
-def split_double_units(texts):
-    prev_text = None
-    for text in texts:
-        # Skip duplicate starts
-        if prev_text:
-            identical_start = get_identical_start(text, prev_text)
-            prev_text = text
-            if len(identical_start) >= 3:
-                match = split_double_units_same_units_pattern.match(identical_start)
-                if match:
-                    text = text[len(match[0]) :]
+def split_double_units_text_splitter(text):
+    match = True
+    while match:
+        split_pos = 0 if match is True else match.end()
+        prev_text = text[:split_pos]
+        text = text[split_pos:]
+        match = split_double_units_pattern.match(text)
+        if match:
+            if prev_text:  # Skip on first pass
+                yield prev_text.strip()
         else:
-            prev_text = text
+            yield prev_text + text
 
-        # Generate list of texts
-        match = True
-        while match:
-            split_pos = 0 if match is True else match.end()
-            prev_text = text[:split_pos]
-            text = text[split_pos:]
-            match = split_double_units_pattern.match(text)
-            if match:
-                if prev_text:  # Skip on first pass
-                    yield prev_text.strip()
-            else:
-                yield prev_text + text
+
+def split_double_units(text_lists):
+    for idx, text_list in enumerate(text_lists):
+        text = text_list[0]
+        if type(text) is str:
+            # Skip duplicate starts
+            if idx:
+                prev_text_in_list = text_lists[idx - 1][0]
+                identical_start = get_identical_start(text, prev_text_in_list)
+                if len(identical_start) >= 3:
+                    match = split_double_units_same_units_pattern.match(identical_start)
+                    if match:
+                        text = text[len(match[0]) :]
+
+            # Generate list of texts
+            splitted_text = list(split_double_units_text_splitter(text))
+            new_text_splits = splitted_text[:-1]
+            last_text_split = splitted_text[-1]
+            for new_text_split in new_text_splits:
+                yield [new_text_split]
+            yield [last_text_split] + text_list[1:]
+        else:
+            yield text_list
 
 
 def get_index_for_value(items, item, default=None):
@@ -323,85 +365,17 @@ def levels_of_number_types(number_types):
     return number_levels
 
 
-def parse_cfr_subseqitems(texts, law_key, seqitem_level):
-    texts = list(split_double_units(texts))
-
-    if len(texts) == 1:
-        text_element = lxml.etree.Element("text")
-        text_element.text = texts[0]
-        return [text_element]
-    else:
-        number_types = [extract_number(t) for t in texts]
-        disambiguate_number_types(number_types)
-        number_levels = levels_of_number_types(number_types)
-
-        result = []
-        cursor = []
-
-        for (number_type, val), text in zip(number_types, texts):
-            subseqitem_element = lxml.etree.Element("subseqitem")
-            text_element = lxml.etree.Element("text")
-            text_element.text = text
-            subseqitem_element.append(text_element)
-
-            level = number_levels.index(number_type)
-
-            # Cursor rollup so it applies to the current element
-            cursor = [
-                (elem, elem_level) for elem, elem_level in cursor if elem_level < level
-            ]
-            subseqitem_element.attrib["level"] = str(seqitem_level + len(cursor) + 1)
-
-            # Add new element to tree
-            if cursor:
-                cursor[-1][0].append(subseqitem_element)
-            else:
-                result.append(subseqitem_element)
-
-            # Update cursor
-            cursor.append((subseqitem_element, level))
-
-        return result
-
-
-def parse_cfr_section(section_element, law_key, level):
-    """
-    Parse a section element.
-    :param section_element:
-    :return:
-    """
-
-    if level == 0:
-        raise RuntimeError(
-            "parse_cfr_section called with level < 1: {0}".format(section_element)
-        )
-    output_container = lxml.etree.Element("seqitem")
-    output_container.attrib["level"] = str(level)
-
-    section_number = ""
-    section_subject = ""
-    key_suffix = ""
+def section_element_to_texts(section_element):
     texts = []
-    for child_element in section_element.getchildren():
-        if child_element.tag in ("P", "FP"):
-            # process child elements
-            texts.append(extract_text(child_element).strip())
-            # debug_list.append(lxml.etree.tostring(
-            #     child_element, encoding="utf-8", method='text').strip())
-        elif child_element.tag == "SECTNO":
-            section_number = child_element.text
-            # TODO: Discuss
-            if section_number:
-                key_suffix = "".join(
-                    [
-                        c
-                        for c in section_number
-                        if c in string.ascii_letters or c in string.digits or c in "."
-                    ]
-                )
-        elif child_element.tag == "SUBJECT":
-            section_subject = child_element.text
-        elif child_element.tag in [
+    for elem in section_element.getchildren():
+        if elem.tag in ("P", "HD", "WIDE", "TEAR"):
+            texts.append((extract_text(elem).strip(), False))
+
+        elif elem.tag in ("FP", "LDRWK", "BOXTXT"):
+            texts.append((extract_text(elem).strip(), True))
+        elif elem.tag in [
+            "SECTNO",
+            "SUBJECT",
             "PRTPAGE",
             "CITA",
             "FTNT",
@@ -432,28 +406,131 @@ def parse_cfr_section(section_element, law_key, level):
             "AUTH",
             "LHD1",
         ]:
-            pass
-        elif child_element.tag in (
+            pass  # ignore these tags
+        elif elem.tag in (
             "EXTRACT",
-            "GPOTABLE",
-            "HD",
-            "LDRWK",
-            "WIDE",
             "EXAMPLE",
-            "BOXTXT",
-            "TEAR",
-            "WBOXTXT",
+            "GPOTABLE",
             "TSECT",
+            "WBOXTXT",
         ):
-            new_text = extract_text(child_element).strip()
-            if texts:
-                texts[-1] = texts[-1] + " " + new_text
-            else:
-                texts.append(new_text)
+            child_texts = list(extract_children_text(elem))
+            if child_texts:
+                texts.append((child_texts, True))
         else:
             raise Exception(
-                child_element.tag + "------" + str(lxml.etree.tostring(section_element))
+                elem.tag + "------" + str(lxml.etree.tostring(section_element))
             )
+
+    text_lists = []
+    for text, continuation in texts:
+        if continuation and text_lists:
+            text_lists[-1].append(text)
+        else:
+            text_lists.append([text])
+
+    return text_lists
+
+
+def creat_subseqitem_with_text_tag(text):
+    subseqitem_element = lxml.etree.Element("subseqitem")
+    if type(text) is str:
+        text_element = lxml.etree.Element("text")
+        text_element.text = text
+        subseqitem_element.append(text_element)
+    elif len(text) == 1:
+        text_element = lxml.etree.Element("text")
+        text_element.text = text[0]
+        subseqitem_element.append(text_element)
+    else:
+        assert type(text) is list
+        for text_child in text:
+            subsubseqitem_element = lxml.etree.Element("subseqitem")
+            text_element = lxml.etree.Element("text")
+            text_element.text = text_child
+            subsubseqitem_element.append(text_element)
+            subseqitem_element.append(subsubseqitem_element)
+    return subseqitem_element
+
+
+def parse_cfr_subseqitems(section_element):
+    # extract the texts
+    text_lists = section_element_to_texts(section_element)
+    text_lists = list(split_double_units(text_lists))
+
+    if (
+        len(text_lists) == 1
+        and len(text_lists[0]) == 1
+        and type(text_lists[0][0]) is str
+    ):
+        text_element = lxml.etree.Element("text")
+        text_element.text = text_lists[0][0]
+        return [text_element]
+    else:
+        number_types = [extract_number(t[0]) for t in text_lists]
+        disambiguate_number_types(number_types)
+        number_levels = levels_of_number_types(number_types)
+
+        result = []
+        cursor = []
+
+        for (number_type, val), text_list in zip(number_types, text_lists):
+            subseqitem_elements = [creat_subseqitem_with_text_tag(t) for t in text_list]
+
+            level = number_levels.index(number_type)
+
+            # Cursor rollup so it applies to the current element
+            cursor = [
+                (elem, elem_level) for elem, elem_level in cursor if elem_level < level
+            ]
+
+            # Add new element to tree
+            if cursor:
+                cursor[-1][0].extend(subseqitem_elements)
+            else:
+                result.extend(subseqitem_elements)
+
+            # Update cursor
+            cursor.append((subseqitem_elements[-1], level))
+
+        return result
+
+
+def parse_cfr_section(section_element, law_key, level):
+    """
+    Parse a section element.
+    :param section_element:
+    :return:
+    """
+
+    if level == 0:
+        raise RuntimeError(
+            "parse_cfr_section called with level < 1: {0}".format(section_element)
+        )
+    output_container = lxml.etree.Element("seqitem")
+    output_container.attrib["level"] = str(level)
+
+    SECTNO_tags = section_element.xpath("./SECTNO")
+    section_number = (
+        SECTNO_tags[0].text.strip() if SECTNO_tags and SECTNO_tags[0].text else ""
+    )
+
+    SUBJECT_tags = section_element.xpath("./SUBJECT")
+    section_subject = (
+        SUBJECT_tags[0].text.strip() if SUBJECT_tags and SUBJECT_tags[0].text else ""
+    )
+
+    key_suffix = (
+        "".join(
+            [
+                c
+                for c in section_number
+                if c in string.ascii_letters or c in string.digits or c in "."
+            ]
+        )
+        if section_number
+        else ""
+    )
 
     output_container.attrib["heading"] = "{0} {1}".format(
         section_number, section_subject
@@ -462,7 +539,7 @@ def parse_cfr_section(section_element, law_key, level):
     assert "_" not in key_suffix, key_suffix
     output_container.attrib["citekey"] = law_key.split("v")[0] + "_" + key_suffix
 
-    output_container.extend(parse_cfr_subseqitems(texts, law_key, seqitem_level=level))
+    output_container.extend(parse_cfr_subseqitems(section_element))
 
     return output_container
 
@@ -706,6 +783,8 @@ def finish_title(complete_title_element, file_year, last_title_number):
         vol_key = element.attrib["key"]
         counters[vol_key] += 1
         element.attrib["key"] = f"{vol_key}_{counters[vol_key]:06d}"
+
+        element.attrib["level"] = str(int(element.getparent().attrib["level"]) + 1)
 
     output_file_name = "cfr{0}_{1}.xml".format(last_title_number, file_year)
     output_file_path = os.path.join(US_REG_XML_PATH, output_file_name)
