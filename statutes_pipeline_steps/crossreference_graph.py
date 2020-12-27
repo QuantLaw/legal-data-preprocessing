@@ -124,6 +124,8 @@ class CrossreferenceGraphStep(RegulationsPipelineStep):
             "subject_areas",
             "legislators",
             "contributors",
+            "texts_tokens_n",
+            "texts_chars_n",
         ]
         edge_columns = ["u", "v", "edge_type"]
 
