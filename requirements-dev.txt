@@ -1,8 +1,10 @@
 beautifulsoup4
+black
 coverage
-gitpython
+flake8
+isort
 lxml
-networkx
+networkx==2.4
 numpy
 pandas
 pre-commit
