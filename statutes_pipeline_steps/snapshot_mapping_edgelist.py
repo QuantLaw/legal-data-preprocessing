@@ -69,7 +69,7 @@ class SnapshotMappingEdgelistStep(PipelineStep):
         data1 = self.load_pickle(filename1)
         data2 = self.load_pickle(filename2)
 
-        # STEP 1: unique perfect matches
+        # STEP 1: perfect matches unique when considering text
         new_mappings = map_unique_texts(
             data1, data2, min_text_length=self.min_text_length
         )
@@ -77,7 +77,7 @@ class SnapshotMappingEdgelistStep(PipelineStep):
             data1["keys"], data2["keys"], new_mappings, printing=f"{item}/Step 1"
         )
 
-        # STEP 2: unique perfect matches considering text and citekey
+        # STEP 2: perfect matches unique when considering text _and_ citekey
         new_mappings_current_step = map_same_citekey_same_text(
             data1, data2, remaining_keys1, remaining_keys2
         )
@@ -221,12 +221,12 @@ def map_unique_texts(data1, data2, min_text_length=50):
     Maps nodes from snapshot t1 to t2 if texts are in each snapshot unique and appear
     in the both snapshots
     """
-    leave_texts1 = {k: t for k, t in zip(data1["keys"], data1["texts"])}
-    leave_texts2 = {k: t for k, t in zip(data2["keys"], data2["texts"])}
+    leaf_texts1 = {k: t for k, t in zip(data1["keys"], data1["texts"])}
+    leaf_texts2 = {k: t for k, t in zip(data2["keys"], data2["texts"])}
 
     # Create dicts with text as keys
-    inverted_unique_leave_texts1 = invert_dict_mapping_unique(leave_texts1)
-    inverted_unique_leave_texts2 = invert_dict_mapping_unique(leave_texts2)
+    inverted_unique_leave_texts1 = invert_dict_mapping_unique(leaf_texts1)
+    inverted_unique_leave_texts2 = invert_dict_mapping_unique(leaf_texts2)
 
     # find unique texts in both snapshots
     both_unique_texts = set(inverted_unique_leave_texts1.keys()) & set(

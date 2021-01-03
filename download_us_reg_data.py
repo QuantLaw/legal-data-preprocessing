@@ -3,15 +3,9 @@ import shutil
 from multiprocessing.pool import Pool
 
 import requests
+from quantlaw.utils.files import ensure_exists
 
 from statics import US_REG_INPUT_PATH
-
-
-def ensure_exists(path):
-    if not os.path.exists(path):
-        os.makedirs(path)
-    return path
-
 
 DOWNLOAD_BASE_URL = "https://www.govinfo.gov/bulkdata/CFR/{}/CFR-{}.zip"
 

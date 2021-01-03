@@ -623,6 +623,7 @@ def parse_cfr_container(
         consider_previous_chapter=True,
         first_chapter_in_vol=first_chapter_in_vol,
     )
+    heading_text = extract_text_pattern.sub(" ", heading_text).strip()
 
     output_container.attrib["heading"] = heading_text or container_element.tag
 

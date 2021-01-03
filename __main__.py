@@ -165,7 +165,7 @@ if __name__ == "__main__":
         if dataset == "us":
             snapshots = [f"{year}" for year in years]
         elif dataset == "de":
-            snapshots = [f"{year}-01-01" for year in years]
+            snapshots = [f"{year}-12-31" for year in years]
 
     if "all" in steps:
         steps = ALL_STEPS

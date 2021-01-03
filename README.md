@@ -28,7 +28,7 @@ Make sure the following folders do not exist next to the root folder of this rep
 - `legal-networks-data`
 - `gesetze-im-internet`
 
-Download and prepare the data for the United States (US) and Germany. (See the respecive "1. Data input"
+Download and prepare the data for the United States (US) and Germany. (See the respective "1. Data input"
 sections below.) Afterwards, you can run the pipeline.
 
 For the US statute data:

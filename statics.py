@@ -1,8 +1,8 @@
 ALL_YEARS = list(range(1994, 2020))
-ALL_YEARS_REG = list(range(1996, 2020))
+ALL_YEARS_REG = list(range(1998, 2020))
 
 DATA_PATH = "../legal-networks-data"
-US_DATA_PATH = "../legal-networks-data/us"
+US_DATA_PATH = f"{DATA_PATH}/us"
 US_TEMP_DATA_PATH = "temp/us"
 
 US_INPUT_PATH = f"{US_DATA_PATH}/1_input"
@@ -21,7 +21,7 @@ US_HELPERS_PATH = f"{US_TEMP_DATA_PATH}/helpers"
 US_REFERENCE_AREAS_LOG_PATH = f"{US_HELPERS_PATH}/us_extract_reference_areas.log"
 US_REFERENCE_PARSED_LOG_PATH = f"{US_HELPERS_PATH}/us_extract_reference_parsed.log"
 
-US_REG_DATA_PATH = "../legal-networks-data/us_reg"
+US_REG_DATA_PATH = f"{DATA_PATH}/us_reg"
 US_REG_TEMP_DATA_PATH = "temp/us_reg"
 
 US_REG_INPUT_PATH = f"{US_REG_DATA_PATH}/1_input"
@@ -52,7 +52,7 @@ US_REG_REFERENCE_PARSED_LOG_PATH = (
 )
 
 
-DE_DATA_PATH = "../legal-networks-data/de"
+DE_DATA_PATH = f"{DATA_PATH}/de"
 DE_TEMP_DATA_PATH = "temp/de"
 
 JURIS_EXPORT_PATH = f"{DE_DATA_PATH}/1_juris_gii_xml"
@@ -76,7 +76,7 @@ DE_HELPERS_PATH = f"{DE_TEMP_DATA_PATH}/helpers"
 DE_REFERENCE_AREAS_LOG_PATH = f"{DE_HELPERS_PATH}/de_extract_reference_areas.log"
 DE_REFERENCE_PARSED_LOG_PATH = f"{DE_HELPERS_PATH}/de_extract_reference_parsed.log"
 
-DE_DECISIONS_DATA_PATH = "../legal-networks-data/de_decisions"
+DE_DECISIONS_DATA_PATH = f"{DATA_PATH}/de_decisions"
 DE_DECISIONS_TEMP_DATA_PATH = "temp/de_decisions"
 
 DE_DECISIONS_DOWNLOAD_TOC = f"{DE_DECISIONS_TEMP_DATA_PATH}/de_rii_toc.xml"
@@ -88,12 +88,12 @@ DE_DECISIONS_REFERENCE_AREAS = f"{DE_DECISIONS_TEMP_DATA_PATH}/03_reference_area
 DE_DECISIONS_REFERENCE_PARSED_XML = f"{DE_DECISIONS_DATA_PATH}/1_xml"
 DE_DECISIONS_NETWORK = f"{DE_DECISIONS_DATA_PATH}/2_network.gpickle.gz"
 
-DE_REG_DATA_PATH = "../legal-networks-data/de_reg"
+DE_REG_DATA_PATH = f"{DATA_PATH}/de_reg"
 DE_REG_TEMP_DATA_PATH = "temp/de_reg"
 
 DE_REG_ORIGINAL_PATH = f"{DE_REG_TEMP_DATA_PATH}/11_gii_xml"
 
-DE_REG_DATA_PATH = "../legal-networks-data/de_reg"
+DE_REG_DATA_PATH = f"{DATA_PATH}/de_reg"
 DE_REG_TEMP_DATA_PATH = "temp/de_reg"
 
 DE_REG_ORIGINAL_PATH = f"{DE_REG_TEMP_DATA_PATH}/11_gii_xml"
