@@ -2,6 +2,14 @@ from collections import defaultdict
 
 
 class StringContainsAlign:
+    """
+    Maps strings of a list to strings of another list based on the condition
+    that the string (needle) of the first list  is contained in the string
+    (haystack) in the second list.
+    This class optimizes performance by splitting the strings to compare into
+    tokens to preselect possible candidates that might contain the needle
+    """
+
     def __init__(
         self,
         text_list_0=None,
