@@ -225,12 +225,12 @@ def map_unique_texts(data1, data2, min_text_length=50):
     leaf_texts2 = {k: t for k, t in zip(data2["keys"], data2["texts"])}
 
     # Create dicts with text as keys
-    inverted_unique_leave_texts1 = invert_dict_mapping_unique(leaf_texts1)
-    inverted_unique_leave_texts2 = invert_dict_mapping_unique(leaf_texts2)
+    inverted_unique_leaf_texts1 = invert_dict_mapping_unique(leaf_texts1)
+    inverted_unique_leaf_texts2 = invert_dict_mapping_unique(leaf_texts2)
 
     # find unique texts in both snapshots
-    both_unique_texts = set(inverted_unique_leave_texts1.keys()) & set(
-        inverted_unique_leave_texts2.keys()
+    both_unique_texts = set(inverted_unique_leaf_texts1.keys()) & set(
+        inverted_unique_leaf_texts2.keys()
     )
 
     # Filter for texts with min length
@@ -239,7 +239,7 @@ def map_unique_texts(data1, data2, min_text_length=50):
     # Create mapping
     new_mappings = {}
     for text in both_unique_texts:
-        new_mappings[inverted_unique_leave_texts1[text]] = inverted_unique_leave_texts2[
+        new_mappings[inverted_unique_leaf_texts1[text]] = inverted_unique_leaf_texts2[
             text
         ]
     return new_mappings
@@ -285,16 +285,16 @@ def map_text_containment(
 ):
     remaining_keys1_list = sorted(remaining_keys1)
     remaining_keys2_list = sorted(remaining_keys2)
-    leave_texts1_dict = {k: t for k, t in zip(data1["keys"], data1["texts"])}
-    leave_texts2_dict = {k: t for k, t in zip(data2["keys"], data2["texts"])}
+    leaf_texts1_dict = {k: t for k, t in zip(data1["keys"], data1["texts"])}
+    leaf_texts2_dict = {k: t for k, t in zip(data2["keys"], data2["texts"])}
 
     aligner = StringContainsAlign(min_text_length=min_text_length)
     aligner.text_list_0 = [
-        clip_text_for_containment_matching(leave_texts1_dict[k])
+        clip_text_for_containment_matching(leaf_texts1_dict[k])
         for k in remaining_keys1_list
     ]
     aligner.text_list_1 = [
-        clip_text_for_containment_matching(leave_texts2_dict[k])
+        clip_text_for_containment_matching(leaf_texts2_dict[k])
         for k in remaining_keys2_list
     ]
     aligner.create_index()
@@ -388,8 +388,8 @@ def map_similar_text_common_neighbors(
     key_index_dict1 = {k: idx for idx, k in enumerate(data_keys1)}
     key_index_dict2 = {k: idx for idx, k in enumerate(data_keys2)}
 
-    leave_texts1 = {k: v for k, v in zip(data_keys1, data_texts1)}
-    leave_texts2 = {k: v for k, v in zip(data_keys2, data_texts2)}
+    leaf_texts1 = {k: v for k, v in zip(data_keys1, data_texts1)}
+    leaf_texts2 = {k: v for k, v in zip(data_keys2, data_texts2)}
 
     key_queue = deque(remaining_keys1)
     key_queue_set = set(key_queue)
@@ -405,7 +405,7 @@ def map_similar_text_common_neighbors(
                 end="",
             )
 
-        remaining_text1 = leave_texts1[remaining_key1]
+        remaining_text1 = leaf_texts1[remaining_key1]
 
         # Get neighborhood of node in G1
         # Get mapping to G2 for neighborhood nodes
@@ -431,7 +431,7 @@ def map_similar_text_common_neighbors(
         neighborhood_nodes2 = [x for x in neighborhood_nodes2 if x in remaining_keys2]
 
         # Find most similar text
-        neighborhood_text2 = [leave_texts2.get(x) for x in neighborhood_nodes2]
+        neighborhood_text2 = [leaf_texts2.get(x) for x in neighborhood_nodes2]
         similarity = [
             cached_text_distance(remaining_text1, x, text_distance_cache, dry_run)
             if x
