@@ -103,6 +103,13 @@ usc_pattern_string = regex_definitions + (
         r'((?&conn)(Sec(?:tions|\.)?|§§?|\b(sub)?Parts?)?\s*(?&sec)|(?&conn)(?&numb))*'
     r')'
     r'(?!\w*(\sApp\.)?\s(U\.?S\.?C\.?|C\.?F\.?R\.?|Stat\.))'
+    r'\s*'
+    r'('
+        r'(of\sthis\s(sub\-?)?(title|chapter|part|section|division|paragraph))'
+  r'|'
+        r'(of\stitle\s\d+)'
+    r')?'
+    r'(\s+of\s+the\s+Code\s+of\s+Federal\s+Regulations)?'
 )
 usc_pattern = regex.compile(usc_pattern_string, flags=regex.IGNORECASE)
 
@@ -119,7 +126,7 @@ inline_pattern_string = regex_definitions + (
     r')*'
     r'\s*'
     r'('
-        r'(of\sthis\s(title|chapter|(sub)?part))'
+        r'(of\sthis\s(sub\-?)?(title|chapter|part|section|division|paragraph))'
     r'|'
         r'(of\stitle\s\d+)'
     r')?'
