@@ -109,7 +109,11 @@ usc_pattern_string = regex_definitions + (
   r'|'
         r'(of\stitle\s\d+)'
     r')?'
-    r'(\s+of\s+the\s+Code\s+of\s+Federal\s+Regulations)?'
+    r'('
+        r'\s+of\s+the\s+Code\s+of\s+Federal\s+Regulations'
+    r'|'
+        r'\s+of\s+the\s+Code\s+of\s+the\s+United\s+States'
+    r')?'
 )
 usc_pattern = regex.compile(usc_pattern_string, flags=regex.IGNORECASE)
 
@@ -130,7 +134,11 @@ inline_pattern_string = regex_definitions + (
     r'|'
         r'(of\stitle\s\d+)'
     r')?'
-    r'(\s+of\s+the\s+Code\s+of\s+Federal\s+Regulations)?'
+    r'('
+        r'\s+of\s+the\s+Code\s+of\s+Federal\s+Regulations'
+    r'|'
+        r'\s+of\s+the\s+Code\s+of\s+the\s+United\s+States'
+    r')?'
 )
 inline_pattern = regex.compile(inline_pattern_string, flags=regex.IGNORECASE)
 

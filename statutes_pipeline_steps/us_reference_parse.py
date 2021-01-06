@@ -105,13 +105,13 @@ def sortable_paragraph_number(string):
 
 
 split_pattern_short = regex.compile(
-    r"\s*(?:\b|(?<=\d))(U\.?S\.?C\.?|C\.?F\.?R\.?)(?:\b|(?=\d)|Sec\.)\s*",
+    r"\s*(?:\b|(?<=\d))(U\.?S\.?C|C\.?F\.?R)(?:\.|\b|(?=\d)|Sec\.)\s*",
     flags=regex.IGNORECASE,
 )
 split_pattern_inline = regex.compile(
     # fmt: off
     r"\s*of\s+(?=(?:"
-        r'(?:this\s+(?:title|chapter|(?:sub)?part))'
+        r'(?:this\s(?:sub\-?)?(?:title|chapter|part|section|division|paragraph))'
     r'|'
         r'(?:title)'
     r"))"
@@ -120,7 +120,7 @@ split_pattern_inline = regex.compile(
     flags=regex.IGNORECASE,
 )
 sub_split_pattern = regex.compile(
-    r"\s*,?\s*(?:and|or|,|;|throu?g?h?|to|)\s+|\b(?=\()", flags=regex.IGNORECASE
+    r"\s*,?\s*(?:and|or|,|;|throu?g?h?|to)\s+", flags=regex.IGNORECASE
 )
 
 
@@ -146,25 +146,33 @@ def enum_types_match(x, y):
 
 inline_title_pattern = regex.compile(
     r'(?:'
-    r'(this)\s(?:title|chapter|(?:sub)?part)'
+        r'(this)\s(?:sub\-?)?(?:title|chapter|part|section|division|paragraph)'
     r'|'
-    r'title\s(\d+)'
+        r'title\s(\d+)'
     r')'
-    r'(\s+of\s+the\s+Code\s+of\s+Federal\s+Regulations)?',
+    r'(\s+of\s+the\s+Code\s+of\s+Federal\s+Regulations)?'
+    r'(\s+of\s+the\s+Code\s+of\s+the\s+United\s+States)?',
     flags=regex.IGNORECASE
 )
 
 # fmt: on
 
 
-def extract_title_inline(text, this_title):
+def extract_title_inline(text, this_title, this_usc):
     match = inline_title_pattern.fullmatch(text)
     assert match
-    force_usc = bool(match[3])
+
+    if bool(match[4]):
+        usc = True
+    elif bool(match[3]):
+        usc = False
+    else:
+        usc = this_usc
+
     if match[1]:
-        return this_title, force_usc
+        return this_title, usc
     elif match[2]:
-        return int(match[2]), force_usc
+        return int(match[2]), usc
     else:
         raise Exception(text)
 
@@ -183,17 +191,27 @@ def parse_references(soup, this_title, this_usc):
     test_list = []  # For debug
     for ref_tag in soup.find_all("reference"):
         # Split into title and subtitle
+        last_usc = None
+        last_title = None
         if ref_tag["pattern"] == "block":
             usc, title, sub_text = split_block_reference(
                 ref_tag.string, debug_context=ref_tag
             )
+            text_parts = split_pattern_inline.split(sub_text)
+            if len(text_parts) == 2:
+                last_title, last_usc = extract_title_inline(
+                    text_parts[1].strip(), this_title, this_usc
+                )
+                sub_text = text_parts[0]
+            elif len(text_parts) > 2:
+                raise Exception(str(ref_tag))
+
         elif ref_tag["pattern"] == "inline":
             text_parts = split_pattern_inline.split(ref_tag.string)
             if len(text_parts) == 2:
-                title, force_usc = extract_title_inline(
-                    text_parts[1].strip(), this_title
+                title, usc = extract_title_inline(
+                    text_parts[1].strip(), this_title, this_usc
                 )
-                usc = force_usc or this_usc
                 sub_text = text_parts[0]
             elif len(text_parts) == 1:
                 title = this_title
@@ -205,14 +223,14 @@ def parse_references(soup, this_title, this_usc):
             raise Exception(f"{str(ref_tag)} has not matching pattern")
 
         references = parse_reference_text(sub_text)
-        add_title_to_reference(references, title, usc)
+        add_title_to_reference(references, title, usc, last_title, last_usc)
 
         ref_tag["parsed"] = json.dumps(references, ensure_ascii=False)
         test_list.append(f"{sub_text} -- {json.dumps(references, ensure_ascii=False)}")
     return test_list
 
 
-def add_title_to_reference(references, title, usc):
+def add_title_to_reference(references, title, usc, last_title=None, last_usc=None):
     # Add title to index 0 of reference
     for reference in references:
         if usc:
@@ -220,6 +238,13 @@ def add_title_to_reference(references, title, usc):
         else:
             title_str = "cfr" + str(title)
         reference.insert(0, title_str)
+    if len(references) > 1 and last_title is not None:
+        assert last_usc is not None
+        if last_usc:
+            title_str = str(last_title)
+        else:
+            title_str = "cfr" + str(last_title)
+        references[-1][0] = title_str
 
 
 def parse_reference_text(sub_text):
@@ -235,16 +260,16 @@ def parse_reference_text(sub_text):
                 f"{match[2]}{sub_text[match.end():]}"
             )
 
-    sub_text = sub_text.replace(" and following", " et. seq.")
+    sub_text = sub_text.replace(" and following", " et. seq.").strip()
 
     references = []
     text_sub_splitted = sub_split_pattern.split(sub_text)
     for test_text in text_sub_splitted:
         match = regex.fullmatch(
-            r"(?:§|sec\.|section\b)?\s*"
+            r"(?:§+|sec\.|sections?\b|(?:sub)?parts?\b)?\s*"
             r"(\d+[a-z]{0,3}(?:[\-\–\—\.]\d+[a-z]{0,3})?)"
             r"\s?"
-            r"((?:\((?:\d*[a-z]{0,3})\))*)"
+            r"((?:\((?:\d*[a-z]{0,4})\))*)"
             r"("
             r" et\.? seq\.?|"
             r" and following"
