@@ -24,7 +24,7 @@ def us_reg_prepare_input():
         year = os.path.splitext(year_zip)[0]
         year_folder = os.path.join(US_REG_ORIGINAL_PATH, year)
         if os.path.exists(year_folder):
-            continue
+            raise Exception(f"{year_folder} already exists")
 
         with ZipFile(os.path.join(US_REG_INPUT_PATH, year_zip), "r") as zipObj:
             # Extract all the contents of zip file in current directory
@@ -80,7 +80,7 @@ def us_reg_prepare_input():
             os.path.join(
                 US_REG_ORIGINAL_PATH,
                 str(copy_action["from_year"]),
-                f"title-{copy_action['t']}",
+                f"title-{copy_action['title']}",
                 f"CFR-{copy_action['from_year']}-"
                 f"title{copy_action['title']}-"
                 f"vol{copy_action['volume']}.xml",
