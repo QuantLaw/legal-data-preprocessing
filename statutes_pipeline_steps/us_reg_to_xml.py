@@ -41,6 +41,7 @@ class UsRegsToXmlStep(PipelineStep):
     def get_items(self, overwrite) -> list:
         # Create target folder
         ensure_exists(US_REG_XML_PATH)
+        ensure_exists(US_REG_ORIGINAL_PATH)
 
         # Get source files
         years = sorted(
