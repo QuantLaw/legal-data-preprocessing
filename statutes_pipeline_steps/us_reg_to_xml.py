@@ -1,7 +1,7 @@
+import glob
 import os
 import re
 import string
-import zipfile
 from collections import defaultdict, deque
 
 import lxml.etree
@@ -10,7 +10,7 @@ from quantlaw.utils.pipeline import PipelineStep
 from regex import regex
 
 from download_us_reg_data import ensure_exists
-from statics import US_REG_INPUT_PATH, US_REG_XML_PATH
+from statics import US_REG_ORIGINAL_PATH, US_REG_XML_PATH
 
 CONTAINER_TAG_SET = [
     "TITLE",
@@ -24,12 +24,13 @@ CONTAINER_TAG_SET = [
 ]
 
 
-def item_not_complete(item, existing_files):
-    with zipfile.ZipFile(os.path.join(US_REG_INPUT_PATH, item)) as zip_file:
-        required_titles = {
-            f"{file.split('/')[0].split('-')[-1]}" for file in zip_file.namelist()
-        }
-    year = os.path.splitext(item)[0]
+def item_not_complete(year, existing_files):
+    subfolders = [
+        f
+        for f in os.listdir(os.path.join(US_REG_ORIGINAL_PATH, year))
+        if os.path.isdir(os.path.join(US_REG_ORIGINAL_PATH, year, f))
+    ]
+    required_titles = {f.split("-")[-1] for f in subfolders}
 
     required_files = {"cfr{0}_{1}.xml".format(t, year) for t in required_titles}
     missing_files = required_files - existing_files
@@ -42,17 +43,23 @@ class UsRegsToXmlStep(PipelineStep):
         ensure_exists(US_REG_XML_PATH)
 
         # Get source files
-        files = list_dir(US_REG_INPUT_PATH, ".zip")
+        years = sorted(
+            [
+                f
+                for f in os.listdir(US_REG_ORIGINAL_PATH)
+                if os.path.isdir(os.path.join(US_REG_ORIGINAL_PATH, f))
+            ]
+        )
 
         if not overwrite:
             existing_files = set(list_dir(US_REG_XML_PATH, ".xml"))
-            files = [f for f in files if item_not_complete(f, existing_files)]
+            years = [f for f in years if item_not_complete(f, existing_files)]
 
-        return files
+        return years
 
     def execute_item(self, item):
-        file_path = os.path.join(US_REG_INPUT_PATH, item)
-        parse_cfr_zip(file_path)
+        folder_path = os.path.join(US_REG_ORIGINAL_PATH, item)
+        parse_cfr_folder(folder_path)
 
 
 extract_text_pattern = re.compile(r"\s+")
@@ -667,11 +674,10 @@ def parse_cfr_xml_file(xml_file):
     :param xml_file:
     :return:
     """
-    name_tokens = xml_file.name.split("/")[1].split("-")
-    file_year = name_tokens[1]
-    title_number = name_tokens[2][5:]
-    volume_number = name_tokens[3][3 : -len(".xml")]
-
+    match = extract_sort_ket_from_file_pattern.fullmatch(xml_file)
+    file_year = match.groupdict()["y"]
+    title_number = match.groupdict()["t"]
+    volume_number = match.groupdict()["v"]
     xml_doc = lxml.etree.parse(xml_file)
 
     title_output_elements = []
@@ -727,46 +733,54 @@ def parse_cfr_xml_file(xml_file):
     return title_output_elements
 
 
-def parse_cfr_zip(file_name):
+extract_sort_ket_from_file_pattern = re.compile(
+    r".+/CFR-(?P<y>\d+)-title(?P<t>\d+)-vol(?P<v>\d*).xml"
+)
+
+
+def extract_sort_ket_from_file(file):
+    groups = extract_sort_ket_from_file_pattern.fullmatch(file).groupdict()
+    return int(groups["t"]), int(groups["v"])
+
+
+def parse_cfr_folder(folder_path):
     """
     Parse a CFR zip.
-    :param file_name:
+    :param folder_path:
     :return:
     """
-    with zipfile.ZipFile(file_name) as zip_file:
-        complete_title_element = lxml.etree.Element(
-            "document", attrib=document_element_attribs()
-        )
-        last_title_number = None
-        for member_info in sorted(zip_file.namelist()):
-            name_tokens = member_info.split("/")[1].split("-")
-            file_year = name_tokens[1]
-            title_number = name_tokens[2][5:]
 
-            with zip_file.open(member_info) as member_file:
-                for file_output_element in parse_cfr_xml_file(member_file):
-                    current_title_number = file_output_element.attrib["title"]
-                    if last_title_number is None:
-                        last_title_number = current_title_number
-                    elif current_title_number != last_title_number:
-                        # output last title when complete
-                        finish_title(
-                            complete_title_element, file_year, last_title_number
-                        )
+    complete_title_element = lxml.etree.Element(
+        "document", attrib=document_element_attribs()
+    )
+    last_title_number = None
+    files = sorted(glob.glob(folder_path + "/*/*.xml"), key=extract_sort_ket_from_file)
+    for file in files:
+        match = extract_sort_ket_from_file_pattern.fullmatch(file)
+        file_year = match.groupdict()["y"]
+        title_number = match.groupdict()["t"]
 
-                        # reset
-                        complete_title_element = lxml.etree.Element(
-                            "document", attrib=document_element_attribs()
-                        )
-                        last_title_number = title_number
+        for file_output_element in parse_cfr_xml_file(file):
+            current_title_number = file_output_element.attrib["title"]
+            if last_title_number is None:
+                last_title_number = current_title_number
+            elif current_title_number != last_title_number:
+                # output last title when complete
+                finish_title(complete_title_element, file_year, last_title_number)
 
-                    # extend current title
-                    complete_title_element.extend(file_output_element.getchildren())
+                # reset
+                complete_title_element = lxml.etree.Element(
+                    "document", attrib=document_element_attribs()
+                )
+                last_title_number = title_number
 
-        # output final title
-        if len(complete_title_element.getchildren()) > 0:
-            # output last title when complete
-            finish_title(complete_title_element, file_year, last_title_number)
+            # extend current title
+            complete_title_element.extend(file_output_element.getchildren())
+
+    # output final title
+    if len(complete_title_element.getchildren()) > 0:
+        # output last title when complete
+        finish_title(complete_title_element, file_year, last_title_number)
 
 
 def finish_title(complete_title_element, file_year, last_title_number):
