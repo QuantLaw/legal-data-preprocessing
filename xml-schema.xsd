@@ -43,6 +43,18 @@
       type="xs:string"
       name="abbr_2"
     />
+    <xs:attribute
+      type="xs:string"
+      name="document_type"
+    />
+    <xs:attribute
+      type="xs:string"
+      name="title"
+    />
+    <xs:attribute
+      type="xs:string"
+      name="year"
+    />
   </xs:complexType>
   <xs:complexType name="itemType">
     <xs:choice
@@ -72,22 +84,33 @@
       name="level"
       use="required"
     />
+    <xs:attribute
+      type="xs:string"
+      name="auth_text"
+    />
+    <xs:attribute
+      type="xs:string"
+      name="auth_text_areas"
+    />
+    <xs:attribute
+      type="xs:string"
+      name="auth_text_parsed"
+    />
   </xs:complexType>
   <xs:complexType name="seqitemType">
-    <xs:sequence>
-      <xs:element
-        type="subseqitemType"
-        name="subseqitem"
-        maxOccurs="unbounded"
-        minOccurs="0"
-      />
+    <xs:choice
+      maxOccurs="unbounded"
+      minOccurs="0"
+    >
       <xs:element
         type="textType"
         name="text"
-        maxOccurs="unbounded"
-        minOccurs="0"
       />
-    </xs:sequence>
+      <xs:element
+        type="subseqitemType"
+        name="subseqitem"
+      />
+    </xs:choice>
     <xs:attribute
       type="xs:string"
       name="citekey"
@@ -108,20 +131,19 @@
     />
   </xs:complexType>
   <xs:complexType name="subseqitemType">
-    <xs:sequence>
+    <xs:choice
+      maxOccurs="unbounded"
+      minOccurs="0"
+    >
       <xs:element
         type="textType"
         name="text"
-        maxOccurs="unbounded"
-        minOccurs="0"
       />
       <xs:element
         type="subseqitemType"
         name="subseqitem"
-        maxOccurs="unbounded"
-        minOccurs="0"
       />
-    </xs:sequence>
+    </xs:choice>
     <xs:attribute
       type="xs:string"
       name="key"
@@ -131,6 +153,10 @@
       type="xs:byte"
       name="level"
       use="required"
+    />
+    <xs:attribute
+      type="xs:string"
+      name="heading"
     />
   </xs:complexType>
   <xs:complexType
@@ -146,8 +172,11 @@
       />
     </xs:sequence>
   </xs:complexType>
-  <xs:complexType name="referenceType">
-    <xs:sequence>
+  <xs:complexType
+    name="referenceType"
+    mixed="true"
+  >
+    <xs:sequence minOccurs="0">
       <xs:element
         type="xs:string"
         name="main"
