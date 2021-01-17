@@ -89,7 +89,7 @@ class DeReferenceAreasStep(RegulationsPipelineStep):
 
 def save_soup_with_style(soup, path):
     output_lines = str(soup).replace("\n\n", "\n").split("\n")
-    output_lines.insert(1, '<?xml-stylesheet href="../../notebooks/xml-styles.css"?>')
+    output_lines.insert(1, '<?xml-stylesheet href="../../xml-styles.css"?>')
     output = "\n".join(output_lines)
 
     with open(path, "w") as f:
