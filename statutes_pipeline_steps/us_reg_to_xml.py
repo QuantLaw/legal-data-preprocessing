@@ -804,8 +804,13 @@ def finish_title(complete_title_element, file_year, last_title_number):
 
     output_file_name = "cfr{0}_{1}.xml".format(last_title_number, file_year)
     output_file_path = os.path.join(US_REG_XML_PATH, output_file_name)
+
+    output_xml_doc = lxml.etree.ElementTree(complete_title_element)
+
+    assert_item_order(output_xml_doc)
+
     with open(output_file_path, "wb") as output_file:
-        output_xml_doc = lxml.etree.ElementTree(complete_title_element)
+
         output_file.write(
             lxml.etree.tostring(
                 output_xml_doc,
@@ -817,11 +822,20 @@ def finish_title(complete_title_element, file_year, last_title_number):
         )
 
 
+def get_vol(text):
+    return int(text.split("_")[0].split("v")[-1])
+
+
+def assert_item_order(tree):
+    items = tree.xpath("//item")
+    keys = [i.attrib["key"] for i in items]
+    keys_sorted = sorted(keys, key=get_vol)
+    assert keys == keys_sorted
+
+
 def merge_continued_items(complete_title_element):
     def shorten_heading(tag):
         return " ".join(tag.attrib.get("heading", "").split(" ")[:2]).lower().strip()
-
-    prev_items = {}
 
     last_key_prefix = None
 
@@ -831,18 +845,40 @@ def merge_continued_items(complete_title_element):
             beginning_of_volume = True
             last_key_prefix = item.attrib["key"]
 
+        continued_item = None
         if beginning_of_volume:
-            continued_item = prev_items.get(
-                (item.attrib["level"], shorten_heading(item))
-            )
-        else:
-            continued_item = None
+            candidate = item.getprevious()
+            if (
+                candidate is not None
+                and item.attrib.get("heading")
+                and shorten_heading(item) == shorten_heading(candidate)
+            ):
+                continued_item = candidate
+
+                # For debug
+                item_heading = (
+                    item.attrib["heading"]
+                    .replace("—", "-")
+                    .replace(" ", "")
+                    .replace(",", "")
+                )
+                condidate_heading = (
+                    candidate.attrib["heading"]
+                    .replace("—", "-")
+                    .replace(" ", "")
+                    .replace(",", "")
+                )
+                half_length = int(len(item_heading) / 2)
+                if (
+                    item_heading[:half_length].lower()
+                    != condidate_heading[:half_length].lower()
+                ):
+                    print(item.attrib)
+                    print(candidate.attrib)
+                    print()
 
         if continued_item is not None:
             continued_item.extend(item.getchildren())
             item.getparent().remove(item)
         else:
             beginning_of_volume = False
-            heading = shorten_heading(item)
-            if heading:
-                prev_items[(item.attrib["level"], heading)] = item
