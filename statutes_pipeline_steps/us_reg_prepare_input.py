@@ -40,6 +40,14 @@ def us_reg_prepare_input():
     for vol in vols:
         if not vol["v"]:
             print(vol)
+            os.remove(
+                os.path.join(
+                    US_REG_ORIGINAL_PATH,
+                    vol["y"],
+                    f"title-{vol['t']}",
+                    f"CFR-{vol['y']}-title{vol['t']}-vol.xml",
+                )
+            )
     vols = [v for v in vols if v["v"]]
 
     df = pd.DataFrame(vols)
