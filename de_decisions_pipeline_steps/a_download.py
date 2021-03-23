@@ -5,6 +5,8 @@ from multiprocessing.pool import Pool
 import requests
 from bs4 import BeautifulSoup
 from quantlaw.utils.files import ensure_exists
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 from statics import (
     DE_DECISIONS_DOWNLOAD_TOC,
@@ -15,9 +17,16 @@ from statics import (
 
 
 def download_item(link_text):
+    s = requests.Session()
+    retries = Retry(
+        total=10,
+        backoff_factor=2,
+    )
+    s.mount("https://", HTTPAdapter(max_retries=retries))
+
     filename = link_text.split("/")[-1]
     if not os.path.isfile(f"{DE_DECISIONS_DOWNLOAD_ZIP}/{filename}"):
-        content = requests.get(link_text).content
+        content = s.get(link_text).content
         with open(f"{DE_DECISIONS_DOWNLOAD_ZIP}/{filename}", "wb") as f:
             f.write(content)
 

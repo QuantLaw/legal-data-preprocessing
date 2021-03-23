@@ -4,7 +4,8 @@ import sys
 import traceback
 
 from bs4 import BeautifulSoup
-from quantlaw.de_extract.statutes import StatutesExtractor, StatutesParser
+from quantlaw.de_extract.statutes_areas import StatutesExtractor
+from quantlaw.de_extract.statutes_parse import StatutesParser
 from quantlaw.utils.beautiful_soup import save_soup
 from quantlaw.utils.files import ensure_exists, list_dir
 
@@ -80,7 +81,9 @@ def find_references(decision):
             ) as f:
                 soup = BeautifulSoup(f.read(), "lxml-xml")
             parse_reference_content_in_soup(soup, parser, decision)
-            identify_reference_law_name_in_soup(soup, parser, current_lawid=None)
+            identify_reference_law_name_in_soup(
+                soup, parser, current_lawid=None, skip_errors=True
+            )
             identify_lawreference_law_name_in_soup(soup, laws_lookup)
 
             save_soup(soup, f"{DE_DECISIONS_REFERENCE_PARSED_XML}/{decision}")

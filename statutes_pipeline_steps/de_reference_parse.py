@@ -119,28 +119,34 @@ def parse_reference_content_in_soup(soup, parser, debug_context=None):
                 print(error, "context", debug_context)
 
 
-def identify_reference_law_name_in_soup(soup, parser, current_lawid):
+def identify_reference_law_name_in_soup(soup, parser, current_lawid, skip_errors=False):
     for reference in soup.find_all("reference", {"pattern": "inline"}):
 
         lawid = parser.parse_law(
             reference.lawname.string, reference.lawname["type"], current_lawid
         )
 
-        ref_parts = json.loads(reference["parsed_verbose"])
+        try:
+            ref_parts = json.loads(reference["parsed_verbose"])
 
-        if reference.lawname.attrs["type"] in ["internal", "dict", "sgb"]:
-            for ref_part in ref_parts:
-                if not lawid:
-                    print(reference)
-                ref_part.insert(0, ["Gesetz", lawid])
-        reference["parsed_verbose"] = json.dumps(ref_parts, ensure_ascii=False)
+            if reference.lawname.attrs["type"] in ["internal", "dict", "sgb"]:
+                for ref_part in ref_parts:
+                    if not lawid:
+                        print(reference)
+                    ref_part.insert(0, ["Gesetz", lawid])
+            reference["parsed_verbose"] = json.dumps(ref_parts, ensure_ascii=False)
 
-        ref_parts = json.loads(reference["parsed"])
-        if reference.lawname.attrs["type"] in ["internal", "dict", "sgb"]:
-            for ref_part in ref_parts:
-                assert lawid
-                ref_part.insert(0, lawid)
-        reference["parsed"] = json.dumps(ref_parts, ensure_ascii=False)
+            ref_parts = json.loads(reference["parsed"])
+            if reference.lawname.attrs["type"] in ["internal", "dict", "sgb"]:
+                for ref_part in ref_parts:
+                    assert lawid
+                    ref_part.insert(0, lawid)
+            reference["parsed"] = json.dumps(ref_parts, ensure_ascii=False)
+        except KeyError:
+            if skip_errors:
+                print(reference)
+            else:
+                raise
 
 
 def identify_lawreference_law_name_in_soup(soup, laws_lookup):

@@ -121,7 +121,7 @@ if __name__ == "__main__":
         default=["all"],
         help=(
             "snapshots for crossreferences. Eg. 2010-01-01 for de dataset or 2010 for "
-            "us dataset. To run on whole research window: all"
+            "us dataset. To run on whole research window: all or all-new-years"
         ),
     )
     parser.add_argument(
@@ -160,12 +160,15 @@ if __name__ == "__main__":
     if dataset not in ["de", "us"]:
         raise Exception(f"{dataset} unsupported dataset. Options: us, de")
 
-    if "all" in snapshots:
+    if "all" in snapshots or "all-new-years" in snapshots:
         years = ALL_YEARS_REG if regulations else ALL_YEARS
         if dataset == "us":
             snapshots = [f"{year}" for year in years]
         elif dataset == "de":
-            snapshots = [f"{year}-12-31" for year in years]
+            snapshots = [
+                f"{year}-12-31" if "all" in snapshots else f"{year}-01-01"
+                for year in years
+            ]
 
     if "all" in steps:
         steps = ALL_STEPS
