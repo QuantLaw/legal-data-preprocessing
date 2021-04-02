@@ -12,7 +12,7 @@ It is, inter alia, used to produce the results reported in the following publica
 - Corinna Coupette, Janis Beckedorf, Dirk Hartung, Michael Bommarito, and Daniel Martin Katz, Measuring Law Over Time, to appear (2021)
 
 Related Repositories:
-- [Complex Societies and the Growth of the Law](https://github.com/QuantLaw/Complex-Societies-and-Growth) ([First Publication Release](https://doi.org/10.5281/zenodo.4070769))
+- [Complex Societies and the Growth of the Law](https://github.com/QuantLaw/Complex-Societies-and-Growth) ([Publication Release](https://doi.org/10.5281/zenodo.4070769))
 - [Measuring Law Over Time](https://github.com/QuantLaw/Measuring-Law-Over-Time)
 - [Legal Data Clustering](https://github.com/QuantLaw/legal-data-clustering) ([Latest Publication Release](https://doi.org/10.5281/zenodo.4070774))
 
