@@ -11,8 +11,8 @@ It is, inter alia, used to produce the results reported in the following publica
 Daniel Martin Katz, Corinna Coupette, Janis Beckedorf, and Dirk Hartung, Complex Societies and the Growth of the Law, *Sci. Rep.* **10** (2020), [https://doi.org/10.1038/s41598-020-73623-x](https://doi.org/10.1038/s41598-020-73623-x)
 
 Related Repositories:
-- [Complex Societies and the Growth of the Law](https://github.com/QuantLaw/Complex-Societies-and-Growth) ([First Publication Release](http://dx.doi.org/10.5281/zenodo.4070769))
-- [Legal Data Clustering](https://github.com/QuantLaw/legal-data-clustering) ([First Publication Release](http://dx.doi.org/10.5281/zenodo.4070775))
+- [Complex Societies and the Growth of the Law](https://github.com/QuantLaw/Complex-Societies-and-Growth) ([First Publication Release](https://dx.doi.org/10.5281/zenodo.4070769))
+- [Legal Data Clustering](https://github.com/QuantLaw/legal-data-clustering) ([Latest Publication Release](https://doi.org/10.5281/zenodo.4070774))
 
 Related Data: [Preprocessed Input Data for *Sci. Rep.* **10** (2020)](http://dx.doi.org/10.5281/zenodo.4070767)
 
@@ -36,10 +36,21 @@ For the US statute data:
 1. Download the data: `python download_us_code_data.py`
 2. Run all steps of the pipeline: `python . us all`
 
+For the US statute & regulatory data:
+
+1. Download the data: `python download_us_code_data.py`
+2. Download the data: `python download_us_reg_data.py`
+3. Run all steps of the pipeline: `python . us all -r`
+
 For the German statute data, using a *juris* export:
 
 1. Prepare the data (as shown in a separate repository)
 2. Run all steps of the pipeline: `python . de all`
+
+For the German statute & regulations data, using a *juris* export:
+
+1. Prepare the data (as shown in a separate repository)
+2. Run all steps of the pipeline: `python . de all -r`
 
 For the German statute data, using Gesetze im Internet (GII):
 
