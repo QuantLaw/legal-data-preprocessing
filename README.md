@@ -31,28 +31,29 @@ Make sure the following folders do not exist next to the root folder of this rep
 Download and prepare the data for the United States (US) and Germany. (See the respective "1. Data input"
 sections below.) Afterwards, you can run the pipeline.
 
-For the US statute data:
+For the US statutory data:
 
 1. Download the data: `python download_us_code_data.py`
 2. Run all steps of the pipeline: `python . us all`
 
-For the US statute & regulatory data:
+For the US statutory & regulatory data:
 
-1. Download the data: `python download_us_code_data.py`
-2. Download the data: `python download_us_reg_data.py`
-3. Run all steps of the pipeline: `python . us all -r`
+1. Download statutory data: `python download_us_code_data.py`
+2. Download regulatory data: `python download_us_reg_data.py`
+3. Run all steps of the pipeline: `python . us all` and `python . us all -r`
 
-For the German statute data, using a *juris* export:
+
+For the German statutory data, using a *juris* export:
 
 1. Prepare the data (as shown in a separate repository)
 2. Run all steps of the pipeline: `python . de all`
 
-For the German statute & regulations data, using a *juris* export:
+For the German statutory & regulatory data, using a *juris* export:
 
 1. Prepare the data (as shown in a separate repository)
 2. Run all steps of the pipeline: `python . de all -r`
 
-For the German statute data, using Gesetze im Internet (GII):
+For the German statutory data, using Gesetze im Internet (GII):
 
 1. Prepare the data: `python download_de_gesetze_im_internet_data.py --dates 2019-06-10 2020-01-18`.
     You need to specify the dates you want to analyze.
@@ -67,15 +68,16 @@ run `python de_decisions_pipeline.py all`.
 
 ## Statutes
 
-US and German federal statutes are converted from official sources (or *juris*)
+US and German federal statutes and regulations are converted from official sources (or *juris*)
 to multiple clean formats focussing on the structure of the law.
 
 Output formats are:
 
 - XML files containing the text, the hierarchical structure of the law, and cross-references.
-- Gpickle files for each Title/Gesetz and version containing the hierarchical structure of the statutes.
+- Gpickle files for each Title/Gesetz/Rechtsverodnung and version containing the hierarchical structure of the statutes.
 - Gpickle files for each snapshot (year in the US or date in Germany) containing the hierarchical structure of the statutes
-    and the cross-references between different elements of the statutes.
+    and the cross-references between different elements of the statutes with reduced granularity and corresponding nodelists 
+    and edgelists.
 - Snapshot mapping edgelists: These lists map elements of a network at one snapshot
     to a snapshot at another time. They encode, e.g., where a clause of the US Code in 2010 is
     located in the US Code of 2011. This mapping is derived from the text and the structure
@@ -92,6 +94,7 @@ The steps of the pipeline are:
 - `crossreference_lookup`
 - `crossreference_edgelist`
 - `crossreference_graph`
+- `snapshot_mapping_index`
 - `snapshot_mapping_edgelist`
 
 
@@ -103,12 +106,13 @@ The processing for the US Code is executed in multiple steps:
 #### 1. Data Input
 
 Inputs are ZIP files downloaded from the US House of Representatives Office of the Law
-Revision Counsel. We use annual versions in XHTML format that are available on
-https://uscode.house.gov/download/annualhistoricalarchives/downloadxhtml.shtml.
-Files should be located at `../legal-networks-data/us/1_input`.
+Revision Counsel and U.S. Government Publishing Office. We use annual versions in XHTML format that are available on
+https://uscode.house.gov/download/annualhistoricalarchives/downloadxhtml.shtml and
+https://www.govinfo.gov/bulkdata/CFR.
+Files should be located at regarding the statutes `../legal-networks-data/us/1_input` and regarding the regulations `../legal-networks-data/us_reg/1_input`.
 This folder should contain unzipped yearly folders.
 
-You can automatically obtain the required data by running `download_us_code_data.py`.
+You can automatically obtain the required data by running `download_us_code_data.py` and `download_us_reg_data.py`.
 
 
 #### 2. XML Files
@@ -123,15 +127,15 @@ You can automatically obtain the required data by running `download_us_code_data
 
 The results of the XML generation are saved to `../legal-networks-data/us/2_xml`. (Result of step: `reference_parse`)
 
+CFR data is located at `us_reg` folders next to the `us` folder.
+
 
 #### 3. Hierarchy Graphs
 
 Graphs containing the hierarchical structure of the statutes are saved to `../legal-networks-data/us/3_hierarchy_graph`
 in separate files for each Title and annual version. (Result of step: `hierarchy_graph`)
 
-Hierarchy graphs are avaiable in two resolutions:
-- Section level
-- At least section level, modelling as many elements below as possible.
+CFR data is located at `us_reg` folders next to the `us` folder.
 
 
 #### 4. Crossreference Graphs
@@ -145,13 +149,15 @@ Hierarchy graphs are avaiable in two resolutions:
 - Hierarchy graphs of the individual Titles are combined and edges for cross-references are added within and between
     Titles.
 
-Each annual version of the US Code is stored at `../legal-networks-data/us/4_crossreference_graph` in three files as a nodes-list, an edge-list and networkx graph stored as gpickle.gz-file in the subfolder `seqitems`. The node-list contains all nodes, whereas subseqitems are excluded in the networkx file.
+Each annual version of the US Code is stored at `../legal-networks-data/us/4_crossreference_graph` in three files as a nodeslist, an edgelist and networkx graph stored as gpickle.gz-file in the subfolder `seqitems`. The node-list contains all nodes, whereas subseqitems are excluded in the networkx file.
 (Result of step: `crossreference_graph`)
+
+The combined data regarding the US Code and the CFR is located at `us_reg` folders next to the `us` folder.
 
 
 #### 5. Snapshot Mapping Edgelists
 
-Snapshot mapping edgelists are stored at `../legal-networks-data/us/5_snapshot_mapping_edgelist`.
+Snapshot mapping edgelists are stored at `../legal-networks-data/us/5_snapshot_mapping_edgelist` and ``../legal-networks-data/us_reg/5_snapshot_mapping_edgelist``.
 
 
 #### Germany
@@ -190,10 +196,14 @@ These files can be generated from two sources:
 
 The results of the XML generation are saved to `../legal-networks-data/de/2_xml`. (Result of step: `reference_parse`)
 
+The combined data of statutes and regulations is located at `de_reg` folders next to the `de` folder.
+
 #### 3. Hierarchy Graphs
 
 Hierarchy Graphs are saved to `../legal-networks-data/de/3_hierarchy_graph`.
 See the documentation regarding the US hierarchy graphs for further information.
+
+The combined data of statutes and regulations is located at `de_reg` folders next to the `de` folder.
 
 #### 4. Cross-Reference Graphs
 
@@ -210,6 +220,10 @@ The *juris* export allows one to select any day to create a snapshot.
 If you rely on https://github.com/legal-networks/gesetze-im-internet as a data source, you can only select days
 for which a snapshot was created.
 
+The combined data of statutes and regulations is located at `de_reg` folders next to the `de` folder.
+
 #### 5. Snapshot Mapping Edgelists
 
 Snapshot mapping edgelists are stored at `../legal-networks-data/de/5_snapshot_mapping_edgelist`.
+
+The combined data of statutes and regulations is located at `de_reg` folders next to the `de` folder.
