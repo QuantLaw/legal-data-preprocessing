@@ -145,6 +145,17 @@ if __name__ == "__main__":
         default=False,
         help="Include regulations",
     )
+
+    parser.add_argument(
+        "-dc",
+        "--detailed-crossreferences",
+        dest="detailed_crossreferences",
+        action="store_const",
+        const=True,
+        default=False,
+        help="Resolve cross references on the lowest possible level. "
+        "Default is to resolve on seqitem level (e.g. sections).",
+    )
     args = parser.parse_args()
 
     steps = [step.lower() for step in args.steps]
@@ -156,6 +167,7 @@ if __name__ == "__main__":
     interval = args.interval
     selected_items = args.filter or []
     regulations = args.regulations
+    detailed_crossreferences = args.detailed_crossreferences
 
     if dataset not in ["de", "us"]:
         raise Exception(f"{dataset} unsupported dataset. Options: us, de")
@@ -300,11 +312,16 @@ if __name__ == "__main__":
 
     if "crossreference_lookup" in steps:
         if dataset == "us":
-            step = UsCrossreferenceLookup(regulations=regulations, processes=processes)
+            step = UsCrossreferenceLookup(
+                detailed_crossreferences=detailed_crossreferences,
+                regulations=regulations,
+                processes=processes,
+            )
             items = step.get_items(overwrite, snapshots)
             step.execute_items(items)
 
         elif dataset == "de":
+            assert not detailed_crossreferences
             step = DeCrossreferenceLookup(regulations=regulations, processes=processes)
             items = step.get_items(snapshots)
             step.execute_items(items)
@@ -314,12 +331,15 @@ if __name__ == "__main__":
     if "crossreference_edgelist" in steps:
         if dataset == "us":
             step = UsCrossreferenceEdgelist(
-                regulations=regulations, processes=processes
+                detailed_crossreferences=detailed_crossreferences,
+                regulations=regulations,
+                processes=processes,
             )
             items = step.get_items(overwrite, snapshots)
             step.execute_items(items)
 
         elif dataset == "de":
+            assert not detailed_crossreferences
             law_names_data = load_law_names(regulations)
             step = DeCrossreferenceEdgelist(
                 regulations=regulations,
@@ -353,14 +373,15 @@ if __name__ == "__main__":
                 US_REG_CROSSREFERENCE_GRAPH_PATH
                 if regulations
                 else US_CROSSREFERENCE_GRAPH_PATH
-            )
+            ) + ("/detailed" if detailed_crossreferences else "")
             edgelist_folder = (
                 US_REG_CROSSREFERENCE_EDGELIST_PATH
                 if regulations
                 else US_CROSSREFERENCE_EDGELIST_PATH
-            )
+            ) + ("/detailed" if detailed_crossreferences else "")
             authority_edgelist_folder = US_REG_AUTHORITY_EDGELIST_PATH
         elif dataset == "de":
+            assert not detailed_crossreferences
             source = (
                 DE_REG_HIERARCHY_GRAPH_PATH if regulations else DE_HIERARCHY_GRAPH_PATH
             )
@@ -393,6 +414,7 @@ if __name__ == "__main__":
         print("Make crossreference graph: done")
 
     if "snapshot_mapping_index" in steps:
+        assert not detailed_crossreferences
         if dataset == "us":
             source_text = (
                 [US_REFERENCE_PARSED_PATH, US_REG_REFERENCE_PARSED_PATH]
@@ -433,6 +455,7 @@ if __name__ == "__main__":
         print("Make snapshot mapping: done")
 
     if "snapshot_mapping_edgelist" in steps:
+        assert not detailed_crossreferences
         if dataset == "us":
             source = os.path.join(
                 US_REG_SNAPSHOT_MAPPING_INDEX_PATH

@@ -14,13 +14,12 @@ from utils.common import RegulationsPipelineStep
 
 
 class UsCrossreferenceLookup(RegulationsPipelineStep):
+    def __init__(self, detailed_crossreferences, *args, **kwargs):
+        self.detailed_crossreferences = detailed_crossreferences
+        super().__init__(*args, **kwargs)
+
     def get_items(self, overwrite, snapshots) -> list:
-        dest = (
-            US_REG_CROSSREFERENCE_LOOKUP_PATH
-            if self.regulations
-            else US_CROSSREFERENCE_LOOKUP_PATH
-        )
-        ensure_exists(dest)
+        ensure_exists(self.dest)
 
         # If snapshots not set, create list of all years
         if not snapshots:
@@ -34,20 +33,22 @@ class UsCrossreferenceLookup(RegulationsPipelineStep):
             )
 
         if not overwrite:
-            existing_files = os.listdir(dest)
+            existing_files = os.listdir(self.dest)
             snapshots = list(
                 filter(lambda f: get_filename(f) not in existing_files, snapshots)
             )
 
         return snapshots
 
-    def execute_item(self, item):
-        dest = (
+    @property
+    def dest(self):
+        return (
             US_REG_CROSSREFERENCE_LOOKUP_PATH
             if self.regulations
             else US_CROSSREFERENCE_LOOKUP_PATH
-        )
+        ) + ("/detailed" if self.detailed_crossreferences else "")
 
+    def execute_item(self, item):
         yearfiles = [
             os.path.join(US_REFERENCE_PARSED_PATH, x)
             for x in list_dir(US_REFERENCE_PARSED_PATH, ".xml")
@@ -65,8 +66,12 @@ class UsCrossreferenceLookup(RegulationsPipelineStep):
                 file_elem = lxml.etree.parse(f)
             for node in file_elem.xpath("//*[@citekey]"):
                 data.append([node.attrib["key"], node.attrib["citekey"]])
+            if self.detailed_crossreferences:
+                for node in file_elem.xpath("//*[@citekey_detailed]"):
+                    for citekey in node.attrib["citekey_detailed"].split(","):
+                        data.append([node.attrib["key"], citekey])
         df = pd.DataFrame(data, columns=["key", "citekey"])
-        destination_file = f"{dest}/{get_filename(item)}"
+        destination_file = f"{self.dest}/{get_filename(item)}"
         df.to_csv(destination_file, index=False)
 
 

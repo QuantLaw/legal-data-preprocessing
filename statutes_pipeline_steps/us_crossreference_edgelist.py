@@ -17,6 +17,10 @@ from utils.common import RegulationsPipelineStep
 
 
 class UsCrossreferenceEdgelist(RegulationsPipelineStep):
+    def __init__(self, detailed_crossreferences, *args, **kwargs):
+        self.detailed_crossreferences = detailed_crossreferences
+        super().__init__(*args, **kwargs)
+
     def get_items(self, overwrite, snapshots) -> list:
         ensure_exists(self.dest)
         if not snapshots:
@@ -38,7 +42,7 @@ class UsCrossreferenceEdgelist(RegulationsPipelineStep):
             US_REG_CROSSREFERENCE_EDGELIST_PATH
             if self.regulations
             else US_CROSSREFERENCE_EDGELIST_PATH
-        )
+        ) + ("/detailed" if self.detailed_crossreferences else "")
 
     @property
     def lookup(self):
@@ -46,7 +50,7 @@ class UsCrossreferenceEdgelist(RegulationsPipelineStep):
             US_REG_CROSSREFERENCE_LOOKUP_PATH
             if self.regulations
             else US_CROSSREFERENCE_LOOKUP_PATH
-        )
+        ) + ("/detailed" if self.detailed_crossreferences else "")
 
     def execute_item(self, item):
         yearfiles = [
@@ -79,20 +83,29 @@ class UsCrossreferenceEdgelist(RegulationsPipelineStep):
             file_elem = lxml.etree.parse(f)
         edge_list = []
 
-        # for debug
-        # problem_matches = set()
-        # problem_keys = set()
-
-        for seqitem_elem in file_elem.xpath("//seqitem"):
-            node_out = seqitem_elem.attrib.get("key")
-            for ref_elem in seqitem_elem.xpath(".//reference"):
+        if self.detailed_crossreferences:
+            for ref_elem in file_elem.xpath(".//reference"):
+                node_out = ref_elem.getparent().getparent().attrib.get("key")
                 refs = json.loads(ref_elem.attrib["parsed"])
                 for ref in refs:
-                    key = "_".join(ref[:2])
-                    node_in = key_dict.get(key)
-
-                    if node_in:
-                        edge_list.append([node_out, node_in])
+                    for cutoff in range(len(ref), 1, -1):
+                        key = "_".join(ref[:cutoff])
+                        node_in = key_dict.get(key)
+                        if node_in:
+                            edge_list.append([node_out, node_in])
+                            break
+        else:
+            for seqitem_elem in file_elem.xpath("//seqitem"):
+                node_out = seqitem_elem.attrib.get("key")
+                for ref_elem in seqitem_elem.xpath(".//reference"):
+                    refs = json.loads(ref_elem.attrib["parsed"])
+                    for ref in refs:
+                        for cutoff in range(len(ref), 1, -1):
+                            key = "_".join(ref[:cutoff])
+                            node_in = key_dict.get(key)
+                            if node_in:
+                                edge_list.append([node_out, node_in])
+                                break
         return edge_list
 
 

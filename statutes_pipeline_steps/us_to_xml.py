@@ -795,6 +795,7 @@ def export_to_xml(roots, version):
             soup.append(doc_to_soup(root, soup, 0, version, root=True))
             remove_unnecessary_subseqitems(soup)
             add_keys_to_items(soup, f'{root["itempathcomponents"][0]}_{version}')
+            add_detailed_citekeys(soup)
             f.write(soup.encode("utf-8"))
 
 
@@ -838,3 +839,36 @@ def fix_nesting_errors(item, documents):
                     + doc["expcite"].split("!@!")[1:]
                 )
                 doc["expcite"] = "!@!".join(expcite)
+
+
+citekeys_detailed_pattern = re.compile(r"(?:\s*\((..?)\))?" * 4)
+
+
+def add_detailed_citekeys(soup):
+    for subseqitem in soup.find_all("subseqitem"):
+        if subseqitem.contents and subseqitem.contents[0].name == "text":
+            text = subseqitem.contents and subseqitem.contents[0].text
+            match_components = citekeys_detailed_pattern.match(text).groups()
+            match_components = [m for m in match_components if m]
+            if match_components:
+                for parent in subseqitem.parents:
+                    if parent.name == "seqitem":
+                        parent_citekey = parent.attrs["citekey"]
+                        break
+                    elif "citekey_detailed" in parent.attrs:
+                        parent_citekey = parent.attrs["citekey_detailed"].split(",")[-1]
+                        break
+                parent_citekey_components = parent_citekey.split("_")
+
+                # Ignore if previous component is repeated
+                if parent_citekey_components[-1] == match_components[0]:
+                    match_components = match_components[1:]
+
+                citekey = parent_citekey
+                citekeys_detailed = []
+                for match_component in match_components:
+                    citekey = f"{citekey}_{match_component}"
+                    assert "," not in citekey, citekey
+                    citekeys_detailed.append(citekey)
+                if citekeys_detailed:
+                    subseqitem.attrs["citekey_detailed"] = ",".join(citekeys_detailed)
