@@ -360,7 +360,11 @@ if __name__ == "__main__":
             items = step.get_items(overwrite, snapshots)
             step.execute_items(items)
         elif dataset == "us" and regulations:
-            step = UsAuthorityEdgelist(processes=processes, regulations=regulations)
+            step = UsAuthorityEdgelist(
+                detailed_crossreferences=detailed_crossreferences,
+                processes=processes, 
+                regulations=regulations
+            )
             items = step.get_items(overwrite, snapshots)
             step.execute_items(items)
         print("Create authority edgelist: done")
