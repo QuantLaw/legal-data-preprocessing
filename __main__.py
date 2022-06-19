@@ -202,6 +202,11 @@ if __name__ == "__main__":
                         "--snapshot 2001"
                     )
 
+    if detailed_crossreferences and regulations:
+        raise Exception(
+            "Combining detailed cross-references and regulations is not tested."
+        )
+
     if "prepare_input" in steps:
         if dataset == "us":
             if regulations:
@@ -360,10 +365,11 @@ if __name__ == "__main__":
             items = step.get_items(overwrite, snapshots)
             step.execute_items(items)
         elif dataset == "us" and regulations:
+            assert not detailed_crossreferences
             step = UsAuthorityEdgelist(
                 detailed_crossreferences=detailed_crossreferences,
-                processes=processes, 
-                regulations=regulations
+                processes=processes,
+                regulations=regulations,
             )
             items = step.get_items(overwrite, snapshots)
             step.execute_items(items)
