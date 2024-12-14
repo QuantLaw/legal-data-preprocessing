@@ -11,11 +11,13 @@ It is, inter alia, used to produce the results reported in the following publica
 - Daniel Martin Katz, Corinna Coupette, Janis Beckedorf, and Dirk Hartung, Complex Societies and the Growth of the Law, *Sci. Rep.* **10** (2020), [https://doi.org/10.1038/s41598-020-73623-x](https://doi.org/10.1038/s41598-020-73623-x)
 - Corinna Coupette, Janis Beckedorf, Dirk Hartung, Michael Bommarito, and Daniel Martin Katz, Measuring Law Over Time, *Front. Phys.* **9:658463** (2021), https://doi.org/10.3389/fphy.2021.658463
 - Corinna Coupette, and Dirk Hartung, Rechtsstrukturvergleichung, *RabelsZ* **86**, 935-975 (2022), https://doi.org/10.1628/rabelsz-2022-0082
+- Corinna Coupette, Dirk Hartung, Janis Beckedorf, Maximilian Böther, and Daniel Martin Katz, Law Smells, *Artif Intell Law* **31**, 335-368 (2023), https://doi.org/10.1007/s10506-022-09315-w
 - Janis Beckedorf, Komplexität des Rechts, Mohr Siebeck, to appear (2025), https://doi.org/10.1628/978-3-16-164476-4
 
 Related Repositories:
 - [Complex Societies and the Growth of the Law](https://github.com/QuantLaw/Complex-Societies-and-Growth) ([Publication Release](https://doi.org/10.5281/zenodo.4070769))
 - [Measuring Law Over Time](https://github.com/QuantLaw/Measuring-Law-Over-Time) ([Publication Release](https://doi.org/10.5281/zenodo.4660191))
+- [Law Smells](https://github.com/QuantLaw/law-smells) ([Publication Release](https://doi.org/10.5281/zenodo.6468193))
 - [Komplexität des Rechts](https://github.com/beckedorf/komplexitaet-des-rechts) ([Publication Release](https://doi.org/10.1628/978-3-16-164476-4-appendix))
 - [Legal Data Clustering](https://github.com/QuantLaw/legal-data-clustering) ([Latest Publication Release](https://doi.org/10.5281/zenodo.4070774))
 
@@ -23,6 +25,7 @@ Related Data:
 - [Preprocessed Input Data for *Sci. Rep.* **10** (2020)](https://doi.org/10.5281/zenodo.4070767)
 - [Preprocessed Input Data for *Measuring Law Over Time*, *Front. Phys.* **9:658463** (2021)](https://doi.org/10.5281/zenodo.4660133)
 - [Preprocessed Input Data for *Komplexität des Rechts*, Mohr Siebeck, to appear (2025)](https://doi.org/10.5281/zenodo.14298980)
+- [Preprocessed Input Data for *Law Smells*, *Artif Intell Law* **31**, 335–368 (2023)](https://doi.org/10.5281/zenodo.6468191)
 
 ## Setup
 
