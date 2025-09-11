@@ -9,7 +9,7 @@ This repository contains code to preprocess legal text documents.
 It is, inter alia, used to produce the results reported in the following publications:
 
 - Daniel Martin Katz, Corinna Coupette, Janis Beckedorf, and Dirk Hartung, Complex Societies and the Growth of the Law, *Sci. Rep.* **10** (2020), [https://doi.org/10.1038/s41598-020-73623-x](https://doi.org/10.1038/s41598-020-73623-x)
-- Corinna Coupette, Janis Beckedorf, Dirk Hartung, Michael Bommarito, and Daniel Martin Katz, Measuring Law Over Time, to appear (2021)
+- Corinna Coupette*, Janis Beckedorf*, Dirk Hartung, Michael Bommarito, and Daniel Martin Katz, Measuring Law Over Time, *Frontiers in Physics* **9** (2021), [https://doi.org/10.3389/fphy.2021.658463](https://doi.org/10.3389/fphy.2021.658463)
 
 Related Repositories:
 - [Complex Societies and the Growth of the Law](https://github.com/QuantLaw/Complex-Societies-and-Growth) ([Publication Release](https://doi.org/10.5281/zenodo.4070769))
